@@ -1,0 +1,21 @@
+#!/usr/bin/perl
+
+use strict;
+use lib 'lib';
+use DJabberd;
+use Getopt::Long;
+
+use vars qw($DEBUG);
+$DEBUG = 0;
+
+my ($daemonize);
+
+Getopt::Long::GetOptions(
+    'd|daemon'       => \$daemonize,
+    'debug=i'        => \$DEBUG,
+   );
+
+my $server = DJabberd->new(
+                           daemonize => $daemonize,
+                           );
+$server->run;
