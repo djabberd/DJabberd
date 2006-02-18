@@ -269,7 +269,7 @@ sub send_message {
     my $from_jid = $from->jid;
     my $my_jid   = $self->jid;
 
-    my $message_back = "<message type='chat' from='$from_jid'>" . $msg->innards_as_xml . "</message>";
+    my $message_back = "<message type='chat' to='$my_jid' from='$from_jid'>" . $msg->innards_as_xml . "</message>";
     warn "Message from $from_jid to $my_jid: $message_back\n";
     $self->write($message_back);
 }
@@ -659,7 +659,7 @@ sub as_xml {
         my $value = $attr->{$k};
         $k =~ s!^\{(.+)\}!!;
         my $ns = $1;
-        $attr_str .= " $k='" . main::exml($value) . "'";
+        $attr_str .= " $k='" . DJabberd::exml($value) . "'";
     }
 
     my $xmlns = $ns eq $def_ns ? "" : " xmlns='$ns'";
