@@ -288,6 +288,8 @@ RFC 3920                       XMPP Core                    October 2004
 
 3.2.  Domain Identifier
 
+{=domainid}
+
    The domain identifier is the primary identifier and is the only
    REQUIRED element of a JID (a mere domain identifier is a valid JID).
    It usually represents the network gateway or "primary" server to
