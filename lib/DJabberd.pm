@@ -14,8 +14,10 @@ use XML::SAX::Expat::Incremental 0.04;
 #use XML::XPath;
 #use XML::XPath::Builder;
 #use XML::Filter::Tee;
+use IO::Socket::SSL;
 use LWP::Simple;
 use Digest::SHA1 qw(sha1_hex);
+#use DJabberd::SSL;
 
 package DJabberd;
 use strict;
@@ -39,7 +41,7 @@ sub run {
     local $SIG{'PIPE'} = "IGNORE";  # handled manually
 
     # establish SERVER socket, bind and listen.
-    my $server = IO::Socket::INET->new(LocalPort => 5222,
+    my $server = IO::Socket::INET->new(LocalPort => 5222,  # {=clientportnumber}
                                        Type      => SOCK_STREAM,
                                        Proto     => IPPROTO_TCP,
                                        Blocking  => 0,
@@ -209,31 +211,55 @@ sub end_capturing {
     return $doc;
 }
 
-sub handle_packet {
+sub process_stanza {
     my ($self, $node) = @_;
 
     if ($node->element eq "{jabber:client}iq") {
         my $iq = XMPP::IQ->new($node);
-        return $self->handle_iq($iq);
+        return $self->process_iq($iq);
     }
 
     if ($node->element eq "{jabber:client}message") {
         my $iq = XMPP::Message->new($node);
-        return $self->handle_message($iq);
+        return $self->process_message($iq);
+    }
+
+    if ($node->element eq "{urn:ietf:params:xml:ns:xmpp-tls}starttls") {
+        return $self->process_starttls($node);;
     }
 
     warn "Unknown packet: " . Dumper($node);
     return;
 }
 
+use Symbol qw(gensym);
+
+sub process_starttls {
+    my ($self, $node) = @_;
+    $self->write("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls' />");
+    warn "socked pre-SSL is: $self->{sock}\n";
+    #my $rv = IO::Socket::SSL->start_SSL($self->{sock}); #, { SSL_verify_mode => 0x00 });
+
+    my $fileno = fileno $self->{sock};
+    warn "was fileno = $fileno\n";
+    #my $sym = gensym();
+    my $ssl = IO::Socket::SSL->new_from_fd($fileno);
+
+    warn " got ssl = $ssl, error = $@ / $!\n";
+    warn " fileno = ", fileno($ssl), "\n";
+
+#    my $tied = tie($sym, "DJabberd::SSL");
+#    warn "Started SSL with $self->{sock}, tied = $tied\n";
+}
+
 # from the JabberHandler
-sub handle_iq {
+sub process_iq {
     my ($self, $iq) = @_;
 
     foreach my $meth (
-                      \&handle_iq_getauth,
-                      \&handle_iq_setauth,
-                      \&handle_iq_getroster,
+                      \&process_iq_getauth,
+                      \&process_iq_setauth,
+                      \&process_iq_getroster,
                       ) {
         return if $meth->($self, $iq);
     }
@@ -248,7 +274,7 @@ sub jid {
     return $jid;
 }
 
-sub handle_message {
+sub process_message {
     my ($self, $msg) = @_;
 
     my $to = $msg->to;
@@ -274,7 +300,7 @@ sub send_message {
     $self->write($message_back);
 }
 
-sub handle_iq_getroster {
+sub process_iq_getroster {
     my ($self, $iq) = @_;
     # try and match this:
     # <iq type='get' id='gaim146ab72d'><query xmlns='jabber:iq:roster'/></iq>
@@ -309,7 +335,7 @@ sub handle_iq_getroster {
     return 1;
 }
 
-sub handle_iq_getauth {
+sub process_iq_getauth {
     my ($self, $iq) = @_;
     # try and match this:
     # <iq type='get' id='gaimf46fbc1e'><query xmlns='jabber:iq:auth'><username>brad</username></query></iq>
@@ -332,7 +358,7 @@ sub handle_iq_getauth {
     return 1;
 }
 
-sub handle_iq_setauth {
+sub process_iq_setauth {
     my ($self, $iq) = @_;
     # try and match this:
     # <iq type='set' id='gaimbb822399'><query xmlns='jabber:iq:auth'><username>brad</username><resource>work</resource><digest>ab2459dc7506d56247e2dc684f6e3b0a5951a808</digest></query></iq>
@@ -419,9 +445,17 @@ sub event_read {
 sub start_stream {
     my Client $self = shift;
     my $id = $self->{stream_id} = Digest::SHA1::sha1_hex(rand() . rand() . rand());
+
+    my $tls = "";
+    if (1) {
+        $tls = "<starttls xmsns='urn:ietf:params:xml:ns:xmpp-tls' />";
+    }
+
     my $rv = $self->write(qq{<?xml version="1.0" encoding="UTF-8"?>
                                  <stream:stream from="$self->{server_name}" id="$id" version="1.0" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client">
-                                 <stream:features></stream:features>
+                                 <stream:features>
+$tls
+ </stream:features>
                              });
     return;
 }
@@ -494,7 +528,7 @@ sub start_element {
     return $start_capturing->(sub {
         my ($doc, $events) = @_;
         my $nodes = _nodes_from_events($events);
-        $ds->handle_packet($nodes->[0]);
+        $ds->process_stanza($nodes->[0]);
     });
 
 }
@@ -700,7 +734,6 @@ sub query {
     my $self = shift;
     my $child = $self->first_element
         or return;
-    print "CHILD = $child\n";
     my $ele = $child->element
         or return;
     return undef unless $child->element =~ /\}query$/;
