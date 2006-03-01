@@ -18,6 +18,10 @@ use IO::Socket::SSL;
 use LWP::Simple;
 use Digest::SHA1 qw(sha1_hex);
 #use DJabberd::SSL;
+use DJabberd::SAXHandler;
+use DJabberd::JID;
+use DJabberd::IQ;
+use DJabberd::Message;
 
 package DJabberd;
 use strict;
@@ -136,7 +140,6 @@ use Danga::Socket;
 use base 'Danga::Socket';
 use fields (
             'jabberhandler',
-            'teehandler',
             'builder',
             'parser',
             'stream_id',
@@ -170,14 +173,9 @@ sub new {
     $self = fields::new($self) unless ref $self;
     $self->SUPER::new( @_ );
 
-    # FIXME: circular reference from self to jabberhandler to self
-    my $jabberhandler = $self->{'jabberhandler'} = JabberHandler->new($self);
+    # FIXME: circular reference from self to jabberhandler to self, use weakrefs
+    my $jabberhandler = $self->{'jabberhandler'} = DJabberd::SAXHandler->new($self);
 
-    #my $tee = $self->{'teehandler'} = XML::Filter::Tee->new(
-    #                                                        { Handler => $jabberhandler },
-    #                                                        );
-
-    #my $p = XML::SAX::Expat::Incremental->new( Handler => $tee );
     my $p = XML::SAX::Expat::Incremental->new( Handler => $jabberhandler );
     $self->{parser} = $p;
     $self->{server_name} = "207.7.148.210";
@@ -187,40 +185,16 @@ sub new {
     return $self;
 }
 
-sub start_capturing {
-    my Client $self = shift;
-    my $start_data  = shift;
-
-    my $tee = $self->{teehandler};
-    my $builder = $self->{'builder'} = XML::XPath::Builder->new;
-
-    # important for builder to go first!
-    $tee->set_handlers($builder, $self->{jabberhandler});
-
-    # can you do this?
-    $builder->start_document;
-    $builder->start_element($start_data);
-}
-
-sub end_capturing {
-    my Client $self = shift;
-
-    my $doc = $self->{builder}->end_document;
-    $self->{builder} = undef;
-    $self->{teehandler}->set_handlers($self->{jabberhandler});
-    return $doc;
-}
-
 sub process_stanza {
     my ($self, $node) = @_;
 
     if ($node->element eq "{jabber:client}iq") {
-        my $iq = XMPP::IQ->new($node);
+        my $iq = DJabberd::IQ->new($node);
         return $self->process_iq($iq);
     }
 
     if ($node->element eq "{jabber:client}message") {
-        my $iq = XMPP::Message->new($node);
+        my $iq = DJabberd::Message->new($node);
         return $self->process_message($iq);
     }
 
@@ -435,6 +409,8 @@ sub event_read {
         $p->parse_more($$bref);
     };
     if ($@) {
+        # FIXME: give them stream error before closing them,
+        # wait until they get the stream error written to them before closing
         print "disconnected $self because: $@\n";
         $self->close;
         return;
@@ -476,280 +452,6 @@ sub close {
 sub event_err { my $self = shift; $self->close; }
 sub event_hup { my $self = shift; $self->close; }
 
-
-package JabberHandler;
-use base qw(XML::SAX::Base);
-
-sub new {
-    my ($class, $client) = @_;
-    my $self = $class->SUPER::new;
-    $self->{"ds_client"} = $client;
-    $self->{"capture_depth"} = 0;  # on transition from 1 to 0, stop capturing
-    $self->{"on_end_capture"} = undef;  # undef or $subref->($doc)
-    $self->{"events"} = [];  # capturing events
-    return $self;
-}
-
-sub start_element {
-    my $self = shift;
-    my $data = shift;
-
-    if ($self->{capture_depth}) {
-        push @{$self->{events}}, ["start_element", $data];
-        $self->{capture_depth}++;
-        return;
-    }
-
-    my $ds = $self->{ds_client};
-
-    my $start_capturing = sub {
-        my $cb = shift;
-
-        $self->{"events"} = [];  # capturing events
-        $self->{capture_depth} = 1;
-
-        # capture via saving SAX events
-        push @{$self->{events}}, ["start_element", $data];
-
-        ## capture via XPath:
-        #$ds->start_capturing($data);
-
-        $self->{on_end_capture} = $cb;
-        return 1;
-    };
-
-    if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
-        $data->{LocalName} eq "stream") {
-
-        $ds->start_stream;
-        return;
-    }
-
-    return $start_capturing->(sub {
-        my ($doc, $events) = @_;
-        my $nodes = _nodes_from_events($events);
-        $ds->process_stanza($nodes->[0]);
-    });
-
-}
-
-sub characters {
-    my ($self, $data) = @_;
-
-    if ($self->{capture_depth}) {
-        push @{$self->{events}}, ["characters", $data];
-    }
-}
-
-sub end_element {
-    my ($self, $data) = @_;
-
-    if ($self->{capture_depth}) {
-        push @{$self->{events}}, ["end_element", $data];
-        $self->{capture_depth}--;
-        return if $self->{capture_depth};
-        my $doc = undef; #$self->{ds_client}->end_capturing;
-        if (my $cb = $self->{on_end_capture}) {
-            $cb->($doc, $self->{events});
-        }
-        return;
-    }
-
-    #print Dumper("END", $data);
-}
-
-sub _nodes_from_events {
-    my $evlist = shift;  # don't modify
-    #my $tree = ["namespace", "element", \%attr, [ <children>* ]]
-
-    my @events = @$evlist;  # our copy
-    my $nodelist = [];
-
-    my $handle_chars = sub {
-        my $ev = shift;
-        my $text = $ev->[1]{Data};
-        if (@$nodelist == 0 || ref $nodelist->[-1]) {
-            push @$nodelist, $text;
-        } else {
-            $nodelist->[-1] .= $text;
-        }
-    };
-
-    my $handle_element = sub {
-        my $ev = shift;
-        my $depth = 1;
-        my @children = ();
-        while (@events && $depth) {
-            my $child = shift @events;
-            push @children, $child;
-
-            if ($child->[0] eq "start_element") {
-                $depth++;
-                next;
-            } elsif ($child->[0] eq "end_element") {
-                $depth--;
-                next if $depth;
-                pop @children;  # this was our own element
-            }
-        }
-        die "Finished events without reaching depth 0!" if !@events && $depth;
-
-        my $ns = $ev->[1]{NamespaceURI};
-
-        # clean up the attributes from SAX
-        my $attr_sax = $ev->[1]{Attributes};
-        my $attr = {};
-        foreach my $key (keys %$attr_sax) {
-            my $val = $attr_sax->{$key}{Value};
-            my $fkey = $key;
-            if ($fkey =~ s!^\{\}!!) {
-                next if $fkey eq "xmlns";
-                $fkey = "{$ns}$fkey";
-            }
-            $attr->{$fkey} = $val;
-        }
-
-        my $localname = $ev->[1]{LocalName};
-        my $ele = XML::Element->new(["{$ns}$localname",
-                                     $attr,
-                                     _nodes_from_events(\@children)]);
-        push @$nodelist, $ele;
-    };
-
-    while (@events) {
-        my $ev = shift @events;
-        if ($ev->[0] eq "characters") {
-            $handle_chars->($ev);
-            next;
-        }
-
-        if ($ev->[0] eq "start_element") {
-            $handle_element->($ev);
-            next;
-        }
-
-        die "Unknown event in stream: $ev->[0]\n";
-    }
-    return $nodelist;
-}
-
-
-package XML::Element;
-
-use constant ELEMENT  => 0;
-use constant ATTRS    => 1;
-use constant CHILDREN => 2;
-
-sub new {
-    my ($class, $node) = @_;
-    return bless $node, $class;
-}
-
-sub children {
-    my $self = shift;
-    return @{ $self->[CHILDREN] };
-}
-
-sub first_child {
-    my $self = shift;
-    return @{ $self->[CHILDREN] } ? $self->[CHILDREN][0] : undef;
-}
-
-sub first_element {
-    my $self = shift;
-    foreach my $c (@{ $self->[CHILDREN] }) {
-        return $c if ref $c;
-    }
-    return undef;
-}
-
-sub attr {
-    return $_[0]->[ATTRS]{$_[1]};
-}
-
-sub attrs {
-    return $_[0]->[ATTRS];
-}
-
-sub element {
-    return $_[0]->[ELEMENT] unless wantarray;
-    my $el = $_[0]->[ELEMENT];
-    $el =~ /^\{(.+)\}(.+)/;
-    return ($1, $2);
-
-}
-
-sub as_xml {
-    my $self = shift;
-    my $nsmap = shift || {};  # localname -> uri, uri -> localname
-    my $def_ns = shift;
-
-    my ($ns, $el) = $self->element;
-
-    # FIXME: escaping
-    my $attr_str = "";
-    my $attr = $self->attrs;
-    foreach my $k (keys %$attr) {
-        my $value = $attr->{$k};
-        $k =~ s!^\{(.+)\}!!;
-        my $ns = $1;
-        $attr_str .= " $k='" . DJabberd::exml($value) . "'";
-    }
-
-    my $xmlns = $ns eq $def_ns ? "" : " xmlns='$ns'";
-    my $innards = $self->innards_as_xml($nsmap, $ns);
-    return length $innards ?
-        "<$el$xmlns$attr_str>$innards</$el>" :
-        "<$el$xmlns$attr_str/>";
-}
-
-sub innards_as_xml {
-    my $self = shift;
-    my $nsmap = shift || {};
-    my $def_ns = shift;
-
-    my $ret = "";
-    foreach my $c ($self->children) {
-        if (ref $c) {
-            $ret .= $c->as_xml($nsmap, $def_ns);
-        } else {
-            $ret .= $c;
-        }
-    }
-    return $ret;
-}
-
-package XMPP::IQ;
-use base 'XML::Element';
-
-sub id {
-    return $_[0]->attr("{jabber:client}id");
-}
-
-sub type {
-    return $_[0]->attr("{jabber:client}type");
-}
-
-sub query {
-    my $self = shift;
-    my $child = $self->first_element
-        or return;
-    my $ele = $child->element
-        or return;
-    return undef unless $child->element =~ /\}query$/;
-    return $child;
-}
-
-package XMPP::Message;
-use base 'XML::Element';
-
-sub to {
-     return $_[0]->attr("{jabber:client}to");
-}
-
-sub from {
-     return $_[0]->attr("{jabber:client}from");
-}
 
 # Local Variables:
 # mode: perl
