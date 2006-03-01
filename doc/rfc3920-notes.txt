@@ -258,6 +258,8 @@ RFC 3920                       XMPP Core                    October 2004
       sub-domain      = (internationalized domain label)
       address-literal = IPv4address / IPv6address
 
+      {=jidformat}
+
    All JIDs are based on the foregoing structure.  The most common use
    of this structure is to identify an instant messaging user, the
    server to which the user connects, and the user's connected resource
