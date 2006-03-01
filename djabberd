@@ -3,6 +3,8 @@
 use strict;
 use lib 'lib';
 use DJabberd;
+use DJabberd::Auth::AllowedUsers;
+use DJabberd::Auth::StaticPassword;
 use Getopt::Long;
 
 use vars qw($DEBUG);
@@ -17,5 +19,15 @@ Getopt::Long::GetOptions(
 
 my $server = DJabberd->new(
                            daemonize => $daemonize,
+                           auth_hooks => [
+                                          DJabberd::Auth::AllowedUsers->new(policy => "deny",
+                                                                            allowed => [qw(brad bradfitz bob test)]),
+                                          DJabberd::Auth::StaticPassword->new(password => "password"),
+                                          #DJabberd::Auth::LiveJournal->new(password => "password"),
+                                          ],
+#                           roster_hooks => [
+#                                            DJabberd::Roster::Mysql->new(host => "127.0.0.1",
+#                                                                         db => "djabberd_roster"),
+#                                            ],
                            );
 $server->run;

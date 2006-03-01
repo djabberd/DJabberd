@@ -22,6 +22,7 @@ use DJabberd::SAXHandler;
 use DJabberd::JID;
 use DJabberd::IQ;
 use DJabberd::Message;
+use Scalar::Util;
 
 package DJabberd;
 use strict;
@@ -29,7 +30,14 @@ use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
 
 sub new {
     my ($class, %opts) = @_;
-    return bless { %opts }, $class;
+
+    my $self = {
+        'daemonize' => delete $opts{daemonize},
+        'auth_hooks' => delete $opts{auth_hooks},
+    };
+    die "unknown opts" if %opts; #FIXME: better
+
+    return bless $self, $class;
 }
 
 sub debug {
@@ -67,7 +75,7 @@ sub run {
         IO::Handle::blocking($csock, 0);
         setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or die;
 
-        my $client = Client->new($csock);
+        my $client = Client->new($csock, $self);
         $client->watch_read(1);
     };
 
@@ -147,6 +155,7 @@ use fields (
             'username',   # username of user, once authenticated
             'resource',   # resource of user, once authenticated
             'server_name', # servername to send to user in stream header
+            'server',     # DJabberd server instance
             );
 
 my %jid2sock;  # bob@207.7.148.210/rez -> Client
@@ -169,9 +178,10 @@ sub register_client {
 use Data::Dumper;
 
 sub new {
-    my Client $self = shift;
-    $self = fields::new($self) unless ref $self;
-    $self->SUPER::new( @_ );
+    my ($class, $sock, $server) = @_;
+    my $self = $class->SUPER::new($sock);
+
+    warn "Server = $server\n";
 
     # FIXME: circular reference from self to jabberhandler to self, use weakrefs
     my $jabberhandler = $self->{'jabberhandler'} = DJabberd::SAXHandler->new($self);
@@ -180,9 +190,17 @@ sub new {
     $self->{parser} = $p;
     $self->{server_name} = "207.7.148.210";
 
+    $self->{server}   = $server;
+    Scalar::Util::weaken($self->{server});
+
     warn "CONNECTION from " . $self->peer_ip_string . " == $self\n";
 
     return $self;
+}
+
+sub server {
+    my $self = shift;
+    return $self->{'server'};
 }
 
 sub process_stanza {
@@ -326,7 +344,6 @@ sub process_iq_getauth {
 
     my $id = $iq->id;
 
-    warn "Said digest only for user $username.";
     $self->write("<iq id='$id' type='result'><query xmlns='jabber:iq:auth'><username>$username</username><digest/><resource/></query></iq>");
 
     return 1;
@@ -360,40 +377,83 @@ sub process_iq_setauth {
 
     return unless $username =~ /^\w+$/;
 
-    my $password_is_livejournal = sub {
-        my $good = LWP::Simple::get("http://www.livejournal.com/misc/jabber_digest.bml?user=" . $username . "&stream=" . $self->{stream_id});
-        chomp $good;
-        return $good eq $digest;
+    my @auth_hooks = @{ $self->server->{auth_hooks} };
 
+    my $accept = sub {
+        $self->{authed}   = 1;
+        $self->{username} = $username;
+        $self->{resource} = $resource;
+
+        # register
+        my $sname = $self->{server_name};
+        foreach my $jid ("$username\@$sname",
+                         "$username\@$sname/$resource") {
+            Client->register_client($jid, $self);
+        }
+
+        # FIXME: escape, or make $iq->send_good_result, or something
+        $self->write(qq{<iq id='$id' type='result' />});
+        return;
     };
 
-    my $password_is_password = sub {
-        my $good = Digest::SHA1::sha1_hex($self->{stream_id} . "password");
-        return $good eq $digest;
-    };
-
-    unless ($password_is_password->() ||
-            $password_is_livejournal->()) {
+    my $reject = sub {
         warn " BAD LOGIN!\n";
         # FIXME: FAIL
         return 1;
-    }
+    };
 
-    $self->{authed}   = 1;
-    $self->{username} = $username;
-    $self->{resource} = $resource;
+    my $try_another;
+    $try_another = sub {
 
-    # register
-    my $sname = $self->{server_name};
-    foreach my $jid ("$username\@$sname",
-                    "$username\@$sname/$resource") {
-        Client->register_client($jid, $self);
-    }
+        my $ah = shift @auth_hooks;
+        unless ($ah) {
+            $reject->();  # default policy if no auth hook responses accept
+            return;
+        }
 
-    # FIXME: escape, or make $iq->send_good_result, or something
-    $self->write(qq{<iq id='$id' type='result' />});
+        my $nullify_callback = 0;
+        my $callback_called  = 0;
+        # TODO: look into circular references on closures
+        warn "Calling check_auth on $ah...\n";
+        my $rv = $ah->check_auth($self, { username => $username, resource => $resource, digest => $digest },
+                                 sub {
+                                     return if $nullify_callback;
+                                     $callback_called = 1;
 
-    return 1;
+                                     my $answer = shift;
+                                     warn "  $ah called callback: $answer\n";
+
+                                     if ($answer eq "declined") {
+                                         $try_another->();
+                                     }
+                                     elsif ($answer eq "accept" || $answer eq "reject") {
+                                         $accept->() if $answer eq "accept";
+                                         $reject->() if $answer eq "reject";
+                                     } else {
+                                         Carp::croak("bogus response");
+                                       }
+                                 });
+
+        if (defined $rv && ! $callback_called) {
+            warn "  $ah returned: $rv\n";
+            $nullify_callback = 1;
+            $accept->() if $rv;
+            $reject->() unless $rv;
+        }
+    };
+    $try_another->();
+
+
+#    my $password_is_livejournal = sub {
+#        my $good = LWP::Simple::get("http://www.livejournal.com/misc/jabber_digest.bml?user=" . $username . "&stream=" . $self->{stream_id});
+#        chomp $good;
+#        return $good eq $digest;
+#    }
+
+#    my $password_is_password = sub {
+#        my $good = Digest::SHA1::sha1_hex($self->{stream_id} . "password");
+#        return $good eq $digest;
+#    };
 }
 
 # Client
