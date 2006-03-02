@@ -21,9 +21,9 @@ sub check_auth {
 
     if ($self->{'policy'} eq "deny") {
         if (grep { $user eq $_ } @{$self->{allowed}}) {
-            $cb->("declined");  # okay username, may continue in auth phase
+            $cb->decline;  # okay username, may continue in auth phase
         } else {
-            $cb->("deny");
+            $cb->reject;
         }
         return;
     }

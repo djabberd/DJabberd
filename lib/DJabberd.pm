@@ -22,6 +22,7 @@ use DJabberd::SAXHandler;
 use DJabberd::JID;
 use DJabberd::IQ;
 use DJabberd::Message;
+use DJabberd::Callback;
 use Scalar::Util;
 
 package DJabberd;
@@ -416,23 +417,18 @@ sub process_iq_setauth {
         # TODO: look into circular references on closures
         warn "Calling check_auth on $ah...\n";
         my $rv = $ah->check_auth($self, { username => $username, resource => $resource, digest => $digest },
-                                 sub {
-                                     return if $nullify_callback;
-                                     $callback_called = 1;
+                                 DJabberd::Callback->new(
+                                                         _pre    => sub {
+                                                             return if $nullify_callback;
+                                                             $callback_called = 1;
 
-                                     my $answer = shift;
-                                     warn "  $ah called callback: $answer\n";
-
-                                     if ($answer eq "declined") {
-                                         $try_another->();
-                                     }
-                                     elsif ($answer eq "accept" || $answer eq "reject") {
-                                         $accept->() if $answer eq "accept";
-                                         $reject->() if $answer eq "reject";
-                                     } else {
-                                         Carp::croak("bogus response");
-                                       }
-                                 });
+                                                             my ($self, $meth) = @_;
+                                                             warn "  $ah called callback: $meth\n";
+                                                         },
+                                                         decline => $try_another,
+                                                         accept => sub { $accept->() },
+                                                         reject => sub { $reject->() },
+                                                         ));
 
         if (defined $rv && ! $callback_called) {
             warn "  $ah returned: $rv\n";
