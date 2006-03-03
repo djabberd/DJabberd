@@ -19,6 +19,7 @@ Getopt::Long::GetOptions(
 
 my $server = DJabberd->new(
                            daemonize => $daemonize,
+                           s2s       => 1,
                            auth_hooks => [
                                           DJabberd::Auth::AllowedUsers->new(policy => "deny",
                                                                             allowed => [qw(brad crucially bradfitz bob test)]),

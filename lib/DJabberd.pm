@@ -42,6 +42,7 @@ sub new {
     my $self = {
         'daemonize' => delete $opts{daemonize},
         'auth_hooks' => delete $opts{auth_hooks},
+        's2s' => delete $opts{s2s},
     };
     die "unknown opts" if %opts; #FIXME: better
 
@@ -57,8 +58,16 @@ sub debug {
 sub run {
     my $self = shift;
     daemonize() if $self->{daemonize};
-
     local $SIG{'PIPE'} = "IGNORE";  # handled manually
+
+    $self->start_c2s_server();
+    $self->start_s2s_server() if $self->{s2s};
+
+    Danga::Socket->EventLoop();
+}
+
+sub start_c2s_server {
+    my $self = shift;
 
     # establish SERVER socket, bind and listen.
     my $server = IO::Socket::INET->new(LocalPort => 5222,  # {=clientportnumber}
@@ -68,6 +77,8 @@ sub run {
                                        Reuse     => 1,
                                        Listen    => 10 )
         or die "Error creating socket: $@\n";
+
+    warn "file of c2s = ", fileno($server), "\n";
 
     # Not sure if I'm crazy or not, but I can't see in strace where/how
     # Perl 5.6 sets blocking to 0 without this.  In Perl 5.8, IO::Socket::INET
@@ -87,8 +98,42 @@ sub run {
         $client->watch_read(1);
     };
 
-    Client->OtherFds(fileno($server) => $accept_handler);
-    Client->EventLoop();
+    Danga::Socket->AddOtherFds(fileno($server) => $accept_handler);
+}
+
+sub start_s2s_server {
+    my $self = shift;
+
+    # establish SERVER socket, bind and listen.
+    my $server = IO::Socket::INET->new(LocalPort => 5269,  # {=serverportnumber}
+                                       Type      => SOCK_STREAM,
+                                       Proto     => IPPROTO_TCP,
+                                       Blocking  => 0,
+                                       Reuse     => 1,
+                                       Listen    => 10 )
+        or die "Error creating socket: $@\n";
+
+    warn "file of s2s = ", fileno($server), "\n";
+
+    # Not sure if I'm crazy or not, but I can't see in strace where/how
+    # Perl 5.6 sets blocking to 0 without this.  In Perl 5.8, IO::Socket::INET
+    # obviously sets it from watching strace.
+    IO::Handle::blocking($server, 0);
+
+    my $accept_handler = sub {
+        my $csock = $server->accept();
+        return unless $csock;
+
+        $self->debug("Listen child making a Client for %d.\n", fileno($csock));
+
+        IO::Handle::blocking($csock, 0);
+        setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or die;
+
+        my $client = Client->new($csock, $self);
+        $client->watch_read(1);
+    };
+
+    Danga::Socket->AddOtherFds(fileno($server) => $accept_handler);
 }
 
 # <LJFUNC>
