@@ -21,7 +21,7 @@ my $server = DJabberd->new(
                            daemonize => $daemonize,
                            auth_hooks => [
                                           DJabberd::Auth::AllowedUsers->new(policy => "deny",
-                                                                            allowed => [qw(brad bradfitz bob test)]),
+                                                                            allowed => [qw(brad crucially bradfitz bob test)]),
                                           DJabberd::Auth::StaticPassword->new(password => "password"),
                                           #DJabberd::Auth::LiveJournal->new(password => "password"),
                                           ],

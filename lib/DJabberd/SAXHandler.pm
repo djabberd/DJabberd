@@ -64,6 +64,12 @@ sub characters {
 sub end_element {
     my ($self, $data) = @_;
 
+    if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
+        $data->{LocalName} eq "stream") {
+        $self->{ds_client}->end_stream;
+        return;
+    }
+
     if ($self->{capture_depth}) {
         push @{$self->{events}}, ["end_element", $data];
         $self->{capture_depth}--;

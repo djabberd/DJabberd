@@ -32,7 +32,6 @@ Net::SSLeay::randomize();
 
 $Net::SSLeay::ssl_version = 10; # Insist on TLSv1
 
-
 package DJabberd;
 use strict;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
@@ -184,7 +183,6 @@ sub register_client {
     $jid2sock{$jid} = $sock;
 }
 
-
 use Data::Dumper;
 
 sub new {
@@ -246,6 +244,9 @@ sub process_starttls {
     Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL)
         and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
 
+    Net::SSLeay::CTX_set_mode($ctx, 1)  # enable partial writes
+        and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
+
     # Following will ask password unless private key is not encrypted
     Net::SSLeay::CTX_use_RSAPrivateKey_file ($ctx, 'server-key.pem',
                                              &Net::SSLeay::FILETYPE_PEM);
@@ -272,10 +273,22 @@ sub process_starttls {
 
     $self->set_writer_func(sub {
         my ($bref, $to_write, $offset) = @_;
+
+        # we can't write a lot or we get some SSL non-blocking error
+        $to_write = 4096 if $to_write > 4096;
+
         my $str = substr($$bref, $offset, $to_write);
-        warn "Writing over SSL: $str\n";
+        warn "Writing over SSL (to_write=$to_write, off=$offset): $str\n";
         my $written = Net::SSLeay::write($ssl, $str);
         warn "  returned = $written\n";
+        if ($written == -1) {
+            my $err = Net::SSLeay::get_error($ssl, $written);
+            my $errstr = Net::SSLeay::ERR_error_string($err);
+            warn "err = $err, $errstr\n";
+            Net::SSLeay::print_errs("SSL_write");
+            die "we died writing\n";
+        }
+
         return $written;
     });
 
@@ -353,7 +366,7 @@ sub process_iq_getroster {
 
     my $items = "";
     my $friends = LWP::Simple::get("http://www.livejournal.com/misc/fdata.bml?user=" . $self->{username});
-    foreach my $line (split(/\n/, $friends)) {
+    foreach my $line (sort split(/\n/, $friends)) {
         next unless $line =~ m!> (\w+)!;
         my $fuser = $1;
         $items .= "<item jid='$fuser\@$self->{server_name}' name='$fuser' subscription='both'><group>Friends</group></item>\n";
@@ -556,6 +569,13 @@ $tls
     return;
 }
 
+sub end_stream {
+    my Client $self = shift;
+    $self->write("</stream:stream>");
+    $self->write(sub { $self->close; });
+    # TODO: unregister client from %jid2sock
+}
+
 sub event_write {
     my $self = shift;
     $self->watch_write(0) if $self->write(undef);
@@ -564,6 +584,11 @@ sub event_write {
 sub close {
     my Client $self = shift;
     print "DISCONNECT: $self\n";
+
+    if (my $ssl = $self->{ssl}) {
+        Net::SSLeay::free($ssl);
+    }
+
     $self->SUPER::close;
 }
 
