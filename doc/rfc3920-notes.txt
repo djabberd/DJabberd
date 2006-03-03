@@ -288,7 +288,7 @@ RFC 3920                       XMPP Core                    October 2004
 
 3.2.  Domain Identifier
 
-{=domainid}
+{=jid-domain}
 
    The domain identifier is the primary identifier and is the only
    REQUIRED element of a JID (a mere domain identifier is a valid JID).
@@ -311,6 +311,8 @@ RFC 3920                       XMPP Core                    October 2004
 
 3.3.  Node Identifier
 
+{=jid-node}
+
    The node identifier is an optional secondary identifier placed before
    the domain identifier and separated from the latter by the '@'
    character.  It usually represents the entity requesting and using
@@ -328,6 +330,8 @@ RFC 3920                       XMPP Core                    October 2004
    the Nodeprep profile to each identifier.
 
 3.4.  Resource Identifier
+
+{=jid-resource}
 
    The resource identifier is an optional tertiary identifier placed
    after the domain identifier and separated from the latter by the '/'
@@ -419,7 +423,7 @@ RFC 3920                       XMPP Core                    October 2004
       initiating entity to the receiving entity; in order to enable
       information exchange from the receiving entity to the initiating
       entity, the receiving entity MUST negotiate a stream in the
-      opposite direction (the "response stream").
+      opposite direction (the "response stream"). {=xml-stream}
 
    Definition of XML Stanza: An XML stanza is a discrete semantic unit
       of structured information that is sent from one entity to another
@@ -439,7 +443,7 @@ RFC 3920                       XMPP Core                    October 2004
       Layer Security (TLS) negotiation (Section 5), Simple
       Authentication and Security Layer (SASL) negotiation (Section 6),
       or server dialback (Section 8) is not considered to be an XML
-      stanza.
+      stanza. {=xml-stanza}
 
    Consider the example of a client's session with a server.  In order
    to connect to a server, a client MUST initiate an XML stream by
@@ -545,6 +549,8 @@ RFC 3920                       XMPP Core                    October 2004
    elements used for stream negotiation (e.g., elements used to
    negotiate Use of TLS (Section 5) or Use of SASL (Section 6)).
 
+   {=tls} {=sasl}
+
 4.4.  Stream Attributes
 
    The attributes of the stream element are as follows:
@@ -555,7 +561,7 @@ RFC 3920                       XMPP Core                    October 2004
       SHOULD NOT be a 'to' attribute set in the XML stream header by
       which the receiving entity replies to the initiating entity;
       however, if a 'to' attribute is included, it SHOULD be silently
-      ignored by the initiating entity.
+      ignored by the initiating entity. {=attribute-to}
 
 
 
@@ -566,8 +572,7 @@ RFC 3920                       XMPP Core                    October 2004
 Saint-Andre, Ed.            Standards Track                    [Page 10]
 
 RFC 3920                       XMPP Core                    October 2004
-
-
+   
    o  from -- The 'from' attribute SHOULD be used only in the XML stream
       header from the receiving entity to the initiating entity, and
       MUST be set to a hostname serviced by the receiving entity that is
@@ -575,7 +580,8 @@ RFC 3920                       XMPP Core                    October 2004
       'from' attribute on the XML stream header sent from the initiating
       entity to the receiving entity; however, if a 'from' attribute is
       included, it SHOULD be silently ignored by the receiving entity.
-
+      {=attribute-from}
+   
    o  id -- The 'id' attribute SHOULD be used only in the XML stream
       header from the receiving entity to the initiating entity.  This
       attribute is a unique identifier created by the receiving entity
@@ -588,6 +594,7 @@ RFC 3920                       XMPP Core                    October 2004
       attribute on the XML stream header sent from the initiating entity
       to the receiving entity; however, if an 'id' attribute is
       included, it SHOULD be silently ignored by the receiving entity.
+      {=attribute-id}
 
    o  xml:lang -- An 'xml:lang' attribute (as defined in Section 2.12 of
       [XML]) SHOULD be included by the initiating entity on the header
@@ -605,7 +612,7 @@ RFC 3920                       XMPP Core                    October 2004
       NOT modify or delete it (see also xml:lang (Section 9.1.5)).  The
       value of the 'xml:lang' attribute MUST be an NMTOKEN (as defined
       in Section 2.3 of [XML]) and MUST conform to the format defined in
-      RFC 3066 [LANGTAGS].
+      RFC 3066 [LANGTAGS]. {=xml-lang}
 
    o  version -- The presence of the version attribute set to a value of
       at least "1.0" signals support for the stream-related protocols
@@ -646,7 +653,7 @@ RFC 3920                       XMPP Core                    October 2004
    single digit.  Thus, "XMPP 2.4" would be a lower version than "XMPP
    2.13", which in turn would be lower than "XMPP 12.3".  Leading zeros
    (e.g., "XMPP 6.01") MUST be ignored by recipients and MUST NOT be
-   sent.
+   sent. {=version-format}
 
    The major version number should be incremented only if the stream and
    stanza formats or required actions have changed so dramatically that
@@ -661,7 +668,7 @@ RFC 3920                       XMPP Core                    October 2004
    attribute for message, presence, or IQ stanzas; the entity with the
    larger minor version number would simply note that its correspondent
    would not be able to understand that value of the 'type' attribute
-   and therefore would not send it.
+   and therefore would not send it. {=version-handling}
 
    The following rules apply to the generation and handling of the
    'version' attribute within stream headers by implementations:
@@ -707,7 +714,7 @@ RFC 3920                       XMPP Core                    October 2004
    and a default namespace declaration (as "namespace declaration" is
    defined in the XML namespaces specification [XML-NAMES]).  For
    detailed information regarding the streams namespace and default
-   namespace, see Namespace Names and Prefixes (Section 11.2).
+   namespace, see Namespace Names and Prefixes (Section 11.2). {=namespace}
 
 4.6.  Stream Features
 
@@ -727,7 +734,7 @@ RFC 3920                       XMPP Core                    October 2004
    before a non-security-related feature (e.g., Resource Binding) can be
    offered, the non-security-related feature SHOULD NOT be included in
    the stream features that are advertised before the relevant security
-   features have been negotiated.
+   features have been negotiated. {=stream-features}
 
 
 
@@ -751,7 +758,7 @@ RFC 3920                       XMPP Core                    October 2004
       therefore, if an error occurs at the level of the stream, the
       entity that detects the error MUST send a stream error to the
       other entity, send a closing </stream> tag, and terminate the
-      underlying TCP connection.
+      underlying TCP connection. {=stream-level-error}
 
    o  If the error occurs while the stream is being set up, the
       receiving entity MUST still send the opening <stream> tag, include
@@ -761,11 +768,11 @@ RFC 3920                       XMPP Core                    October 2004
       unknown host in the 'to' attribute (or provides no 'to' attribute
       at all), the server SHOULD provide the server's authoritative
       hostname in the 'from' attribute of the stream header sent before
-      termination.
+      termination. {=stream-setup-error}
 
 4.7.2.  Syntax
 
-   The syntax for stream errors is as follows:
+   The syntax for stream errors is as follows: {=stream-error-syntax}
 
    <stream:error>
      <defined-condition xmlns='urn:ietf:params:xml:ns:xmpp-streams'/>
@@ -813,7 +820,7 @@ RFC 3920                       XMPP Core                    October 2004
 
 4.7.3.  Defined Conditions
 
-   The following stream-level error conditions are defined:
+   The following stream-level error conditions are defined: {=stream-error-types}
 
    o  <bad-format/> -- the entity has sent XML that cannot be processed;
       this error MAY be used instead of the more specific XML-related
@@ -1081,7 +1088,7 @@ RFC 3920                       XMPP Core                    October 2004
    2.  If the TLS negotiation occurs between two servers, communications
        MUST NOT proceed until the Domain Name System (DNS) hostnames
        asserted by the servers have been resolved (see Server-to-Server
-       Communications (Section 14.4)).
+       Communications (Section 14.4)). {=tls-dns-check}
 
    3.  When a receiving entity that complies with this specification
        receives an initial stream header that includes the 'version'
@@ -1097,24 +1104,26 @@ RFC 3920                       XMPP Core                    October 2004
        information sent during SASL negotiation, as well as to make it
        possible to base the use of the SASL EXTERNAL mechanism on a
        certificate provided during prior TLS negotiation.
+       {=tls-before-sasl}
 
    5.  During TLS negotiation, an entity MUST NOT send any white space
        characters (matching production [3] content of [XML]) within the
        root stream element as separators between elements (any white
        space characters shown in the TLS examples below are included for
        the sake of readability only); this prohibition helps to ensure
-       proper security layer byte precision.
+       proper security layer byte precision. {=tls-no-spaces}
 
    6.  The receiving entity MUST consider the TLS negotiation to have
        begun immediately after sending the closing ">" character of the
        <proceed/> element.  The initiating entity MUST consider the TLS
        negotiation to have begun immediately after receiving the closing
        ">" character of the <proceed/> element from the receiving
-       entity.
+       entity. {=tls-start-marker}
 
    7.  The initiating entity MUST validate the certificate presented by
        the receiving entity; see Certificate Validation (Section 14.2)
        regarding certificate validation procedures.
+       {=tls-certificate-validation}
 
    8.  Certificates MUST be checked against the hostname as provided by
        the initiating entity (e.g., a user), not the hostname as
@@ -1142,18 +1151,19 @@ RFC 3920                       XMPP Core                    October 2004
    10. If the TLS negotiation is successful, the initiating entity MUST
        discard any knowledge obtained in an insecure manner from the
        receiving entity before TLS takes effect.
+       {=tls-discard-untrusted-info}
 
    11. If the TLS negotiation is successful, the receiving entity MUST
        NOT offer the STARTTLS extension to the initiating entity along
        with the other stream features that are offered when the stream
-       is restarted.
+       is restarted. {=tls-no-recursion}
 
    12. If the TLS negotiation is successful, the initiating entity MUST
-       continue with SASL negotiation.
+       continue with SASL negotiation. {=tls-requires-sasl}
 
    13. If the TLS negotiation results in failure, the receiving entity
        MUST terminate both the XML stream and the underlying TCP
-       connection.
+       connection. {=tls-failure-handling}
 
    14. See Mandatory-to-Implement Technologies (Section 14.7) regarding
        mechanisms that MUST be supported.
@@ -1480,11 +1490,11 @@ RFC 3920                       XMPP Core                    October 2004
    1.  If the SASL negotiation occurs between two servers,
        communications MUST NOT proceed until the Domain Name System
        (DNS) hostnames asserted by the servers have been resolved (see
-       Server-to-Server Communications (Section 14.4)).
+       Server-to-Server Communications (Section 14.4)). {=sasl-dns-first}
 
    2.  If the initiating entity is capable of SASL negotiation, it MUST
        include the 'version' attribute set to a value of at least "1.0"
-       in the initial stream header.
+       in the initial stream header. {=sasl-version-minimum}
 
    3.  If the receiving entity is capable of SASL negotiation, it MUST
        advertise one or more authentication mechanisms within a
@@ -1492,19 +1502,19 @@ RFC 3920                       XMPP Core                    October 2004
        'urn:ietf:params:xml:ns:xmpp-sasl' namespace in reply to the
        opening stream tag received from the initiating entity (if the
        opening stream tag included the 'version' attribute set to a
-       value of at least "1.0").
+       value of at least "1.0"). {=sasl-advertisement}
 
    4.  During SASL negotiation, an entity MUST NOT send any white space
        characters (matching production [3] content of [XML]) within the
        root stream element as separators between elements (any white
        space characters shown in the SASL examples below are included
        for the sake of readability only); this prohibition helps to
-       ensure proper security layer byte precision.
+       ensure proper security layer byte precision. {=sasl-no-spaces}
 
    5.  Any XML character data contained within the XML elements used
        during SASL negotiation MUST be encoded using base64, where the
        encoding adheres to the definition in Section 3 of RFC 3548
-       [BASE64].
+       [BASE64]. {=sasl-base64-xmlchardata}
 
    6.  If provision of a "simple username" is supported by the selected
        SASL mechanism (e.g., this is supported by the DIGEST-MD5 and
@@ -1523,6 +1533,7 @@ RFC 3920                       XMPP Core                    October 2004
        in the case of server-to-server communications or its registered
        account name (user or node name as contained in an XMPP node
        identifier) in the case of client-to-server communications.
+       {=sasl-sending-domain-as-user}
 
    7.  If the initiating entity wishes to act on behalf of another
        entity and the selected SASL mechanism supports transmission of
@@ -1537,7 +1548,7 @@ RFC 3920                       XMPP Core                    October 2004
        the value of the authorization identity MUST be of the form
        <domain> (i.e., a domain identifier only) for servers and of the
        form <node@domain> (i.e., node identifier and domain identifier)
-       for clients.
+       for clients. {=sasl-authz-identity}
 
    8.  Upon successful SASL negotiation that involves negotiation of a
        security layer, the receiving entity MUST discard any knowledge
@@ -1547,7 +1558,7 @@ RFC 3920                       XMPP Core                    October 2004
    9.  Upon successful SASL negotiation that involves negotiation of a
        security layer, the initiating entity MUST discard any knowledge
        obtained from the receiving entity which was not obtained from
-       the SASL negotiation itself.
+       the SASL negotiation itself. {=sasl-untrusted-info}
 
    10. See Mandatory-to-Implement Technologies (Section 14.7) regarding
        mechanisms that MUST be supported.
@@ -1669,7 +1680,7 @@ RFC 3920                       XMPP Core                    October 2004
    The profiling requirements of [SASL] require that the following
    information be supplied by a protocol definition:
 
-   service name: "xmpp"
+   service name: "xmpp" {=sasl-service-name}
 
    initiation sequence: After the initiating entity provides an opening
       XML stream header and the receiving entity replies in kind, the
@@ -1712,6 +1723,7 @@ RFC 3920                       XMPP Core                    October 2004
 6.4.  SASL Errors
 
    The following SASL-related error conditions are defined:
+   {=sasl-error-types}
 
    o  <aborted/> -- The receiving entity acknowledges an <abort/>
       element sent by the initiating entity; sent in reply to the
@@ -5045,3 +5057,5 @@ Acknowledgement
 
 Saint-Andre, Ed.            Standards Track                    [Page 90]
 
+
+vim: filetype=rfc
