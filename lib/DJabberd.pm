@@ -24,6 +24,14 @@ use DJabberd::IQ;
 use DJabberd::Message;
 use DJabberd::Callback;
 use Scalar::Util;
+use Net::SSLeay;
+
+Net::SSLeay::load_error_strings();
+Net::SSLeay::SSLeay_add_ssl_algorithms();   # Important!
+Net::SSLeay::randomize();
+
+$Net::SSLeay::ssl_version = 10; # Insist on TLSv1
+
 
 package DJabberd;
 use strict;
@@ -157,6 +165,7 @@ use fields (
             'resource',   # resource of user, once authenticated
             'server_name', # servername to send to user in stream header
             'server',     # DJabberd server instance
+            'ssl',        # undef when not in ssl mode, else the $ssl object from Net::SSLeay
             );
 
 my %jid2sock;  # bob@207.7.148.210/rez -> Client
@@ -230,19 +239,56 @@ use Symbol qw(gensym);
 sub process_starttls {
     my ($self, $node) = @_;
     $self->write("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls' />");
-    warn "socked pre-SSL is: $self->{sock}\n";
+
+    my $ctx = Net::SSLeay::CTX_new()
+        or die("Failed to create SSL_CTX $!");
+
+    Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL)
+        and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
+
+    # Following will ask password unless private key is not encrypted
+    Net::SSLeay::CTX_use_RSAPrivateKey_file ($ctx, 'server-key.pem',
+                                             &Net::SSLeay::FILETYPE_PEM);
+    Net::SSLeay::die_if_ssl_error("private key");
+
+    Net::SSLeay::CTX_use_certificate_file ($ctx, 'server-cert.pem',
+                                           &Net::SSLeay::FILETYPE_PEM);
+    Net::SSLeay::die_if_ssl_error("certificate");
+
+
+    my $ssl = Net::SSLeay::new($ctx) or die_now("Failed to create SSL $!");
+    $self->{ssl} = $ssl;
+
+    Net::SSLeay::set_verify($ssl, Net::SSLeay::VERIFY_PEER(), 0);
+
+    my $fileno = $self->{sock}->fileno;
+    warn "setting ssl ($ssl) fileno to $fileno\n";
+    Net::SSLeay::set_fd($ssl, $fileno);
+
+    $Net::SSLeay::trace = 2;
+
+    #Net::SSLeay::connect($ssl) or Net::SSLeay::die_now("Failed SSL connect ($!)");
+    my $err = Net::SSLeay::accept($ssl) and Net::SSLeay::die_if_ssl_error('ssl accept');
+
+    $self->set_writer_func(sub {
+        my ($bref, $to_write, $offset) = @_;
+        my $str = substr($$bref, $offset, $to_write);
+        warn "Writing over SSL: $str\n";
+        my $written = Net::SSLeay::write($ssl, $str);
+        warn "  returned = $written\n";
+        return $written;
+    });
+
+    #warn "socked pre-SSL is: $self->{sock}\n";
     #my $rv = IO::Socket::SSL->start_SSL($self->{sock}); #, { SSL_verify_mode => 0x00 });
-
-    my $fileno = fileno $self->{sock};
-    warn "was fileno = $fileno\n";
+    #my $fileno = fileno $self->{sock};
+    #warn "was fileno = $fileno\n";
     #my $sym = gensym();
-    my $ssl = IO::Socket::SSL->new_from_fd($fileno);
-
-    warn " got ssl = $ssl, error = $@ / $!\n";
-    warn " fileno = ", fileno($ssl), "\n";
-
-#    my $tied = tie($sym, "DJabberd::SSL");
-#    warn "Started SSL with $self->{sock}, tied = $tied\n";
+    #my $ssl = IO::Socket::SSL->new_from_fd($fileno);
+    #warn " got ssl = $ssl, error = $@ / $!\n";
+    #warn " fileno = ", fileno($ssl), "\n";
+    #  my $tied = tie($sym, "DJabberd::SSL");
+    # warn "Started SSL with $self->{sock}, tied = $tied\n";
 }
 
 # from the JabberHandler
@@ -456,7 +502,22 @@ sub process_iq_setauth {
 sub event_read {
     my Client $self = shift;
 
-    my $bref = $self->read(20_000);
+    my $bref;
+    if (my $ssl = $self->{ssl}) {
+        my $data = Net::SSLeay::read($ssl);
+
+        my $errs = Net::SSLeay::print_errs('SSL_read');
+        die "SSL Read error: $errs\n" if $errs;
+
+        # Net::SSLeays buffers internally, so if we didn't read anything, it's
+        # in its buffer
+        return unless length $data;
+        $bref = \$data;
+    } else {
+        # non-ssl mode:
+        $bref = $self->read(20_000);
+    }
+
     return $self->close unless defined $bref;
 
     my $p = $self->{parser};
@@ -478,8 +539,9 @@ sub start_stream {
     my Client $self = shift;
     my $id = $self->{stream_id} = Digest::SHA1::sha1_hex(rand() . rand() . rand());
 
+    # unless we're already in SSL mode, advertise it as a feature...
     my $tls = "";
-    if (1) {
+    unless ($self->{ssl}) {
         $tls = "<starttls xmsns='urn:ietf:params:xml:ns:xmpp-tls' />";
     }
 
