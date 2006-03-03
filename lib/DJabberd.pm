@@ -6,7 +6,7 @@
 
 use strict;
 use Carp;
-use Danga::Socket;
+use Danga::Socket 1.49;
 use IO::Socket::INET;
 use POSIX ();
 use XML::SAX ();
@@ -367,9 +367,9 @@ sub process_iq_getroster {
 </iq>
  };
 
-    warn "ROSTER FOR $self: {$roster_res}\n";
+    #warn "ROSTER FOR $self: {$roster_res}\n";
 
-    $self->write();
+    $self->write($roster_res);
 
     return 1;
 }
@@ -484,6 +484,8 @@ sub process_iq_setauth {
         }
     };
     $try_another->();
+
+    return 1;  # signal that we've handled it
 
 
 #    my $password_is_livejournal = sub {
