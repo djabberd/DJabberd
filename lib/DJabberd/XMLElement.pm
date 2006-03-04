@@ -4,6 +4,8 @@ use constant ELEMENT  => 0;
 use constant ATTRS    => 1;
 use constant CHILDREN => 2;
 
+use DJabberd::Util;
+
 sub new {
     my ($class, $node) = @_;
     return bless $node, $class;
@@ -57,7 +59,7 @@ sub as_xml {
         my $value = $attr->{$k};
         $k =~ s!^\{(.+)\}!!;
         my $ns = $1;
-        $attr_str .= " $k='" . DJabberd::exml($value) . "'";
+        $attr_str .= " $k='" . DJabberd::Util::exml($value) . "'";
     }
 
     my $xmlns = $ns eq $def_ns ? "" : " xmlns='$ns'";

@@ -14,6 +14,11 @@ sub desc {
     return $self;  # FIXME: change to "Callback defined at Djabberd.pm, line 23423"
 }
 
+sub already_fired {
+    my $self = shift;
+    return $self->{_has_been_called} ? 1 : 0;
+}
+
 sub AUTOLOAD {
     my $self = shift;
     my $meth = $AUTOLOAD;
@@ -21,6 +26,11 @@ sub AUTOLOAD {
 
     # ignore perl-generated methods
     return unless $meth =~ /[a-z]/;
+
+    if ($self->{_has_been_called}++) {
+        warn "Callback called twice.  ignoring.\n";
+        return;
+    }
 
     if (my $pre = $self->{_pre}) {
         $pre->($self, $meth, @_) or return;
