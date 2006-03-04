@@ -40,13 +40,21 @@ sub new {
     my ($class, %opts) = @_;
 
     my $self = {
-        'daemonize' => delete $opts{daemonize},
+        'daemonize'  => delete $opts{daemonize},
+        'plugins'    => delete $opts{plugins},
         'auth_hooks' => delete $opts{auth_hooks},
-        's2s' => delete $opts{s2s},
+        's2s'        => delete $opts{s2s},
     };
+
+    my $plugins = delete $opts{plugins};
     die "unknown opts" if %opts; #FIXME: better
 
-    return bless $self, $class;
+    bless $self, $class;
+
+    foreach my $pl (@{ $plugins || [] }) {
+        $self->add_plugin($pl);
+    }
+    return $self;
 }
 
 sub debug {
@@ -227,8 +235,6 @@ sub register_client {
     warn "REGISTERING $jid  ==> $sock\n";
     $jid2sock{$jid} = $sock;
 }
-
-use Data::Dumper;
 
 sub new {
     my ($class, $sock, $server) = @_;
