@@ -1,6 +1,11 @@
 package DJabberd::Message;
 use strict;
-use base qw(DJabberd::XMLElement);
+use base qw(DJabberd::Stanza);
+
+sub process {
+    my ($self, $conn) = @_;
+    $conn->process_message($self);
+}
 
 sub to {
     return $_[0]->attr("{jabber:client}to");

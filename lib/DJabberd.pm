@@ -14,6 +14,10 @@ use DJabberd::Callback;
 use Scalar::Util;
 use DJabberd::Connection;
 
+use DJabberd::Stanza::StartTLS;
+use DJabberd::IQ;
+use DJabberd::Message;
+
 package DJabberd;
 use strict;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
@@ -38,12 +42,36 @@ sub new {
         warn "  ... adding plugin: $pl\n";
         $self->add_plugin($pl);
     }
+
+    $self->register_default_plugins;
     return $self;
 }
 
 sub add_plugin {
     my ($self, $plugin) = @_;
     $plugin->register($self);
+}
+
+sub register_default_plugins {
+    my $self = shift;
+    my %stanzas = (
+                   "{jabber:client}iq"      => 'DJabberd::IQ',
+                   "{jabber:client}message" => 'DJabberd::Message',
+                   "{urn:ietf:params:xml:ns:xmlpp-tls}starttls" => 'DJabberd::Stanza::StartTLS',
+                   );
+
+    $self->register_hook("stanza", sub {
+        my ($conn, $cb, $node) = @_;
+        my $class = $stanzas{$node->element};
+        unless ($class) {
+            warn "Unknown/handled stanza: " . $node->element . "\n"; # TODO: this should be at END of hook chain
+            $cb->decline;
+            return;
+        }
+
+        my $obj = $class->new($node);
+        $obj->process($conn);
+    });
 }
 
 sub register_hook {

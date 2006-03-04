@@ -11,10 +11,7 @@ sub register {
     my ($self, $server) = @_;
     $server->register_hook("Auth", sub {
         warn "Auth.pm hook called with @_\n";
-        my ($conn, %opts) = @_;
-        my $cb   = $opts{'callback'};
-        my $args = $opts{'args'};
-        my $auth_info = $args->[0];
+        my ($conn, $cb, $auth_info) = @_;
 
         my $rv = $self->check_auth($conn, $auth_info, $cb);
         warn "  got rv = $rv\n";
