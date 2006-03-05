@@ -74,12 +74,14 @@ sub run_hook_chain {
     my $self = shift;
     my %opts = @_;
 
-    my $phase   = delete $opts{'phase'};
-    my $methods = delete $opts{'methods'} || {};
-    my $args    = delete $opts{'args'};
+    my $phase    = delete $opts{'phase'};
+    my $methods  = delete $opts{'methods'} || {};
+    my $args     = delete $opts{'args'};
+    my $fallback = delete $opts{'fallback'};
     die if %opts;
 
     my @hooks = @{ $self->{server}->{hooks}->{$phase} || [] };
+    push @hooks, $fallback if $fallback;
 
     my $try_another;
     my $stopper = sub {

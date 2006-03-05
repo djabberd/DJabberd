@@ -5,22 +5,21 @@ use base qw(DJabberd::Stanza);
 sub process {
     my ($self, $conn) = @_;
 
-#    $conn->run_hook_chain(phase => "iq",
-#                          args => [ $node ]);
-
-    foreach my $meth (
-                      \&process_iq_getauth,
-                      \&process_iq_setauth,
-                      ) {
-        return if $meth->($conn, $self);
-    }
-
-    warn "Unknown IQ packet: " . Data::Dumper::Dumper($self);
-
+    $conn->run_hook_chain(phase    => "iq",
+                          args     => [ $self ],
+                          fallback => sub {
+                              foreach my $meth (
+                                                \&process_iq_getauth,
+                                                \&process_iq_setauth,
+                                                ) {
+                                  return if $meth->($conn, $self);
+                              }
+                              warn "Unknown IQ packet: " . Data::Dumper::Dumper($self);
+                          });
 }
 
 sub process_iq_getauth {
-    my ($self, $iq) = @_;
+    my ($conn, $iq) = @_;
     # try and match this:
     # <iq type='get' id='gaimf46fbc1e'><query xmlns='jabber:iq:auth'><username>brad</username></query></iq>
     return 0 unless $iq->type eq "get";
@@ -36,13 +35,13 @@ sub process_iq_getauth {
 
     my $id = $iq->id;
 
-    $self->write("<iq id='$id' type='result'><query xmlns='jabber:iq:auth'><username>$username</username><digest/><resource/></query></iq>");
+    $conn->write("<iq id='$id' type='result'><query xmlns='jabber:iq:auth'><username>$username</username><digest/><resource/></query></iq>");
 
     return 1;
 }
 
 sub process_iq_setauth {
-    my ($self, $iq) = @_;
+    my ($conn, $iq) = @_;
     # try and match this:
     # <iq type='set' id='gaimbb822399'><query xmlns='jabber:iq:auth'><username>brad</username><resource>work</resource><digest>ab2459dc7506d56247e2dc684f6e3b0a5951a808</digest></query></iq>
     return 0 unless $iq->type eq "set";
@@ -70,19 +69,19 @@ sub process_iq_setauth {
     return unless $username =~ /^\w+$/;
 
     my $accept = sub {
-        $self->{authed}   = 1;
-        $self->{username} = $username;
-        $self->{resource} = $resource;
+        $conn->{authed}   = 1;
+        $conn->{username} = $username;
+        $conn->{resource} = $resource;
 
         # register
-        my $sname = $self->{server_name};
+        my $sname = $conn->{server_name};
         foreach my $jid ("$username\@$sname",
                          "$username\@$sname/$resource") {
-            DJabberd::Connection->register_client($jid, $self);
+            DJabberd::Connection->register_client($jid, $conn);
         }
 
         # FIXME: escape, or make $iq->send_good_result, or something
-        $self->write(qq{<iq id='$id' type='result' />});
+        $conn->write(qq{<iq id='$id' type='result' />});
         return;
     };
 
@@ -92,7 +91,7 @@ sub process_iq_setauth {
         return 1;
     };
 
-    $self->run_hook_chain(phase => "Auth",
+    $conn->run_hook_chain(phase => "Auth",
                           args  => [ { username => $username, resource => $resource, digest => $digest } ],
                           methods => {
                               accept => sub { $accept->() },
