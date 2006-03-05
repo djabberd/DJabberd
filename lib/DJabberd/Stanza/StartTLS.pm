@@ -53,13 +53,13 @@ sub process {
         $to_write = 4096 if $to_write > 4096;
 
         my $str = substr($$bref, $offset, $to_write);
-        warn "Writing over SSL (to_write=$to_write, off=$offset): $str\n";
+        #warn "Writing over SSL (to_write=$to_write, off=$offset): $str\n";
         my $written = Net::SSLeay::write($ssl, $str);
-        warn "  returned = $written\n";
+        #warn "  returned = $written\n";
         if ($written == -1) {
             my $err = Net::SSLeay::get_error($ssl, $written);
             my $errstr = Net::SSLeay::ERR_error_string($err);
-            warn "err = $err, $errstr\n";
+            warn " SSL write err = $err, $errstr\n";
             Net::SSLeay::print_errs("SSL_write");
             die "we died writing\n";
         }

@@ -156,7 +156,7 @@ sub event_read {
     return $self->close unless defined $bref;
 
     my $p = $self->{parser};
-    print "$self parsing more... [$$bref]\n";
+    #print "$self parsing more... [$$bref]\n";
     eval {
         $p->parse_more($$bref);
     };
@@ -167,7 +167,7 @@ sub event_read {
         $self->close;
         return;
     }
-    print "$self parsed\n";
+    #print "$self parsed\n";
 }
 
 sub start_stream {

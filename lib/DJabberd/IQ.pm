@@ -5,28 +5,34 @@ use base qw(DJabberd::Stanza);
 sub process {
     my ($self, $conn) = @_;
 
-    $conn->run_hook_chain(phase    => "iq",
+    my $handler = {
+        'get-{jabber:iq:roster}query' => \&process_iq_getroster,
+        'get-{jabber:iq:auth}query' => \&process_iq_getauth,
+        'set-{jabber:iq:auth}query' => \&process_iq_setauth,
+    };
+
+    $conn->run_hook_chain(phase    => "c2s-iq",
                           args     => [ $self ],
                           fallback => sub {
-                              foreach my $meth (
-                                                \&process_iq_getauth,
-                                                \&process_iq_setauth,
-                                                \&process_iq_getroster,
-                                                ) {
-                                  return if $meth->($conn, $self);
+                              my $sig = $self->signature;
+                              my $meth = $handler->{$sig};
+                              unless ($meth) {
+                                  warn "Unknown IQ packet: $sig";
+                                  return;
                               }
-                              warn "Unknown IQ packet: " . Data::Dumper::Dumper($self);
+                              $meth->($conn, $self);
                           });
+}
+
+sub signature {
+    my $iq = shift;
+    my $fc = $iq->first_child;
+    # FIXME: should signature ever get called on a bogus IQ packet?
+    return $iq->type . "-" . ($fc ? $fc->element : "(BOGUS)");
 }
 
 sub process_iq_getroster {
     my ($conn, $iq) = @_;
-    # try and match this:
-    # <iq type='get' id='gaim146ab72d'><query xmlns='jabber:iq:roster'/></iq>
-    return 0 unless $iq->type eq "get";
-    my $qry = $iq->first_element
-        or return;
-    return 0 unless $qry->element eq "{jabber:iq:roster}query";
 
     my $to = $conn->jid;
     my $id = $iq->id;
@@ -60,14 +66,11 @@ sub process_iq_getroster {
 
 sub process_iq_getauth {
     my ($conn, $iq) = @_;
-    # try and match this:
     # <iq type='get' id='gaimf46fbc1e'><query xmlns='jabber:iq:auth'><username>brad</username></query></iq>
-    return 0 unless $iq->type eq "get";
 
-    my $query = $iq->query
-        or return 0;
-    my $child = $query->first_element
+    my $child = $iq->query->first_element
         or return;
+
     return 0 unless $child->element eq "{jabber:iq:auth}username";
 
     my $username = $child->first_child;
@@ -82,13 +85,11 @@ sub process_iq_getauth {
 
 sub process_iq_setauth {
     my ($conn, $iq) = @_;
-    # try and match this:
     # <iq type='set' id='gaimbb822399'><query xmlns='jabber:iq:auth'><username>brad</username><resource>work</resource><digest>ab2459dc7506d56247e2dc684f6e3b0a5951a808</digest></query></iq>
-    return 0 unless $iq->type eq "set";
     my $id = $iq->id;
 
     my $query = $iq->query
-        or return 0;
+        or die;
     my @children = $query->children;
 
     my $get = sub {
@@ -134,9 +135,10 @@ sub process_iq_setauth {
     $conn->run_hook_chain(phase => "Auth",
                           args  => [ { username => $username, resource => $resource, digest => $digest } ],
                           methods => {
-                              accept => sub { $accept->() },
-                              reject => sub { $reject->() },
-                          });
+                              accept => $accept,
+                              reject => $reject,
+                          },
+                          fallback => $reject);
 
     return 1;  # signal that we've handled it
 }
