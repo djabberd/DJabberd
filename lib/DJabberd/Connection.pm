@@ -36,7 +36,7 @@ $Net::SSLeay::ssl_version = 10; # Insist on TLSv1
 my %jid2sock;  # bob@207.7.148.210/rez -> DJabberd::Connection
                # bob@207.7.148.210     -> DJabberd::Connection
 
-sub find_client {
+sub find_connection {
     my ($class, $jid) = @_;
     my $sock = $jid2sock{$jid} or return undef;
     return undef if $sock->{closed};
@@ -129,21 +129,6 @@ sub jid {
     my $jid = $self->{username} . '@' . $self->{server_name};
     $jid .= "/$self->{resource}" if $self->{resource};
     return $jid;
-}
-
-sub process_message {
-    my ($self, $msg) = @_;
-
-    my $to = $msg->to;
-    my $client = DJabberd::Connection->find_client($to);
-    warn "CLIENT of jid '$to' = $client\n";
-    if ($client) {
-        $client->send_message($self, $msg);
-    } else {
-        my $self_jid = $self->jid;
-        # FIXME: keep message body better
-        $self->write("<message from='$to' to='$self_jid' type='error'><x xmlns='jabber:x:event'><composing/></x><body>lost</body><html xmlns='http://jabber.org/protocol/xhtml-im'><body xmlns='http://www.w3.org/1999/xhtml'>lost</body></html><error code='404'>Not Found</error></message>");
-    }
 }
 
 sub send_message {
