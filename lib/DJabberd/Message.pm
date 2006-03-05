@@ -6,7 +6,7 @@ sub process {
     my ($self, $conn) = @_;
 
     my $to = $self->to;
-    my $dconn = DJabberd::Connection->find_connection($to);
+    my $dconn = $conn->server->find_jid($to);
     warn "CONN of jid '$to' = $conn\n";
     if ($dconn) {
         $dconn->send_message($conn, $self);

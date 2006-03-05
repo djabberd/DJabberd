@@ -25,21 +25,8 @@ use DJabberd::Message;
 
 use Data::Dumper;
 
-# local connections
-my %jid2sock;  # bob@207.7.148.210/rez -> DJabberd::Connection
-               # bob@207.7.148.210     -> DJabberd::Connection
-
-sub find_connection {
-    my ($class, $jid) = @_;
-    my $sock = $jid2sock{$jid} or return undef;
-    return undef if $sock->{closed};
-    return $sock;
-}
-
-sub register_client {
-    my ($class, $jid, $sock) = @_;
-    warn "REGISTERING $jid  ==> $sock\n";
-    $jid2sock{$jid} = $sock;
+sub server {
+    return $_[0]->{server};
 }
 
 sub new {

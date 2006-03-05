@@ -57,6 +57,24 @@ sub register_hook {
     push @{ $self->{hooks}{$phase} ||= [] }, $subref;
 }
 
+# local connections
+my %jid2sock;  # bob@207.7.148.210/rez -> DJabberd::Connection
+               # bob@207.7.148.210     -> DJabberd::Connection
+
+sub find_jid {
+    my ($class, $jid) = @_;
+    my $sock = $jid2sock{$jid} or return undef;
+    return undef if $sock->{closed};
+    return $sock;
+}
+
+sub register_jid {
+    my ($class, $jid, $sock) = @_;
+    warn "REGISTERING $jid  ==> $sock\n";
+    $jid2sock{$jid} = $sock;
+}
+
+
 sub debug {
     my $self = shift;
     return unless $self->{debug};
