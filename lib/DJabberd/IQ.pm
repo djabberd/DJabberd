@@ -11,11 +11,51 @@ sub process {
                               foreach my $meth (
                                                 \&process_iq_getauth,
                                                 \&process_iq_setauth,
+                                                \&process_iq_getroster,
                                                 ) {
                                   return if $meth->($conn, $self);
                               }
                               warn "Unknown IQ packet: " . Data::Dumper::Dumper($self);
                           });
+}
+
+sub process_iq_getroster {
+    my ($conn, $iq) = @_;
+    # try and match this:
+    # <iq type='get' id='gaim146ab72d'><query xmlns='jabber:iq:roster'/></iq>
+    return 0 unless $iq->type eq "get";
+    my $qry = $iq->first_element
+        or return;
+    return 0 unless $qry->element eq "{jabber:iq:roster}query";
+
+    my $to = $conn->jid;
+    my $id = $iq->id;
+
+    my $send_roster = sub {
+        my $body = shift;
+        my $roster_res = qq{
+            <iq to='$to' type='result' id='$id'>
+                <query xmlns='jabber:iq:roster'>
+                $body
+                </query>
+                </iq>
+            };
+        $conn->write($roster_res);
+    };
+
+    $conn->run_hook_chain(phase => "getroster",
+                          args => [ $iq ],
+                          methods => {
+                              set_roster_body => sub {
+                                  my ($self, $body) = @_;
+                                  $send_roster->($body);
+                              },
+                          },
+                          fallback => sub {
+                              $send_roster->("<item jid='xxxxx\@example.com' name='XXXXXXXXX' subscription='both'><group>Friends</group></item>\n");
+
+                          });
+    return 1;
 }
 
 sub process_iq_getauth {
