@@ -16,23 +16,16 @@ use fields (
 
 use XML::SAX ();
 use XML::SAX::Expat::Incremental 0.04;
+use Digest::SHA1 qw(sha1_hex);
+
 use DJabberd::SAXHandler;
 use DJabberd::JID;
 use DJabberd::IQ;
 use DJabberd::Message;
+
 use Data::Dumper;
 
-use Digest::SHA1 qw(sha1_hex);
-use Net::SSLeay;
-Net::SSLeay::load_error_strings();
-Net::SSLeay::SSLeay_add_ssl_algorithms();   # Important!
-Net::SSLeay::randomize();
-
-# TODO: move this to a plugin;
-use LWP::Simple;
-
-$Net::SSLeay::ssl_version = 10; # Insist on TLSv1
-
+# local connections
 my %jid2sock;  # bob@207.7.148.210/rez -> DJabberd::Connection
                # bob@207.7.148.210     -> DJabberd::Connection
 
@@ -126,7 +119,7 @@ sub process_stanza {
                               my ($conn, $cb, $node) = @_;
                               my $class = $stanzas{$node->element};
                               unless ($class) {
-                                  warn "Unknown/handled stanza: " . $node->element . "\n"; # TODO: this should be at END of hook chain
+                                  warn "Unknown/handled stanza: " . $node->element . "\n";
                                   $cb->decline;
                                   return;
                               }

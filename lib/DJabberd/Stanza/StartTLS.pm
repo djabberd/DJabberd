@@ -1,6 +1,12 @@
 package DJabberd::Stanza::StartTLS;
 use strict;
 use base qw(DJabberd::Stanza);
+use Net::SSLeay;
+
+Net::SSLeay::load_error_strings();
+Net::SSLeay::SSLeay_add_ssl_algorithms();
+Net::SSLeay::randomize();
+$Net::SSLeay::ssl_version = 10; # Insist on TLSv1
 
 sub process {
     my ($self, $conn) = @_;
