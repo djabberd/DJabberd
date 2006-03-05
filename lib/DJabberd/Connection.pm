@@ -114,8 +114,26 @@ sub server {
 # called by DJabberd::SAXHandler
 sub process_stanza {
     my ($self, $node) = @_;
+    my %stanzas = (
+                   "{jabber:client}iq"      => 'DJabberd::IQ',
+                   "{jabber:client}message" => 'DJabberd::Message',
+                   "{urn:ietf:params:xml:ns:xmpp-tls}starttls" => 'DJabberd::Stanza::StartTLS',
+                   );
+
     $self->run_hook_chain(phase => "stanza",
-                          args => [ $node ]);
+                          args => [ $node ],
+                          fallback => sub {
+                              my ($conn, $cb, $node) = @_;
+                              my $class = $stanzas{$node->element};
+                              unless ($class) {
+                                  warn "Unknown/handled stanza: " . $node->element . "\n"; # TODO: this should be at END of hook chain
+                                  $cb->decline;
+                                  return;
+                              }
+
+                              my $obj = $class->new($node);
+                              $obj->process($conn);
+                          });
 }
 
 sub jid {
