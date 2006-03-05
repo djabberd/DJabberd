@@ -79,7 +79,7 @@ sub innards_as_xml {
         if (ref $c) {
             $ret .= $c->as_xml($nsmap, $def_ns);
         } else {
-            $ret .= $c;
+            $ret .= DJabberd::Util::exml($c);
         }
     }
     return $ret;

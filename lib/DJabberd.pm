@@ -57,7 +57,7 @@ sub register_default_plugins {
     my %stanzas = (
                    "{jabber:client}iq"      => 'DJabberd::IQ',
                    "{jabber:client}message" => 'DJabberd::Message',
-                   "{urn:ietf:params:xml:ns:xmlpp-tls}starttls" => 'DJabberd::Stanza::StartTLS',
+                   "{urn:ietf:params:xml:ns:xmpp-tls}starttls" => 'DJabberd::Stanza::StartTLS',
                    );
 
     $self->register_hook("stanza", sub {

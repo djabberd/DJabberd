@@ -118,12 +118,6 @@ sub process_stanza {
                           args => [ $node ]);
 }
 
-# from the JabberHandler
-sub process_iq {
-    my ($self, $iq) = @_;
-
-}
-
 sub jid {
     my $self = shift;
     my $jid = $self->{username} . '@' . $self->{server_name};
@@ -138,7 +132,6 @@ sub send_message {
     my $my_jid   = $self->jid;
 
     my $message_back = "<message type='chat' to='$my_jid' from='$from_jid'>" . $msg->innards_as_xml . "</message>";
-    warn "Message from $from_jid to $my_jid: $message_back\n";
     $self->write($message_back);
 }
 

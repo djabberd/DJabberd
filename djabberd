@@ -22,7 +22,7 @@ my $server = DJabberd->new(
                            s2s       => 1,
                            plugins   => [
                                          DJabberd::Auth::AllowedUsers->new(policy => "deny",
-                                                                           allowed => [qw(brad crucially bradfitz bob test)]),
+                                                                           allowed => [qw(brad daveman692 crucially bradfitz bob test revmischa)]),
                                          DJabberd::Auth::StaticPassword->new(password => "password"),
                                          ],
 #                           roster_hooks => [
