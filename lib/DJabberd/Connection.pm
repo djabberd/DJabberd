@@ -5,13 +5,13 @@ use fields (
             'jabberhandler',
             'builder',
             'parser',
-            'stream_id',
             'authed',     # bool, if authenticated
             'username',   # username of user, once authenticated
             'resource',   # resource of user, once authenticated
             'server_name', # servername to send to user in stream header
             'server',     # DJabberd server instance
             'ssl',        # undef when not in ssl mode, else the $ssl object from Net::SSLeay
+            'stream_id',  # undef until set first time
             );
 
 use XML::SAX ();
@@ -48,6 +48,11 @@ sub new {
     warn "CONNECTION from " . $self->peer_ip_string . " == $self\n";
 
     return $self;
+}
+
+sub stream_id {
+    my $self = shift;
+    return $self->{stream_id} ||= Digest::SHA1::sha1_hex(rand() . rand() . rand());
 }
 
 sub run_hook_chain {
@@ -94,26 +99,31 @@ sub server {
 # called by DJabberd::SAXHandler
 sub process_stanza {
     my ($self, $node) = @_;
+
+    $self->run_hook_chain(phase => "stanza",
+                          args => [ $node ],
+                          fallback => sub {
+                              $conn->process_stanza_builtin($node);
+                          });
+}
+
+sub process_stanza_builtin {
+    my ($self, $node) = @_;
+
     my %stanzas = (
                    "{jabber:client}iq"      => 'DJabberd::IQ',
                    "{jabber:client}message" => 'DJabberd::Message',
                    "{urn:ietf:params:xml:ns:xmpp-tls}starttls" => 'DJabberd::Stanza::StartTLS',
                    );
 
-    $self->run_hook_chain(phase => "stanza",
-                          args => [ $node ],
-                          fallback => sub {
-                              my ($conn, $cb, $node) = @_;
-                              my $class = $stanzas{$node->element};
-                              unless ($class) {
-                                  warn "Unknown/handled stanza: " . $node->element . "\n";
-                                  $cb->decline;
-                                  return;
-                              }
+    my $class = $stanzas{$node->element};
+    unless ($class) {
+        warn "Unknown/handled stanza: " . $node->element . "\n";
+        return;
+    }
 
-                              my $obj = $class->new($node);
-                              $obj->process($conn);
-                          });
+    my $obj = $class->new($node);
+    $obj->process($conn);
 }
 
 sub jid {
@@ -156,7 +166,7 @@ sub event_read {
     return $self->close unless defined $bref;
 
     my $p = $self->{parser};
-    #print "$self parsing more... [$$bref]\n";
+    print "$self parsing more... [$$bref]\n";
     eval {
         $p->parse_more($$bref);
     };
@@ -167,12 +177,12 @@ sub event_read {
         $self->close;
         return;
     }
-    #print "$self parsed\n";
+    print "$self parsed\n";
 }
 
 sub start_stream {
     my DJabberd::Connection $self = shift;
-    my $id = $self->{stream_id} = Digest::SHA1::sha1_hex(rand() . rand() . rand());
+    my $id = $self->stream_id;
 
     # unless we're already in SSL mode, advertise it as a feature...
     my $tls = "";
@@ -184,8 +194,8 @@ sub start_stream {
                                  <stream:stream from="$self->{server_name}" id="$id" version="1.0" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client">
                                  <stream:features>
 $tls
- </stream:features>
-                             });
+</stream:features>});
+
     return;
 }
 

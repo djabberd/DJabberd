@@ -13,6 +13,7 @@ use POSIX ();
 use DJabberd::Callback;
 use Scalar::Util;
 use DJabberd::Connection;
+use DJabberd::Connection::ServerIn;
 
 use DJabberd::Stanza::StartTLS;
 use DJabberd::IQ;
@@ -155,7 +156,7 @@ sub start_s2s_server {
         IO::Handle::blocking($csock, 0);
         setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or die;
 
-        my $client = DJabberd::Connection->new($csock, $self);
+        my $client = DJabberd::Connection::ServerIn->new($csock, $self);
         $client->watch_read(1);
     };
 

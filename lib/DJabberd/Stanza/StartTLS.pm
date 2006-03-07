@@ -6,7 +6,6 @@ use Net::SSLeay;
 Net::SSLeay::load_error_strings();
 Net::SSLeay::SSLeay_add_ssl_algorithms();
 Net::SSLeay::randomize();
-$Net::SSLeay::ssl_version = 10; # Insist on TLSv1
 
 sub process {
     my ($self, $conn) = @_;
@@ -15,6 +14,9 @@ sub process {
 
     my $ctx = Net::SSLeay::CTX_new()
         or die("Failed to create SSL_CTX $!");
+
+    $Net::SSLeay::ssl_version = 10; # Insist on TLSv1
+    #$Net::SSLeay::ssl_version = 3; # Insist on SSLv3
 
     Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL)
         and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
@@ -35,7 +37,7 @@ sub process {
     my $ssl = Net::SSLeay::new($ctx) or die_now("Failed to create SSL $!");
     $conn->{ssl} = $ssl;
 
-    Net::SSLeay::set_verify($ssl, Net::SSLeay::VERIFY_PEER(), 0);
+#    Net::SSLeay::set_verify($ssl, Net::SSLeay::VERIFY_PEER(), 0);
 
     my $fileno = $conn->{sock}->fileno;
     warn "setting ssl ($ssl) fileno to $fileno\n";
@@ -44,7 +46,11 @@ sub process {
     $Net::SSLeay::trace = 2;
 
     #Net::SSLeay::connect($ssl) or Net::SSLeay::die_now("Failed SSL connect ($!)");
+
     my $err = Net::SSLeay::accept($ssl) and Net::SSLeay::die_if_ssl_error('ssl accept');
+    warn "SSL accept err = $err\n";
+
+    warn "$conn:  Cipher `" . Net::SSLeay::get_cipher($ssl) . "'\n";
 
     $conn->set_writer_func(sub {
         my ($bref, $to_write, $offset) = @_;
