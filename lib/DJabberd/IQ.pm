@@ -115,7 +115,7 @@ sub process_iq_setauth {
         $conn->{resource} = $resource;
 
         # register
-        my $sname = $conn->{server_name};
+        my $sname = $conn->server->name;
         foreach my $jid ("$username\@$sname",
                          "$username\@$sname/$resource") {
             $conn->server->register_jid($jid, $conn);
