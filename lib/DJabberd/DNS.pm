@@ -105,9 +105,11 @@ sub event_read_srv {
     } grep { ref $_ eq "Net::DNS::RR::SRV"} @ans;
 
     unless (@targets) {
-        # no result
+        # no result, fallback to an A lookup
         $self->close;
-        $cb->(undef);
+        DJabberd::DNS->new(hostname => $self->{hostname},
+                           callback => $cb);
+        return;
     }
 
     # FIXME:  we only do the first target now.  should do a chain.
