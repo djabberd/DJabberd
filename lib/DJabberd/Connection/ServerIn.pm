@@ -6,6 +6,7 @@ use DJabberd::Stanza::DialbackResult;
 
 sub start_stream {
     my DJabberd::Connection $self = shift;
+    my $sax_data = shift;
 
     # unless we're already in SSL mode, advertise it as a feature...
     my $tls = "";
@@ -13,13 +14,17 @@ sub start_stream {
         $tls = "<starttls xmsns='urn:ietf:params:xml:ns:xmpp-tls' />";
     }
 
+    my $features = "";
+    my $dialback_attr = $sax_data->{Attributes}{"http://www.w3.org/2000/xmlns/}db"};
+    unless ($dialback_attr && $dialback_attr->{Value} eq "jabber:server:dialback") {
+        $features = qq{<stream:features>$tls</stream:features>};
+    }
+
+    warn "Got an incoming stream.  sending features? " . ($features ? "yes" : "no") . "\n";
+
     my $id = $self->stream_id;
     my $sname = $self->server->name;
-    my $rv = $self->write(qq{<?xml version="1.0" encoding="UTF-8"?>
-                                 <stream:stream from="$sname" id="$id" version="1.0" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:server" xmlns:db='jabber:server:dialback'>
-                                 <stream:features>
-$tls
-</stream:features>});
+    my $rv = $self->write(qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream from="$sname" id="$id" version="1.0" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:server" xmlns:db='jabber:server:dialback'>$features});
 
     return;
 }

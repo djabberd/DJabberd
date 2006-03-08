@@ -30,15 +30,16 @@ sub process {
                                            },
                                            );
     # async DNS lookup
-    DJabberd::DNS->new(
-                       hostname => $from,
+    DJabberd::DNS->srv(service  => "_xmpp-server._tcp",
+                       domain   => $from,
                        callback => sub {
-                           my $ip = shift;
-                           unless ($ip) {
+                           my @ips = @_;
+                           unless (@ips) {
                                # FIXME: send something better
                                die "No resolved IP";
                            }
 
+                           my $ip = shift @ips;
                            DJabberd::Connection::DialbackVerify->new($ip, $conn, $self, $final_cb);
                        });
 }

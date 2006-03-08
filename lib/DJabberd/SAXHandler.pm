@@ -41,7 +41,7 @@ sub start_element {
     if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
         $data->{LocalName} eq "stream") {
 
-        $ds->start_stream;
+        $ds->start_stream($data);
         return;
     }
 
