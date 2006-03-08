@@ -18,6 +18,7 @@ Getopt::Long::GetOptions(
    );
 
 my $server = DJabberd->new(
+                           server_name => '207.7.148.210',
                            daemonize => $daemonize,
                            s2s       => 1,
                            plugins   => [

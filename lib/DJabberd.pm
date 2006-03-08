@@ -27,10 +27,11 @@ sub new {
     my ($class, %opts) = @_;
 
     my $self = {
-        'daemonize'  => delete $opts{daemonize},
-        'auth_hooks' => delete $opts{auth_hooks},
-        's2s'        => delete $opts{s2s},
-        'hooks'      => {},
+        'server_name' => delete $opts{server_name},
+        'daemonize'   => delete $opts{daemonize},
+        'auth_hooks'  => delete $opts{auth_hooks},
+        's2s'         => delete $opts{s2s},
+        'hooks'       => {},
     };
 
     my $plugins = delete $opts{plugins};
@@ -45,6 +46,12 @@ sub new {
     }
 
     return $self;
+}
+
+sub name {
+    my $self = shift;
+    return $self->{server_name} || die "No server name configured.";
+    # FIXME: try to determine it
 }
 
 sub add_plugin {

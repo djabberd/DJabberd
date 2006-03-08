@@ -8,7 +8,6 @@ use fields (
             'authed',     # bool, if authenticated
             'username',   # username of user, once authenticated
             'resource',   # resource of user, once authenticated
-            'server_name', # servername to send to user in stream header
             'server',     # DJabberd server instance
             'ssl',        # undef when not in ssl mode, else the $ssl object from Net::SSLeay
             'stream_id',  # undef until set first time
@@ -40,7 +39,6 @@ sub new {
 
     my $p = XML::SAX::Expat::Incremental->new( Handler => $jabberhandler );
     $self->{parser} = $p;
-    $self->{server_name} = "207.7.148.210";
 
     $self->{server}   = $server;
     Scalar::Util::weaken($self->{server});
@@ -103,7 +101,7 @@ sub process_stanza {
     $self->run_hook_chain(phase => "stanza",
                           args => [ $node ],
                           fallback => sub {
-                              $conn->process_stanza_builtin($node);
+                              $self->process_stanza_builtin($node);
                           });
 }
 
@@ -123,12 +121,12 @@ sub process_stanza_builtin {
     }
 
     my $obj = $class->new($node);
-    $obj->process($conn);
+    $obj->process($self);
 }
 
 sub jid {
     my $self = shift;
-    my $jid = $self->{username} . '@' . $self->{server_name};
+    my $jid = $self->{username} . '@' . $self->server->name;
     $jid .= "/$self->{resource}" if $self->{resource};
     return $jid;
 }
@@ -190,8 +188,9 @@ sub start_stream {
         $tls = "<starttls xmsns='urn:ietf:params:xml:ns:xmpp-tls' />";
     }
 
+    my $sname = $self->server->name;
     my $rv = $self->write(qq{<?xml version="1.0" encoding="UTF-8"?>
-                                 <stream:stream from="$self->{server_name}" id="$id" version="1.0" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client">
+                                 <stream:stream from="$sname" id="$id" version="1.0" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client">
                                  <stream:features>
 $tls
 </stream:features>});

@@ -14,8 +14,9 @@ sub start_stream {
     }
 
     my $id = $self->stream_id;
+    my $sname = $self->server->name;
     my $rv = $self->write(qq{<?xml version="1.0" encoding="UTF-8"?>
-                                 <stream:stream from="$self->{server_name}" id="$id" version="1.0" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:server" xmlns:db='jabber:server:dialback'>
+                                 <stream:stream from="$sname" id="$id" version="1.0" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:server" xmlns:db='jabber:server:dialback'>
                                  <stream:features>
 $tls
 </stream:features>});
@@ -36,7 +37,7 @@ sub process_stanza_builtin {
     }
 
     my $obj = $class->new($node);
-    $obj->process($conn);
+    $obj->process($self);
 }
 
 
