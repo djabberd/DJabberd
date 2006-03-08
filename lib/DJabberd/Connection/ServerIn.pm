@@ -15,7 +15,7 @@ sub start_stream {
     }
 
     my $features = "";
-    my $dialback_attr = $sax_data->{Attributes}{"http://www.w3.org/2000/xmlns/}db"};
+    my $dialback_attr = $sax_data->{Attributes}{"{http://www.w3.org/2000/xmlns/}db"};
     unless ($dialback_attr && $dialback_attr->{Value} eq "jabber:server:dialback") {
         $features = qq{<stream:features>$tls</stream:features>};
     }
