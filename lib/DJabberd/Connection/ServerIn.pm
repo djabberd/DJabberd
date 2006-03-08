@@ -40,6 +40,23 @@ sub process_stanza_builtin {
     $obj->process($self);
 }
 
+sub dialback_verify_valid {
+    my $self = shift;
+    my %opts = @_;
+
+    my $res = qq{<db:result from='$opts{from}' to='$opts{to}' type='valid'/>};
+    warn "Dialback verify valid for $self.  from=$opts{from}, to=$opts{to}: $res\n";
+    $self->write($res);
+}
+
+sub dialback_verify_invalid {
+    my ($self, $reason) = @_;
+    warn "Dialback verify invalid for $self, reason: $reason\n";
+    # TODO: do something better:
+    #  If the connection is invalid, then the Receiving Server MUST terminate both the XML stream and the underlying TCP connection.
+    # $self->terminate_stream;
+    $self->close;
+}
 
 
 1;

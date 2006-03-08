@@ -20,34 +20,29 @@ sub process {
         die "bogus 'to' address'";
     }
 
+    my $final_cb = DJabberd::Callback->new(
+                                           pass => sub {
+                                               $conn->dialback_verify_valid(from => $from, to => $to);
+                                           },
+                                           fail => sub {
+                                               my ($self_cb, $reason) = @_;
+                                               $conn->dialback_verify_invalid($reason);;
+                                           },
+                                           );
     # async DNS lookup
     DJabberd::DNS->new(
                        hostname => $from,
                        callback => sub {
                            my $ip = shift;
-                           warn "callback called w/ ip= $ip\n";
-                           $self->process_given_host_and_ip($from, $ip);
+                           unless ($ip) {
+                               # FIXME: send something better
+                               die "No resolved IP";
+                           }
+
+                           DJabberd::Connection::DialbackVerify->new($ip, $conn, $self, $final_cb);
                        });
 }
 
-sub process_given_host_and_ip {
-    my ($self, $fromname, $fromip) = @_;
-
-    unless ($fromip) {
-        # FIXME: send something better
-        die "No resolved IP";
-    }
-
-    # TODO: decide if we trust fromip
-    warn "dialback result from: $fromname [$fromip]\n";
-
-    my $callback = DJabberd::Callback->new(error => sub {},
-                                           good => sub {},
-                                           bad => sub {});
-
-    #DJabberd::Connection::DialbackVerify->new($sock, $callback);
-
-}
 
 sub dialback_to {
     my $self = shift;
@@ -59,5 +54,9 @@ sub dialback_from {
     return $self->attr("{jabber:server:dialback}from");
 }
 
+sub result_text {
+    my $self = shift;
+    return $self->first_child;
+}
 
 1;

@@ -2,14 +2,108 @@
 package DJabberd::Connection::DialbackVerify;
 use strict;
 use base 'DJabberd::Connection';
+use fields (
+            'db_result',    # our DJabberd::Stanza::DialbackResult xml node that started us
+            'final_cb',     # our final callback to run ->pass or ->fail on.
+            'verify_id',
+            'state',
+            );
 
-# ... TODO: connect out, call callbacks, etc.
-#
+use IO::Handle;
+use Socket qw(PF_INET IPPROTO_TCP SOCK_STREAM);
+
+sub new {
+    my ($class, $fromip, $conn, $db_result, $final_cb) = @_;
+
+    my $server = $conn->server;
+
+    my $sock;
+    socket $sock, PF_INET, SOCK_STREAM, IPPROTO_TCP;
+    unless ($sock && defined fileno($sock)) {
+        # WARN: bitch more
+        $db_result->verify_failed("socket_create");
+        return;
+    }
+
+    # TODO: look up SRV record and connect to the right port (not to mention the right IP)
+
+    IO::Handle::blocking($sock, 0);
+    connect $sock, Socket::sockaddr_in(5269, Socket::inet_aton($fromip));
+
+    my $self = $class->SUPER::new($sock, $server);
+    $self->{db_result} = $db_result;
+    $self->{final_cb}  = $final_cb;
+    $self->{state}     = "connecting";
+    $self->watch_write(1);
+}
+
+sub event_write {
+    my $self = shift;
+    warn "$self is writable, reporting for $self->{db_result}\n";
+
+    if ($self->{state} eq "connecting") {
+        $self->{state} = "connected";
+        $self->write(qq{<stream:stream
+                          xmlns:stream='http://etherx.jabber.org/streams'
+                          xmlns='jabber:server'
+                        xmlns:db='jabber:server:dialback'>});
+        $self->watch_read(1);
+    } else {
+        return $self->SUPER::event_write;
+    }
+}
 
 sub start_stream {
-    my DJabberd::Connection $self = shift;
+    my $self = shift;
 
-    return;
+    my $from = $self->{db_result}->dialback_to;
+    my $to   = $self->{db_result}->dialback_from;
+    my $id   = $self->{verify_id} = Digest::SHA1::sha1_hex(rand());  # TODO: make id generator elsewhere
+
+    my $result = $self->{db_result}->result_text;
+    warn "result to verify: $result\n";
+
+    my $res = qq{<db:verify
+       from='$from'
+       to='$to'
+       id='$id'>$result</db:verify>};
+
+    warn "Writing to verify: [$res]\n";
+
+    $self->write($res);
+}
+
+sub process_stanza_builtin {
+    my ($self, $node) = @_;
+
+    # we only deal with dialback verifies here.  kinda ghetto
+    # don't make a Stanza::DialbackVerify, maybe we should.
+    unless ($node->element eq "{jabber:server:dialback}verify") {
+        return $self->SUPER::process_stanza_builtin($node);
+    }
+
+    # <db:verify from='jabber.org' to='207.7.148.210' id='57f34005d7e6f053fb7643bdcec829e425f66d66' type='valid'/>
+    # <db:verify from='jabber.org' to='207.7.148.210' id='57f34005d7e6f053fb7643bdcec829e425f66d66' type='invalid'/>
+
+    my $id = $node->attr("{jabber:server:dialback}id");
+    my $cb = $self->{final_cb};
+
+    # currently we only do one at a time per connection, so that's why it must match.
+    # later we can scatter/gather.
+    if ($id ne $self->{verify_id}) {
+        $cb->fail("invalid ID");
+        $self->close;
+        return;
+    }
+
+    if ($node->attr("{jabber:server:dialback}type") ne "valid") {
+        $cb->fail("invalid");
+        $self->close;
+        return;
+    }
+
+    $cb->pass;
+    $self->close;
 }
 
 1;
