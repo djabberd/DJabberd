@@ -43,10 +43,7 @@ sub event_write {
 
     if ($self->{state} eq "connecting") {
         $self->{state} = "connected";
-        $self->write(qq{<stream:stream
-                          xmlns:stream='http://etherx.jabber.org/streams'
-                          xmlns='jabber:server'
-                        xmlns:db='jabber:server:dialback'>});
+        $self->start_init_stream(extra_attr => "xmlns:db='jabber:server:dialback'");
         $self->watch_read(1);
     } else {
         return $self->SUPER::event_write;

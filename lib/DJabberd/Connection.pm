@@ -196,6 +196,19 @@ sub on_stream_start {
     die "on_stream_start not defined for $self";
 }
 
+sub start_init_stream {
+    my DJabberd::Connection  $self = shift;
+    my %opts = @_;
+    my $extra_attr = delete $opts{'extra_attr'} || "";
+    die if %opts;
+
+    # {=init-version-is-max} -- we must announce the highest version we support
+    my $our_version = $self->server->spec_version;
+    my $ver_attr    = $our_version->as_attr_string;
+
+    $self->write(qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:server' $extra_attr $ver_attr>});
+}
+
 sub start_stream_back {
     my DJabberd::Connection  $self = shift;
     my DJabberd::StreamStart $ss   = shift;
