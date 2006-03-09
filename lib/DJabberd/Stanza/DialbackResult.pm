@@ -8,21 +8,27 @@ use DJabberd::Connection::DialbackVerify;
 sub process {
     my ($self, $conn) = @_;
 
-    warn "GOT a dialback result: " . $self->as_xml;
+    my $recv_server = $self->recv_server;
+    my $orig_server = $self->orig_server;
 
-    my $to   = $self->dialback_to;
-    my $from = $self->dialback_from;
+    warn "Got a dialback result!  from(orig): $orig_server, to(recv): $recv_server\n";
 
-    warn " from: $from, to: $to\n";
+    unless ($conn->server->name eq $recv_server) {
+        # TODO: make this a hook, whether a name is recognized.
 
-    unless ($conn->server->name eq $to) {
-        # FIXME: send correct error to client
-        die "bogus 'to' address'";
+        # If the value of the 'to' address does not match a hostname
+        # recognized by the Receiving Server, then the Receiving
+        # Server MUST generate a <host-unknown/> stream error
+        # condition and terminate both the XML stream and the
+        # underlying TCP connection.
+        $conn->stream_error("host-unknown");
+        return;
     }
 
     my $final_cb = DJabberd::Callback->new(
                                            pass => sub {
-                                               $conn->dialback_verify_valid(from => $from, to => $to);
+                                               $conn->dialback_verify_valid(orig_server => $orig_server,
+                                                                            recv_server => $recv_server);
                                            },
                                            fail => sub {
                                                my ($self_cb, $reason) = @_;
@@ -31,7 +37,7 @@ sub process {
                                            );
     # async DNS lookup
     DJabberd::DNS->srv(service  => "_xmpp-server._tcp",
-                       domain   => $from,
+                       domain   => $orig_server,
                        callback => sub {
                            my @ips = @_;
                            unless (@ips) {
@@ -49,11 +55,13 @@ sub dialback_to {
     my $self = shift;
     return $self->attr("{jabber:server:dialback}to");
 }
+*recv_server = \&dialback_to;
 
 sub dialback_from {
     my $self = shift;
     return $self->attr("{jabber:server:dialback}from");
 }
+*orig_server = \&dialback_from;
 
 sub result_text {
     my $self = shift;

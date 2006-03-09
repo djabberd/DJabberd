@@ -56,16 +56,17 @@ sub event_write {
 sub start_stream {
     my $self = shift;
 
-    my $from = $self->{db_result}->dialback_to;
-    my $to   = $self->{db_result}->dialback_from;
+    my $orig_server = $self->{db_result}->orig_server;
+    my $recv_server = $self->{db_result}->recv_server;
+
     my $id   = $self->{verify_id} = Digest::SHA1::sha1_hex(rand());  # TODO: make id generator elsewhere
 
     my $result = $self->{db_result}->result_text;
     warn "result to verify: $result\n";
 
     my $res = qq{<db:verify
-       from='$from'
-       to='$to'
+       from='$recv_server'
+       to='$orig_server'
        id='$id'>$result</db:verify>};
 
     warn "Writing to verify: [$res]\n";

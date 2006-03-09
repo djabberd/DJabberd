@@ -49,7 +49,7 @@ sub dialback_verify_valid {
     my $self = shift;
     my %opts = @_;
 
-    my $res = qq{<db:result from='$opts{from}' to='$opts{to}' type='valid'/>};
+    my $res = qq{<db:result from='$opts{recv_server}' to='$opts{orig_server}' type='valid'/>};
     warn "Dialback verify valid for $self.  from=$opts{from}, to=$opts{to}: $res\n";
     $self->write($res);
 }

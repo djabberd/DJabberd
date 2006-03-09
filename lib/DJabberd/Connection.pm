@@ -210,6 +210,12 @@ sub event_write {
     $self->watch_write(0) if $self->write(undef);
 }
 
+sub stream_error {
+    my ($self, $err) = @_;
+    $self->write("<stream:error><$err xmlns='xmlns='urn:ietf:params:xml:ns:xmpp-streams'/></stream:error>");
+    $self->write(sub { $self->close; });
+}
+
 sub close {
     my DJabberd::Connection $self = shift;
     print "DISCONNECT: $self\n";
