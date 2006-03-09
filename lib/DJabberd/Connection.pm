@@ -213,6 +213,12 @@ sub event_write {
 sub stream_error {
     my ($self, $err) = @_;
     $self->write("<stream:error><$err xmlns='xmlns='urn:ietf:params:xml:ns:xmpp-streams'/></stream:error>");
+    $self->close_stream;
+}
+
+sub close_stream {
+    my ($self, $err) = @_;
+    $self->write("</stream:stream>");
     $self->write(sub { $self->close; });
 }
 

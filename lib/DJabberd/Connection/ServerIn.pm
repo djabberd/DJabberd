@@ -8,15 +8,18 @@ sub start_stream {
     my DJabberd::Connection $self = shift;
     my $sax_data = shift;
 
-    # unless we're already in SSL mode, advertise it as a feature...
-    my $tls = "";
-    unless ($self->{ssl}) {
-        $tls = "<starttls xmsns='urn:ietf:params:xml:ns:xmpp-tls' />";
-    }
-
     my $features = "";
-    my $dialback_attr = $sax_data->{Attributes}{"{http://www.w3.org/2000/xmlns/}db"};
-    unless ($dialback_attr && $dialback_attr->{Value} eq "jabber:server:dialback") {
+    my $version_attr = $sax_data->{Attributes}{"{}version"};
+    if ($version_attr && $version_attr->{Value} !~ /^0\./) {
+        # if version is 1.0 or higher (well, present and not 0.x)
+        # then send stream features, because this is XMPP
+        # TODO: set an XMPP flag on the connection?
+
+        # unless we're already in SSL mode, advertise it as a feature...
+        my $tls = "";
+        unless ($self->{ssl}) {
+            $tls = "<starttls xmsns='urn:ietf:params:xml:ns:xmpp-tls' />";
+        }
         $features = qq{<stream:features>$tls</stream:features>};
     }
 
@@ -50,17 +53,14 @@ sub dialback_verify_valid {
     my %opts = @_;
 
     my $res = qq{<db:result from='$opts{recv_server}' to='$opts{orig_server}' type='valid'/>};
-    warn "Dialback verify valid for $self.  from=$opts{from}, to=$opts{to}: $res\n";
+    warn "Dialback verify valid for $self.  from=$opts{recv_server}, to=$opts{orig_server}: $res\n";
     $self->write($res);
 }
 
 sub dialback_verify_invalid {
     my ($self, $reason) = @_;
     warn "Dialback verify invalid for $self, reason: $reason\n";
-    # TODO: do something better:
-    #  If the connection is invalid, then the Receiving Server MUST terminate both the XML stream and the underlying TCP connection.
-    # $self->terminate_stream;
-    $self->close;
+    $self->close_stream;
 }
 
 
