@@ -276,7 +276,7 @@ RFC 3920                       XMPP Core                    October 2004
    Each allowable portion of a JID (node identifier, domain identifier,
    and resource identifier) MUST NOT be more than 1023 bytes in length,
    resulting in a maximum total size (including the '@' and '/'
-   separators) of 3071 bytes.
+   separators) of 3071 bytes. {=jidsizes}
 
 
 
@@ -306,7 +306,7 @@ RFC 3920                       XMPP Core                    October 2004
    "internationalized domain name" as defined in [IDNA], to which the
    Nameprep [NAMEPREP] profile of stringprep [STRINGPREP] can be applied
    without failing.  Before comparing two domain identifiers, a server
-   MUST (and a client SHOULD) first apply the Nameprep profile to the
+   MUST {=domain-nameprep-compare} (and a client SHOULD) first apply the Nameprep profile to the
    labels (as defined in [IDNA]) that make up each identifier.
 
 3.3.  Node Identifier
@@ -358,7 +358,7 @@ RFC 3920                       XMPP Core                    October 2004
 
    A resource identifier MUST be formatted such that the Resourceprep
    profile of [STRINGPREP] can be applied without failing.  Before
-   comparing two resource identifiers, a server MUST (and a client
+   comparing two resource identifiers, a server MUST {=jid-res-compare-resourceprep} (and a client
    SHOULD) first apply the Resourceprep profile to each identifier.
 
 3.5.  Determination of Addresses
