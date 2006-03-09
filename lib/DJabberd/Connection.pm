@@ -11,7 +11,9 @@ use fields (
             'server',     # DJabberd server instance
             'ssl',        # undef when not in ssl mode, else the $ssl object from Net::SSLeay
             'stream_id',  # undef until set first time
+            'version',    # the DJabberd::StreamVersion we negotiated
             );
+
 
 use XML::SAX ();
 use XML::SAX::Expat::Incremental 0.04;
@@ -46,6 +48,17 @@ sub new {
     warn "CONNECTION from " . $self->peer_ip_string . " == $self\n";
 
     return $self;
+}
+
+sub set_version {
+    my ($self, $verob) = @_;
+    $self->{version} = $verob;
+}
+
+sub version {
+    my $self = shift;
+    return $self->{version} or
+        die "Version accessed before it was set";
 }
 
 sub stream_id {

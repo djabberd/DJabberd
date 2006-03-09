@@ -677,7 +677,7 @@ RFC 3920                       XMPP Core                    October 2004
        attribute on the initial stream header to the highest version
        number it supports (e.g., if the highest version number it
        supports is that defined in this specification, it MUST set the
-       value to "1.0").
+       value to "1.0"). {=init-version-is-max}
 
 
 
@@ -690,10 +690,10 @@ RFC 3920                       XMPP Core                    October 2004
    2.  The receiving entity MUST set the value of the 'version'
        attribute on the response stream header to either the value
        supplied by the initiating entity or the highest version number
-       supported by the receiving entity, whichever is lower.  The
+       supported by the receiving entity, whichever is lower.  {=response-version-is-min} The
        receiving entity MUST perform a numeric comparison on the major
        and minor version numbers, not a string match on
-       "<major>.<minor>".
+       "<major>.<minor>". {=numeric-version-compare}
 
    3.  If the version number included in the response stream header is
        at least one major version lower than the version number included
@@ -706,7 +706,7 @@ RFC 3920                       XMPP Core                    October 2004
    4.  If either entity receives a stream header with no 'version'
        attribute, the entity MUST consider the version supported by the
        other entity to be "0.0" and SHOULD NOT include a 'version'
-       attribute in the stream header it sends in reply.
+       attribute in the stream header it sends in reply. {=no-response-version-on-zero-ver}
 
 4.5.  Namespace Declarations
 

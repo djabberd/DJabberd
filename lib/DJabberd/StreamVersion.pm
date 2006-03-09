@@ -48,6 +48,7 @@ sub at_least {
     return $cmp >= 0;
 }
 
+# {=numeric-version-compare}
 sub cmp {
     my ($self, $other) = @_;
     $other = DJabberd::StreamVersion->new($other) unless ref $other;
@@ -61,5 +62,12 @@ sub as_string {
     return "$self->{major}.$self->{minor}";
 }
 
+# returns "version='1.0'" or empty string when version is 0.0;
+# {=no-response-version-on-zero-ver}
+sub as_attr_string {
+    my $self = shift;
+    return "" unless $self->{major} || $self->{minor};
+    return "version='" . $self->as_string . "'";
+}
 
 1;

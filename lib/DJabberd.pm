@@ -18,6 +18,7 @@ use DJabberd::Connection::ServerIn;
 use DJabberd::Stanza::StartTLS;
 use DJabberd::IQ;
 use DJabberd::Message;
+use DJabberd::StreamVersion;
 
 package DJabberd;
 use strict;
@@ -46,6 +47,12 @@ sub new {
     }
 
     return $self;
+}
+
+# return the version of the spec we implement
+sub spec_version {
+    my $self = shift;
+    return $self->{_spec_version} ||= DJabberd::StreamVersion->new("1.0");
 }
 
 sub name {
