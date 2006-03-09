@@ -2,6 +2,7 @@ package DJabberd::SAXHandler;
 use strict;
 use base qw(XML::SAX::Base);
 use DJabberd::XMLElement;
+use DJabberd::StreamStart;
 
 sub new {
     my ($class, $client) = @_;
@@ -25,6 +26,14 @@ sub start_element {
 
     my $ds = $self->{ds_client};
 
+    if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
+        $data->{LocalName} eq "stream") {
+
+        my $ss = DJabberd::StreamStart->new($data);
+        $ds->start_stream($ss);
+        return;
+    }
+
     my $start_capturing = sub {
         my $cb = shift;
 
@@ -37,13 +46,6 @@ sub start_element {
         $self->{on_end_capture} = $cb;
         return 1;
     };
-
-    if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
-        $data->{LocalName} eq "stream") {
-
-        $ds->start_stream($data);
-        return;
-    }
 
     return $start_capturing->(sub {
         my ($doc, $events) = @_;

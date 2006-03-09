@@ -6,15 +6,10 @@ use DJabberd::Stanza::DialbackResult;
 
 sub start_stream {
     my DJabberd::Connection $self = shift;
-    my $sax_data = shift;
+    my $ss = shift;
 
     my $features = "";
-    my $version_attr = $sax_data->{Attributes}{"{}version"};
-    if ($version_attr && $version_attr->{Value} !~ /^0\./) {
-        # if version is 1.0 or higher (well, present and not 0.x)
-        # then send stream features, because this is XMPP
-        # TODO: set an XMPP flag on the connection?
-
+    if ($ss->version->supports_features) {
         # unless we're already in SSL mode, advertise it as a feature...
         my $tls = "";
         unless ($self->{ssl}) {

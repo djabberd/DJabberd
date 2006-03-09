@@ -12,8 +12,19 @@ sub new {
     return bless {
         major => $1 || 0,
         minor => $2 || 0,
-        valid => $valid,xo
+        valid => $valid,
+        present => ($ver ne "" ? 1 : 0),
     };
+}
+
+sub none {
+    my $class = shift;
+    return bless {
+        major => 0,
+        minor => 0,
+        valid => 1,
+        present => 0,
+    }, $class;
 }
 
 # returns min of two given objects
