@@ -1,0 +1,16 @@
+from postel:    (ejabberd 0.9.1)
+
+<?xml version='1.0'?><stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:server' xmlns:db='jabber:server:dialback' to='papag.danga.com'>
+Got an incoming stream.  sending features? no
+<db:result from='jabber.postel.org' to='papag.danga.com'>3797606483</db:result>
+
+
+from jabber.org:  (ejabberd 1.0, xmpp compliant version?)
+
+<?xml version='1.0'?><stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:server' xmlns:db='jabber:server:dialback' to='papag.danga.com' version='1.0'>
+
+from gtalk:
+
+<stream:stream id="34B60EF6C1DC00A6" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:server" xmlns:db="jabber:server:dialback">
+Got an incoming stream.  sending features? no
+<db:result to="papag.danga.com" from="gmail.com">CAESBxCpvufnnSEaEEym2H6WgoII7W8Z56a2PDE=</db:result>
