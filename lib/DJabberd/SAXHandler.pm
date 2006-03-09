@@ -26,11 +26,12 @@ sub start_element {
 
     my $ds = $self->{ds_client};
 
+    # {=xml-stream}
     if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
         $data->{LocalName} eq "stream") {
 
         my $ss = DJabberd::StreamStart->new($data);
-        $ds->start_stream($ss);
+        $ds->on_stream_start($ss);
         return;
     }
 
@@ -50,6 +51,7 @@ sub start_element {
     return $start_capturing->(sub {
         my ($doc, $events) = @_;
         my $nodes = _nodes_from_events($events);
+        # {=xml-stanza}
         $ds->process_stanza($nodes->[0]);
     });
 

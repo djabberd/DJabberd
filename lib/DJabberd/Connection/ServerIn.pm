@@ -4,39 +4,12 @@ use base 'DJabberd::Connection';
 
 use DJabberd::Stanza::DialbackResult;
 
-sub start_stream {
+sub on_stream_start {
     my DJabberd::Connection $self = shift;
     my $ss = shift;
-
-    my $features = "";
-    if ($ss->version->supports_features) {
-        # unless we're already in SSL mode, advertise it as a feature...
-        my $tls = "";
-        unless ($self->{ssl}) {
-            $tls = "<starttls xmsns='urn:ietf:params:xml:ns:xmpp-tls' />";
-        }
-        $features = qq{<stream:features>$tls</stream:features>};
-    }
-
-    warn "Got an incoming stream.  sending features? " . ($features ? "yes" : "no") . "\n";
-
-    # The receiving entity MUST set the value of the 'version'
-    # attribute on the response stream header to either the value
-    # supplied by the initiating entity or the highest version number
-    # supported by the receiving entity, whichever is lower.
-    # {=response-version-is-min}
-    my $our_version = $self->server->spec_version;
-    my $min_version = $ss->version->min($our_version);
-    $self->set_version($min_version);
-    my $ver_attr    = $min_version->as_attr_string;
-
-    warn "  version to send back:  $ver_attr\n";
-
-    my $id = $self->stream_id;
-    my $sname = $self->server->name;
-    my $rv = $self->write(qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream from="$sname" id="$id" $ver_attr xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:server" xmlns:db='jabber:server:dialback'>$features});
-
-    return;
+    $self->start_stream_back($ss,
+                             extra_attr => "xmlns:db='jabber:server:dialback'",
+                             namespace  => 'jabber:server');
 }
 
 sub process_stanza_builtin {

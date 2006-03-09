@@ -643,6 +643,7 @@ RFC 3920                       XMPP Core                    October 2004
 
 4.4.1.  Version Support
 
+{=version-format}
    The version of XMPP specified herein is "1.0"; in particular, this
    encapsulates the stream-related protocols (Use of TLS (Section 5),
    Use of SASL (Section 6), and Stream Errors (Section 4.7)), as well as
@@ -653,7 +654,7 @@ RFC 3920                       XMPP Core                    October 2004
    single digit.  Thus, "XMPP 2.4" would be a lower version than "XMPP
    2.13", which in turn would be lower than "XMPP 12.3".  Leading zeros
    (e.g., "XMPP 6.01") MUST be ignored by recipients and MUST NOT be
-   sent. {=version-format}
+   sent.  {=leading-zeros-ignored}
 
    The major version number should be incremented only if the stream and
    stanza formats or required actions have changed so dramatically that
@@ -668,7 +669,7 @@ RFC 3920                       XMPP Core                    October 2004
    attribute for message, presence, or IQ stanzas; the entity with the
    larger minor version number would simply note that its correspondent
    would not be able to understand that value of the 'type' attribute
-   and therefore would not send it. {=version-handling}
+   and therefore would not send it.
 
    The following rules apply to the generation and handling of the
    'version' attribute within stream headers by implementations:
@@ -710,11 +711,11 @@ RFC 3920                       XMPP Core                    October 2004
 
 4.5.  Namespace Declarations
 
-   The stream element MUST possess both a streams namespace declaration
-   and a default namespace declaration (as "namespace declaration" is
+   The stream element MUST possess both a streams namespace declaration {=streams-namespace}
+   and a default namespace declaration {=stream-def-namespace} (as "namespace declaration" is
    defined in the XML namespaces specification [XML-NAMES]).  For
    detailed information regarding the streams namespace and default
-   namespace, see Namespace Names and Prefixes (Section 11.2). {=namespace}
+   namespace, see Namespace Names and Prefixes (Section 11.2).
 
 4.6.  Stream Features
 
@@ -723,7 +724,7 @@ RFC 3920                       XMPP Core                    October 2004
    entity MUST send a <features/> child element (prefixed by the streams
    namespace prefix) to the initiating entity in order to announce any
    stream-level features that can be negotiated (or capabilities that
-   otherwise need to be advertised).  Currently, this is used only to
+   otherwise need to be advertised).  {=must-send-features-on-1.0} Currently, this is used only to
    advertise Use of TLS (Section 5), Use of SASL (Section 6), and
    Resource Binding (Section 7) as defined herein, and for Session
    Establishment as defined in [XMPP-IM]; however, the stream features
@@ -734,7 +735,7 @@ RFC 3920                       XMPP Core                    October 2004
    before a non-security-related feature (e.g., Resource Binding) can be
    offered, the non-security-related feature SHOULD NOT be included in
    the stream features that are advertised before the relevant security
-   features have been negotiated. {=stream-features}
+   features have been negotiated. {=stream-features-dependencies}
 
 
 
@@ -748,7 +749,7 @@ RFC 3920                       XMPP Core                    October 2004
    The root stream element MAY contain an <error/> child element that is
    prefixed by the streams namespace prefix.  The error child MUST be
    sent by a compliant entity (usually a server rather than a client) if
-   it perceives that a stream-level error has occurred.
+   it perceives that a stream-level error has occurred. {=stream-errors}
 
 4.7.1.  Rules
 
@@ -758,7 +759,7 @@ RFC 3920                       XMPP Core                    October 2004
       therefore, if an error occurs at the level of the stream, the
       entity that detects the error MUST send a stream error to the
       other entity, send a closing </stream> tag, and terminate the
-      underlying TCP connection. {=stream-level-error}
+      underlying TCP connection. {=error-must-close-stream}
 
    o  If the error occurs while the stream is being set up, the
       receiving entity MUST still send the opening <stream> tag, include

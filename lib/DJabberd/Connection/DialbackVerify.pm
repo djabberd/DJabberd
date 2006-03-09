@@ -53,8 +53,8 @@ sub event_write {
     }
 }
 
-sub start_stream {
-    my $self = shift;
+sub on_stream_start {
+    my ($self, $ss) = @_;
 
     my $orig_server = $self->{db_result}->orig_server;
     my $recv_server = $self->{db_result}->recv_server;

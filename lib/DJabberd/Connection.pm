@@ -122,8 +122,6 @@ sub process_stanza_builtin {
     my ($self, $node) = @_;
 
     my %stanzas = (
-                   "{jabber:client}iq"      => 'DJabberd::IQ',
-                   "{jabber:client}message" => 'DJabberd::Message',
                    "{urn:ietf:params:xml:ns:xmpp-tls}starttls" => 'DJabberd::Stanza::StartTLS',
                    );
 
@@ -191,24 +189,50 @@ sub event_read {
     print "$self parsed\n";
 }
 
-sub start_stream {
+sub on_stream_start {
     my DJabberd::Connection $self = shift;
-    my $id = $self->stream_id;
+    my $ss = shift;
 
-    # unless we're already in SSL mode, advertise it as a feature...
-    my $tls = "";
-    unless ($self->{ssl}) {
-        $tls = "<starttls xmsns='urn:ietf:params:xml:ns:xmpp-tls' />";
+    die "on_stream_start not defined for $self";
+}
+
+sub start_stream_back {
+    my DJabberd::Connection  $self = shift;
+    my DJabberd::StreamStart $ss   = shift;
+    my %opts = @_;
+    my $ns         = delete $opts{'namespace'} or
+        die "No default namespace"; # {=stream-def-namespace}
+
+    my $extra_attr = delete $opts{'extra_attr'} || "";
+    die if %opts;
+
+    my $features = "";
+    if ($ss->version->supports_features) {
+        # unless we're already in SSL mode, advertise it as a feature...
+        # {=must-send-features-on-1.0}
+        my $tls = "";
+        unless ($self->{ssl}) {
+            $tls = "<starttls xmsns='urn:ietf:params:xml:ns:xmpp-tls' />";
+        }
+        $features = qq{<stream:features>$tls</stream:features>};
     }
 
-    my $sname = $self->server->name;
-    my $rv = $self->write(qq{<?xml version="1.0" encoding="UTF-8"?>
-                                 <stream:stream from="$sname" id="$id" version="1.0" xmlns:stream="http://etherx.jabber.org/streams" xmlns="jabber:client">
-                                 <stream:features>
-$tls
-</stream:features>});
+    # The receiving entity MUST set the value of the 'version'
+    # attribute on the response stream header to either the value
+    # supplied by the initiating entity or the highest version number
+    # supported by the receiving entity, whichever is lower.
+    # {=response-version-is-min}
+    my $our_version = $self->server->spec_version;
+    my $min_version = $ss->version->min($our_version);
+    $self->set_version($min_version);
+    my $ver_attr    = $min_version->as_attr_string;
 
-    return;
+    my $id = $self->stream_id;
+    my $sname = $self->server->name;
+    # {=streams-namespace}
+    my $back = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream from="$sname" id="$id" $ver_attr $extra_attr xmlns:stream="http://etherx.jabber.org/streams" xmlns="$ns">$features};
+    warn "Sending stream back: $back\n";
+    $self->write($back);
 }
 
 sub end_stream {
@@ -225,7 +249,9 @@ sub event_write {
 
 sub stream_error {
     my ($self, $err) = @_;
+    # {=stream-errors}
     $self->write("<stream:error><$err xmlns='xmlns='urn:ietf:params:xml:ns:xmpp-streams'/></stream:error>");
+    # {=error-must-close-stream}
     $self->close_stream;
 }
 

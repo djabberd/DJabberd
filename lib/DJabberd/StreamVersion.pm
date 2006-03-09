@@ -6,12 +6,19 @@ package DJabberd::StreamVersion;
 sub new {
     my ($class, $ver) = @_;
 
-    my $valid = 0;
-    $valid = 1 if $ver =~ /^(\d+)\.(\d+)$/;
+    # {=version-format}
+    my ($valid, $major, $minor) = (0, 0, 0);
+    if ($ver =~ /^(\d+)\.(\d+)$/) {
+        $valid = 1;
+        ($major, $minor) = ($1, $2);
+        # {=leading-zeros-ignored}
+        $major =~ s/^0+//;
+        $minor =~ s/^0+//;
+    }
 
     return bless {
-        major => $1 || 0,
-        minor => $2 || 0,
+        major => $major || 0,
+        minor => $minor || 0,
         valid => $valid,
         present => ($ver ne "" ? 1 : 0),
     };
