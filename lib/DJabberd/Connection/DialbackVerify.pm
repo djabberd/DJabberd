@@ -5,8 +5,8 @@ use base 'DJabberd::Connection';
 use fields (
             'db_result',    # our DJabberd::Stanza::DialbackResult xml node that started us
             'final_cb',     # our final callback to run ->pass or ->fail on.
-            'verify_id',
             'state',
+            'conn',
             );
 
 use IO::Handle;
@@ -31,8 +31,13 @@ sub new {
 
     my $self = $class->SUPER::new($sock, $server);
     $self->{db_result} = $db_result;
+
     $self->{final_cb}  = $final_cb;
     $self->{state}     = "connecting";
+
+    $self->{conn}      = $conn;
+    Scalar::Util::weaken($self->{conn});
+
     $self->watch_write(1);
 }
 
@@ -55,7 +60,7 @@ sub on_stream_start {
     my $orig_server = $self->{db_result}->orig_server;
     my $recv_server = $self->{db_result}->recv_server;
 
-    my $id   = $self->{verify_id} = Digest::SHA1::sha1_hex(rand());  # TODO: make id generator elsewhere
+    my $id   = $self->{conn}->stream_id;
 
     my $result = $self->{db_result}->result_text;
     warn "result to verify: $result\n";
@@ -84,7 +89,7 @@ sub process_stanza_builtin {
 
     # currently we only do one at a time per connection, so that's why it must match.
     # later we can scatter/gather.
-    if ($id ne $self->{verify_id}) {
+    if ($id ne $self->{conn}->stream_id) {
         $cb->fail("invalid ID");
         $self->close;
         return;
