@@ -26,7 +26,6 @@ sub new {
     }
 
     # TODO: look up SRV record and connect to the right port (not to mention the right IP)
-
     IO::Handle::blocking($sock, 0);
     connect $sock, Socket::sockaddr_in(5269, Socket::inet_aton($fromip));
 
@@ -61,10 +60,7 @@ sub on_stream_start {
     my $result = $self->{db_result}->result_text;
     warn "result to verify: $result\n";
 
-    my $res = qq{<db:verify
-       from='$recv_server'
-       to='$orig_server'
-       id='$id'>$result</db:verify>};
+    my $res = qq{<db:verify from='$recv_server' to='$orig_server' id='$id'>$result</db:verify>};
 
     warn "Writing to verify: [$res]\n";
 

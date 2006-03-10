@@ -1,15 +1,22 @@
 package DJabberd::Connection::ServerIn;
 use strict;
 use base 'DJabberd::Connection';
+use fields ('announced_dialback');
 
 use DJabberd::Stanza::DialbackResult;
 
 sub on_stream_start {
-    my DJabberd::Connection $self = shift;
-    my $ss = shift;
-    $self->start_stream_back($ss,
-                             extra_attr => "xmlns:db='jabber:server:dialback'",
-                             namespace  => 'jabber:server');
+    my ($self, $ss) = @_;
+
+    if ($ss->announced_dialback) {
+        $self->{announced_dialback} = 1;
+        $self->start_stream_back($ss,
+                                 extra_attr => "xmlns:db='jabber:server:dialback'",
+                                 namespace  => 'jabber:server');
+    } else {
+        $self->start_stream_back($ss,
+                                 namespace  => 'jabber:server');
+    }
 }
 
 sub process_stanza_builtin {

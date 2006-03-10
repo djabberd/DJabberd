@@ -25,4 +25,10 @@ sub version {
     return $self->{version} = $ver;
 }
 
+sub announced_dialback {
+    my $self = shift;
+    my $attr = $self->{saxdata}{Attributes}{"{http://www.w3.org/2000/xmlns/}db"};
+    return $attr && $attr->{Value} eq "jabber:server:dialback";
+}
+
 1;
