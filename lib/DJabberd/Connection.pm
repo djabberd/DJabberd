@@ -206,7 +206,8 @@ sub start_init_stream {
     my $our_version = $self->server->spec_version;
     my $ver_attr    = $our_version->as_attr_string;
 
-    $self->write(qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:server' $extra_attr $ver_attr>});
+    # {=xml-lang}
+    $self->write(qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:server' xml:lang='en' $extra_attr $ver_attr>});
 }
 
 sub start_stream_back {

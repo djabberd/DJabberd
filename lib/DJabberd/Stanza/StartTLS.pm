@@ -10,6 +10,7 @@ Net::SSLeay::randomize();
 sub process {
     my ($self, $conn) = @_;
 
+    # {=tls-no-spaces} -- we can't send spaces after the closing bracket
     $conn->write("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls' />");
 
     my $ctx = Net::SSLeay::CTX_new()

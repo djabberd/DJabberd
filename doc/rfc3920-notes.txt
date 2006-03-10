@@ -540,16 +540,14 @@ RFC 3920                       XMPP Core                    October 2004
    initiating entity) MUST be secured separately, although security in
    both directions MAY be established via mechanisms that provide mutual
    authentication.  An entity SHOULD NOT attempt to send XML Stanzas
-   (Section 9) over the stream before the stream has been authenticated,
+   (Section 9) over the stream before the stream has been authenticated, {=no-send-stanza-pre-auth}
    but if it does, then the other entity MUST NOT accept such stanzas
    and SHOULD return a <not-authorized/> stream error and then terminate
-   both the XML stream and the underlying TCP connection; note well that
+   both the XML stream and the underlying TCP connection; {=stream-error-on-pre-auth-stanza-recv} note well that
    this applies to XML stanzas only (i.e., <message/>, <presence/>, and
    <iq/> elements scoped by the default namespace) and not to XML
    elements used for stream negotiation (e.g., elements used to
    negotiate Use of TLS (Section 5) or Use of SASL (Section 6)).
-
-   {=tls} {=sasl}
 
 4.4.  Stream Attributes
 
