@@ -9,6 +9,9 @@ sub on_stream_start {
                              namespace  => 'jabber:client');
 }
 
+sub incoming_stanza_hook_phases {
+    return ("incoming_stanza", "incoming_client_stanza");
+}
 
 sub process_stanza_builtin {
     my ($self, $node) = @_;
@@ -16,6 +19,7 @@ sub process_stanza_builtin {
     my %stanzas = (
                    "{jabber:client}iq"      => 'DJabberd::IQ',
                    "{jabber:client}message" => 'DJabberd::Message',
+                   "{jabber:client}presence" => 'DJabberd::Presence',
                    );
 
     my $class = $stanzas{$node->element};

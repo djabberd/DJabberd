@@ -76,7 +76,13 @@ sub run_hook_chain {
     my $fallback = delete $opts{'fallback'};
     die if %opts;
 
-    my @hooks = @{ $self->{server}->{hooks}->{$phase} || [] };
+    # make phase into an arrayref;
+    $phase = [ $phase ] unless ref $phase;
+
+    my @hooks;
+    foreach my $ph (@$phase) {
+        push @hooks, @{ $self->{server}->{hooks}->{$ph} || [] };
+    }
     push @hooks, $fallback if $fallback;
 
     my $try_another;
@@ -111,11 +117,15 @@ sub server {
 sub process_stanza {
     my ($self, $node) = @_;
 
-    $self->run_hook_chain(phase => "stanza",
-                          args => [ $node ],
+    $self->run_hook_chain(phase => [ $self->incoming_stanza_hook_phases ],
+                          args  => [ $node ],
                           fallback => sub {
                               $self->process_stanza_builtin($node);
                           });
+}
+
+sub incoming_stanza_hook_phases {
+    return ("incoming_stanza");
 }
 
 sub process_stanza_builtin {

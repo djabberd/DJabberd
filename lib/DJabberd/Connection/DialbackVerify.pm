@@ -81,9 +81,6 @@ sub process_stanza_builtin {
         return $self->SUPER::process_stanza_builtin($node);
     }
 
-    # <db:verify from='jabber.org' to='207.7.148.210' id='57f34005d7e6f053fb7643bdcec829e425f66d66' type='valid'/>
-    # <db:verify from='jabber.org' to='207.7.148.210' id='57f34005d7e6f053fb7643bdcec829e425f66d66' type='invalid'/>
-
     my $id = $node->attr("{jabber:server:dialback}id");
     my $cb = $self->{final_cb};
 

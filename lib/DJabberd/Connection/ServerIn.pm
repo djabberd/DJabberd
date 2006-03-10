@@ -19,6 +19,10 @@ sub on_stream_start {
     }
 }
 
+sub incoming_stanza_hook_phases {
+    return ("incoming_stanza", "incoming_server_stanza");
+}
+
 sub process_stanza_builtin {
     my ($self, $node) = @_;
 
