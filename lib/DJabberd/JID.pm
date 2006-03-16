@@ -21,6 +21,11 @@ sub new {
     }, $class;
 }
 
+sub domain {
+    my $self = shift;
+    return $self->{domain};
+}
+
 sub eq {
     my $self = shift;
     my $jid  = shift

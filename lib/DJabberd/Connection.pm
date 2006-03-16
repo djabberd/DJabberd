@@ -135,7 +135,7 @@ sub server {
 # called by DJabberd::SAXHandler
 sub on_stanza_received {
     my ($self, $node) = @_;
-    die "SUBCLASSES MUST OVERRIDE THIS for $self\n";
+    die "SUBCLASSES MUST OVERRIDE 'on_stanza_received' for $self\n";
 }
 
 # subclasses should override returning 0 or 1

@@ -25,6 +25,15 @@ sub deliver {
                           });
 }
 
+# by default, stanzas need to and from coming from a server
+sub acceptable_from_server {
+    my ($self, $conn) = @_;  # where $conn is a serverin connection
+    my ($to, $from) = ($self->to_jid, $self->from_jid);
+    return 0 unless $to && $from;
+    return 0 unless $from->domain eq $conn->peer_domain;
+    return 1;
+}
+
 sub delivery_failure {
     my ($self, $conn) = @_;
     warn "$self has no ->delivery_failure method implemented\n";

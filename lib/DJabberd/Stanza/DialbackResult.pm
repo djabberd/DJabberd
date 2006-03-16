@@ -50,6 +50,8 @@ sub process {
                        });
 }
 
+# always acceptable
+sub acceptable_from_server { 1 }
 
 sub dialback_to {
     my $self = shift;

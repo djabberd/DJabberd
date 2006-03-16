@@ -1,9 +1,17 @@
 package DJabberd::Connection::ServerIn;
 use strict;
 use base 'DJabberd::Connection';
-use fields ('announced_dialback');
+use fields
+    ('announced_dialback',
+     'verified_remote_domain',  # once we know it
+     );
 
 use DJabberd::Stanza::DialbackResult;
+
+sub peer_domain {
+    my $self = shift;
+    return $self->{verified_remote_domain};
+}
 
 sub on_stream_start {
     my ($self, $ss) = @_;
@@ -19,36 +27,75 @@ sub on_stream_start {
     }
 }
 
-sub incoming_stanza_hook_phases {
-    return ("incoming_stanza", "incoming_server_stanza");
-}
-
-sub process_stanza_builtin {
+sub on_stanza_received {
     my ($self, $node) = @_;
 
-    my %stanzas = (
+
+    my %class = (
                    "{jabber:server:dialback}result" => "DJabberd::Stanza::DialbackResult",
                    "{jabber:server}iq"       => 'DJabberd::IQ',
                    "{jabber:server}message"  => 'DJabberd::Message',
                    "{jabber:server}presence" => 'DJabberd::Presence',
                    );
 
-    my $class = $stanzas{$node->element};
-    unless ($class) {
-        return $self->SUPER::process_stanza_builtin($node);
-    }
+    my $class = $class{$node->element} or
+        return $self->stream_error("unsupported-stanza-type");
 
-    my $obj = $class->new($node);
-    $obj->process($self);
+    # same variable as $node, but down(specific)-classed.
+    my $stanza = $class->new($node);
+
+    $self->run_hook_chain(phase => "filter_incoming_server",
+                          args  => [ $stanza ],
+                          methods => {
+                              reject => sub { },  # just stops the chain
+                          },
+                          fallback => sub {
+                              $self->filter_incoming_server_builtin($stanza);
+                          });
 }
 
-sub is_server { 1; }
+sub filter_incoming_server_builtin {
+    my ($self, $stanza) = @_;
+
+    unless ($stanza->acceptable_from_server($self)) {
+        # FIXME: who knows.  send something else.
+        $self->stream_error;
+        return 0;
+    }
+
+    $self->run_hook_chain(phase => "switch_incoming_server",
+                          args  => [ $stanza ],
+                          methods => {
+                              process => sub { $stanza->process($self) },
+                              deliver => sub { $stanza->deliver($self) },
+                          },
+                          fallback => sub {
+                              $self->switch_incoming_server_builtin($stanza);
+                          });
+}
+
+sub switch_incoming_server_builtin {
+    my ($self, $stanza) = @_;
+
+    # FIXME: we want to process here.. like for presence and stuff later,
+    # but for now all we care about is message delivery.  ghettos:
+
+    if ($stanza->isa("DJabberd::Stanza::DialbackResult")) {
+        $stanza->process($self);
+    } else {
+        $stanza->deliver($self);
+    }
+}
+
+sub is_server { 1 }
 
 sub dialback_verify_valid {
     my $self = shift;
     my %opts = @_;
 
     my $res = qq{<db:result from='$opts{recv_server}' to='$opts{orig_server}' type='valid'/>};
+    $self->{verified_remote_domain} = $opts{orig_server};
+
     warn "Dialback verify valid for $self.  from=$opts{recv_server}, to=$opts{orig_server}: $res\n";
     $self->write($res);
 }

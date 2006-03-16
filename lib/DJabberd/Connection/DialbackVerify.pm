@@ -72,7 +72,7 @@ sub on_stream_start {
     $self->write($res);
 }
 
-sub process_stanza_builtin {
+sub on_stanza_received {
     my ($self, $node) = @_;
 
     # we only deal with dialback verifies here.  kinda ghetto
