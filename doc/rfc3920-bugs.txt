@@ -1,0 +1,21 @@
+   3.  The Receiving Server SHOULD send a stream header back to the
+       Originating Server, including a unique ID for this interaction:
+
+       -- SHOULD?  how would it work considering later steps?  Should be "MUST"
+
+
+If the server receives an IQ stanza of type "get" or
+   "set" with no 'to' attribute and it understands the namespace that
+   qualifies the content of the stanza, it MUST either process the
+   stanza on behalf of the sending entity (where the meaning of
+   "process" is determined by the semantics of the qualifying namespace)
+   or return an error to the sending entity.
+
+             --- word order:
+                     if (IQ AND (get OR set) AND "no to" AND understand)
+                  vs
+                     if (IQ AND (get OR set) AND "no to") {
+                         if (understand) { process; }
+                         else { error; }
+                     }
+

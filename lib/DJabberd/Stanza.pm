@@ -4,21 +4,60 @@ use base qw(DJabberd::XMLElement);
 
 sub process {
     my ($self, $conn) = @_;
-    $self->route(source => $conn);
+    warn "$self ->process not implemented\n";
 }
 
-sub route {
-    my ($self, %opts) = @_;
-    my $src = delete $opts{'source'};
-    die if %opts;
+# at this point, it's assumed the stanza has passed filtering checks,
+# and should be delivered.
+sub deliver {
+    my ($stanza, $conn) = @_;
 
-
-
+    $conn->run_hook_chain(phase => "deliver",
+                          args  => [ $stanza ],
+                          methods => {
+                              finished => sub { },
+                              # FIXME: in future, this should note deliver was
+                              # complete and the next message to this jid should be dequeued and
+                              # subsequently delivered.  (in order deliver)
+                          },
+                          fallback => sub {
+                              $stanza->delivery_failure($conn);
+                          });
 }
 
-sub process {
+sub delivery_failure {
+    my ($self, $conn) = @_;
+    warn "$self has no ->delivery_failure method implemented\n";
+}
+
+sub to {
     my $self = shift;
-    die "Stanza->process not implemented for $self\n";
+    my $ns = $self->namespace;
+    return $self->attr("{$ns}to");
+}
+
+sub from {
+    my $self = shift;
+    my $ns = $self->namespace;
+    return $self->attr("{$ns}from");
+}
+
+sub set_from {
+    my ($self, $fromstr) = @_;
+    my $ns = $self->namespace;
+    return $self->set_attr("{$ns}from", $fromstr);
+}
+
+sub to_jid {
+    my $self = shift;
+    my $to = $self->to;
+    return $to ? DJabberd::JID->new($to) : undef;
+}
+
+sub from_jid {
+    my $self = shift;
+    my $from = $self->from;
+    return $from ? DJabberd::JID->new($from) : undef;
 }
 
 1;

@@ -1,6 +1,7 @@
-package DJabber::JID;
+package DJabberd::JID;
+use strict;
 
-# returns DJabberd::JIB object, or undef on failure due to invalid format
+# returns DJabberd::JID object, or undef on failure due to invalid format
 sub new {
     my ($class, $jidstring) = @_;
 
@@ -18,6 +19,13 @@ sub new {
         'domain'   => $domain,
         'resource' => $resource,
     }, $class;
+}
+
+sub eq {
+    my $self = shift;
+    my $jid  = shift
+        or return 0;
+    return $self->as_string eq $jid->as_string;
 }
 
 sub as_string {

@@ -33,6 +33,10 @@ sub attr {
     return $_[0]->[ATTRS]{$_[1]};
 }
 
+sub set_attr {
+    $_[0]->[ATTRS]{$_[1]} = $_[2];
+}
+
 sub attrs {
     return $_[0]->[ATTRS];
 }
@@ -42,7 +46,16 @@ sub element {
     my $el = $_[0]->[ELEMENT];
     $el =~ /^\{(.+)\}(.+)/;
     return ($1, $2);
+}
 
+sub element_name {
+    my $self = shift;
+    return ($self->element)[1];
+}
+
+sub namespace {
+    my $self = shift;
+    return ($self->element)[0];
 }
 
 sub as_xml {

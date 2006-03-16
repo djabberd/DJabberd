@@ -28,6 +28,9 @@ sub process_stanza_builtin {
 
     my %stanzas = (
                    "{jabber:server:dialback}result" => "DJabberd::Stanza::DialbackResult",
+                   "{jabber:server}iq"       => 'DJabberd::IQ',
+                   "{jabber:server}message"  => 'DJabberd::Message',
+                   "{jabber:server}presence" => 'DJabberd::Presence',
                    );
 
     my $class = $stanzas{$node->element};
@@ -38,6 +41,8 @@ sub process_stanza_builtin {
     my $obj = $class->new($node);
     $obj->process($self);
 }
+
+sub is_server { 1; }
 
 sub dialback_verify_valid {
     my $self = shift;

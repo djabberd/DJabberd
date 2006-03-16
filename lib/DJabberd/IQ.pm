@@ -116,10 +116,10 @@ sub process_iq_setauth {
 
         # register
         my $sname = $conn->server->name;
-        foreach my $jid ("$username\@$sname",
-                         "$username\@$sname/$resource") {
-            $conn->server->register_jid($jid, $conn);
-        }
+        my $jid = DJabberd::JID->new("$username\@$sname/$resource");
+
+        $conn->server->register_jid($jid, $conn);
+        $conn->set_bound_jid($jid);
 
         # FIXME: escape, or make $iq->send_good_result, or something
         $conn->write(qq{<iq id='$id' type='result' />});

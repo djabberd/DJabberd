@@ -1,0 +1,5 @@
+$node -- means it's a DJabberd::XMLElement
+
+$stanza -- means it's a DJabberd::Stanza (subclass of $node)
+
+

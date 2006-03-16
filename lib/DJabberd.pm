@@ -17,8 +17,10 @@ use DJabberd::Connection::ServerIn;
 use DJabberd::Connection::ClientIn;
 
 use DJabberd::Stanza::StartTLS;
+use DJabberd::JID;
 use DJabberd::IQ;
 use DJabberd::Message;
+use DJabberd::Presence;
 use DJabberd::StreamVersion;
 
 package DJabberd;
@@ -79,6 +81,10 @@ my %jid2sock;  # bob@207.7.148.210/rez -> DJabberd::Connection
 
 sub find_jid {
     my ($class, $jid) = @_;
+    if (ref $jid) {
+        return $class->find_jid($jid->as_string) ||
+               $class->find_jid($jid->as_bare_string);
+    }
     my $sock = $jid2sock{$jid} or return undef;
     return undef if $sock->{closed};
     return $sock;
@@ -87,9 +93,17 @@ sub find_jid {
 sub register_jid {
     my ($class, $jid, $sock) = @_;
     warn "REGISTERING $jid  ==> $sock\n";
-    $jid2sock{$jid} = $sock;
+    $jid2sock{$jid->as_string}      = $sock;
+    $jid2sock{$jid->as_bare_string} = $sock;
 }
 
+# returns true if given jid is recognized as "for the server"
+sub uses_jid {
+    my ($self, $jid) = @_;
+    return 0 unless $jid;
+    # FIXME: this does no canonicalization of server_name, for one
+    return $jid->as_string eq $self->{server_name};
+}
 
 sub debug {
     my $self = shift;

@@ -8,6 +8,7 @@ use fields (
             'authed',     # bool, if authenticated
             'username',   # username of user, once authenticated
             'resource',   # resource of user, once authenticated
+            'bound_jid',  # undef until resource binding - then DJabberd::JID object
             'server',     # DJabberd server instance
             'ssl',        # undef when not in ssl mode, else the $ssl object from Net::SSLeay
             'stream_id',  # undef until set first time
@@ -48,6 +49,17 @@ sub new {
     warn "CONNECTION from " . $self->peer_ip_string . " == $self\n";
 
     return $self;
+}
+
+sub set_bound_jid {
+    my ($self, $jid) = @_;
+    die unless $jid && $jid->isa('DJabberd::JID');
+    $self->{bound_jid} = $jid;
+}
+
+sub bound_jid {
+    my ($self) = @_;
+    return $self->{bound_jid};
 }
 
 sub set_version {
@@ -98,6 +110,7 @@ sub run_hook_chain {
         $hk->($self,
               DJabberd::Callback->new(
                                       decline    => $try_another,
+                                      declined   => $try_another,
                                       stop_chain => $stopper,
                                       %$methods,
                                       ),
@@ -108,24 +121,26 @@ sub run_hook_chain {
     $try_another->();
 }
 
+sub vhost {
+    # FIXME: for now, server <-> vhost, but later servers will have multiple
+    # vhosts
+    my $self = shift;
+    return $self->server;
+}
 sub server {
     my $self = shift;
     return $self->{'server'};
 }
 
 # called by DJabberd::SAXHandler
-sub process_stanza {
+sub on_stanza_received {
     my ($self, $node) = @_;
-
-    $self->run_hook_chain(phase => [ $self->incoming_stanza_hook_phases ],
-                          args  => [ $node ],
-                          fallback => sub {
-                              $self->process_stanza_builtin($node);
-                          });
+    die "SUBCLASSES MUST OVERRIDE THIS for $self\n";
 }
 
-sub incoming_stanza_hook_phases {
-    return ("incoming_stanza");
+# subclasses should override returning 0 or 1
+sub is_server {
+    die "Undefined 'is_server' for $_[0]";
 }
 
 sub process_stanza_builtin {
@@ -147,19 +162,28 @@ sub process_stanza_builtin {
 
 sub jid {
     my $self = shift;
+    # FIXME: this should probably bound_jid (resource binding)
     my $jid = $self->{username} . '@' . $self->server->name;
     $jid .= "/$self->{resource}" if $self->{resource};
     return $jid;
 }
 
-sub send_message {
-    my ($self, $from, $msg) = @_;
+sub send_stanza {
+    my ($self, $stanza, %opts) = @_;
+    my $to_jid    = delete $opts{to}    or die "no to";
+    my $from_jid  = delete $opts{from}  or die "no from";
+    die if %opts;
 
-    my $from_jid = $from->jid;
-    my $my_jid   = $self->jid;
+    my $elename = $stanza->element_name;
 
-    my $message_back = "<message type='chat' to='$my_jid' from='$from_jid'>" . $msg->innards_as_xml . "</message>";
-    $self->write($message_back);
+    my $other_attrs = "";
+    while (my ($k, $v) = each %{ $stanza->attrs }) {
+        $k =~ s/.+\}//; # get rid of the namespace
+        $other_attrs .= "$k=\"" . DJabberd::Util::exml($v) . "\" ";
+    }
+
+    my $xml = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
+    $self->write($xml);
 }
 
 # DJabberd::Connection

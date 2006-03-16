@@ -868,7 +868,7 @@ RFC 3920                       XMPP Core                    October 2004
    o  <invalid-from/> -- the JID or hostname provided in a 'from'
       address does not match an authorized JID or validated domain
       negotiated between servers via SASL or dialback, or between a
-      client and a server via authentication and resource binding.
+      client and a server via authentication and resource binding. {=clientin-invalid-from}
 
    o  <invalid-id/> -- the stream ID or dialback ID is invalid or does
       not match an ID previously provided.
@@ -3214,23 +3214,24 @@ RFC 3920                       XMPP Core                    October 2004
 10.  Server Rules for Handling XML Stanzas
 
    Compliant server implementations MUST ensure in-order processing of
-   XML stanzas between any two entities.
+   XML stanzas between any two entities. {=in-order-processing-between-jids}
 
    Beyond the requirement for in-order processing, each server
    implementation will contain its own "delivery tree" for handling
    stanzas it receives.  Such a tree determines whether a stanza needs
    to be routed to another domain, processed internally, or delivered to
    a resource associated with a connected node.  The following rules
-   apply:
+   apply: {=delivery-tree}
 
 10.1.  No 'to' Address
 
+{=no-to-address}
    If the stanza possesses no 'to' attribute, the server SHOULD process
    it on behalf of the entity that sent it.  Because all stanzas
-   received from other servers MUST possess a 'to' attribute, this rule
+   received from other servers MUST possess a 'to' attribute, {=server-filter-in-must-have-to} this rule
    applies only to stanzas received from a registered entity (such as a
    client) that is connected to the server.  If the server receives a
-   presence stanza with no 'to' attribute, the server SHOULD broadcast
+   presence stanza with no 'to' attribute {=client-in-presence-no-to}, the server SHOULD broadcast
    it to the entities that are subscribed to the sending entity's
    presence, if applicable (the semantics of presence broadcast for
    instant messaging and presence applications are defined in
@@ -3239,7 +3240,7 @@ RFC 3920                       XMPP Core                    October 2004
    qualifies the content of the stanza, it MUST either process the
    stanza on behalf of the sending entity (where the meaning of
    "process" is determined by the semantics of the qualifying namespace)
-   or return an error to the sending entity.
+   or return an error to the sending entity. {=client-getset-iq-no-to-or-error}
 
 10.2.  Foreign Domain
 
@@ -3271,7 +3272,7 @@ RFC 3920                       XMPP Core                    October 2004
       foreign domain over the newly-established stream
 
    If routing to the recipient's server is unsuccessful, the sender's
-   server MUST return an error to the sender; if the recipient's server
+   server MUST return an error to the sender {=return-error-on-routing-error}; if the recipient's server
    can be contacted but delivery by the recipient's server to the
    recipient is unsuccessful, the recipient's server MUST return an
    error to the sender by way of the sender's server.
@@ -3284,6 +3285,7 @@ RFC 3920                       XMPP Core                    October 2004
    stanza itself or route the stanza to a specialized service that is
    responsible for that subdomain (if the subdomain is configured), or
    return an error to the sender (if the subdomain is not configured).
+   {=return-error-on-to-domain-unrecognized}
 
 10.4.  Mere Domain or Specific Resource
 
@@ -3292,7 +3294,7 @@ RFC 3920                       XMPP Core                    October 2004
    itself and the JID contained in the 'to' attribute is of the form
    <domain> or <domain/resource>, the server (or a defined resource
    thereof) MUST either process the stanza as appropriate for the stanza
-   kind or return an error stanza to the sender.
+   kind or return an error stanza to the sender. {=proc-or-error-on-to-of-my-domain}
 
 10.5.  Node in Same Domain
 
@@ -3435,7 +3437,7 @@ Saint-Andre, Ed.            Standards Track                    [Page 61]
 RFC 3920                       XMPP Core                    October 2004
 
 
-   sent within 'jabber:server'.  If a compliant implementation accepts a
+   sent within 'jabber:server'.  {=to-and-from-required-from-server} If a compliant implementation accepts a
    stream that is qualified by the 'jabber:client' or 'jabber:server'
    namespace, it MUST support the common attributes (Section 9.1) and
    basic semantics (Section 9.2) of all three core stanza kinds

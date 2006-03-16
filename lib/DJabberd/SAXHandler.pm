@@ -52,7 +52,7 @@ sub start_element {
         my ($doc, $events) = @_;
         my $nodes = _nodes_from_events($events);
         # {=xml-stanza}
-        $ds->process_stanza($nodes->[0]);
+        $ds->on_stanza_received($nodes->[0]);
     });
 
 }
