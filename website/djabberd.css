@@ -1,0 +1,89 @@
+body {
+  font-family: sans-serif;
+  border: 10px solid #cdcdcd; margin: 0; padding: 30px; padding-top: 15px;
+  background: white; color: #000;
+}
+tt.spec { color: #0000c0; }
+
+div.example {
+  border: 2px dashed black;
+  font-family: courier new;
+  font-size: 11pt;
+  background: #ddd; color: #000;
+  padding: 0.5em;
+  margin-bottom: 0.7em;
+}
+
+dl { margin-left: 1.5em; }
+dt {
+  font-weight: bold;
+  font-style: italic;
+  margin-top: 0.5em;
+}
+
+div.warn {
+      text-align: center;
+      margin-top: .7em;
+      margin-bottom: .7em;
+}
+div.linkbar a { margin-left: 0.1em; margin-right: 0.1em; font-weight: bold; }
+
+input.sexy {
+   background: url(login-bg.gif) no-repeat; 
+   background-color: #fff; 
+   background-position: 0 50%;
+   color: #000;
+   padding-left: 18px; 
+}
+
+a { color: #ff5600; }
+h1 {
+   color: #C34314;
+   letter-spacing: 0.2em;
+   text-align: center;
+   width: auto;
+   font-size: 25pt;
+   margin-bottom: 0;
+   margin-top: 0;
+}
+h2 {
+    font-weight: bold; border-bottom: 1px dotted #999; padding-bottom: 3px;
+}
+
+p {
+   margin-top: 0;
+}
+
+div.linkbar {
+   width: auto;
+   text-align: center;
+}
+div.pagetitle {
+   width: auto;
+   text-align: center;
+   font-weight: bold; font-size: 17pt;
+   margin-bottom: 10px;
+   margin-top: 10px;
+}
+
+pre.example {
+   margin-left: 40px;
+   background: #e0e0e0;
+}
+div.exampletitle {
+   font-family: sans-serif;
+   font-weight: bold;
+   background: #d0d0f0;
+   margin-bottom: 0;
+}
+ul.spaced li { margin-top: 0.7em; }
+
+a.barlink:active { background: yellow; }
+
+div.footer {
+   margin: 30px -30px -30px -30px;
+   padding: 5px;
+   font-size: smaller;
+   font-style: italic;
+}
+

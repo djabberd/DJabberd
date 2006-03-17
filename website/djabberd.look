@@ -1,0 +1,30 @@
+page<=
+{Fps}<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+   <title>DJabberd: %%wintitle%%</title>
+   <link rel='stylesheet' type='text/css' href='djabberd.css'>
+%%head%%
+</head>
+<body>
+
+<h1><a href="./">DJabberd</a></h1>
+
+<div class='linkbar'>
+<?link ./|About link?>
+&mdash;
+<?olink http://lists.danga.com/mailman/listinfo/djabberd|Mailing List olink?>
+</div>
+
+%%body%%
+
+<div class='footer'>Brad Fitzpatrick - &lt;brad@danga.com&gt;</div>
+</body>
+</html>
+<=page
+
+h1=>{D}<h2>%%data%%</h2>
+
+link=>{RP}[<a href="%%data1%%" class='barlink'>%%data2%%</a>]
+olink=>{RP}[<img src="offsite.gif" hspace='1' width='14' height='11' alt='offsite' /><a href="%%data1%%" class='barlink'>%%data2%%</a>]
+

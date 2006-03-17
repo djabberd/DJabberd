@@ -1,0 +1,6 @@
+LookRoot .
+ForceScheme djabberd
+AllowCode 1
+AllowTemplateCode 1
+
+

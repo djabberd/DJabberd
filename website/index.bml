@@ -1,0 +1,20 @@
+<?page
+wintitle=>XMPP server where everything is a plugin.
+body<=
+
+<h2>What</h2>
+
+<p>notes</p>
+
+<ul class='spaced'>
+<li>foo</li>
+<li>foo</li>
+<li>foo</li>
+<li>foo</li>
+</ul>
+
+<h2>How's it work?</h2>
+
+
+<=body
+page?>
