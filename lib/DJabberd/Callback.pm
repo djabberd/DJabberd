@@ -35,8 +35,11 @@ sub AUTOLOAD {
     if (my $pre = $self->{_pre}) {
         $pre->($self, $meth, @_) or return;
     }
-    my $cb = $self->{$meth} or
-        croak("unknown method ($meth) called on " . $self->desc);
+    my $cb = $self->{$meth};
+    unless ($cb) {
+        my $avail = join(", ", grep { $_ !~ /^_/ } keys %$self);
+        croak("unknown method ($meth) called on " . $self->desc . "; available methods: $avail");
+    }
     $cb->($self, @_);
 }
 

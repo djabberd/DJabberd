@@ -6,6 +6,8 @@ use DJabberd;
 use DJabberd::Auth::AllowedUsers;
 use DJabberd::Auth::StaticPassword;
 use DJabberd::Delivery::Local;
+use DJabberd::Delivery::S2S;
+
 use Getopt::Long;
 
 use vars qw($DEBUG);
@@ -28,6 +30,7 @@ my $server = DJabberd->new(
                                                                            allowed => [qw(brad daveman692 crucially bradfitz bob test revmischa)]),
                                          DJabberd::Auth::StaticPassword->new(password => "password"),
                                          DJabberd::Delivery::Local->new(),
+                                         DJabberd::Delivery::S2S->new(),
                                          ],
 #                           roster_hooks => [
 #                                            DJabberd::Roster::Mysql->new(host => "127.0.0.1",

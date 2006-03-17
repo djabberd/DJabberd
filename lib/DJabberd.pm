@@ -17,6 +17,9 @@ use DJabberd::Connection::ServerIn;
 use DJabberd::Connection::ClientIn;
 
 use DJabberd::Stanza::StartTLS;
+use DJabberd::Stanza::StreamFeatures;
+use DJabberd::Stanza::DialbackVerify;
+use DJabberd::Stanza::DialbackResult;
 use DJabberd::JID;
 use DJabberd::IQ;
 use DJabberd::Message;

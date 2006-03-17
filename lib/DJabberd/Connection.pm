@@ -1,5 +1,6 @@
 package DJabberd::Connection;
 use strict;
+use warnings;
 use base 'Danga::Socket';
 use fields (
             'jabberhandler',
@@ -9,10 +10,11 @@ use fields (
             'username',   # username of user, once authenticated
             'resource',   # resource of user, once authenticated
             'bound_jid',  # undef until resource binding - then DJabberd::JID object
-            'server',     # DJabberd server instance
+            'vhost',      # DJabberd vhost instance (FIXME: for now just a server)
             'ssl',        # undef when not in ssl mode, else the $ssl object from Net::SSLeay
             'stream_id',  # undef until set first time
             'version',    # the DJabberd::StreamVersion we negotiated
+            'rcvd_features',  # the features stanza we've received from the other party
             );
 
 
@@ -27,15 +29,11 @@ use DJabberd::Message;
 
 use Data::Dumper;
 
-sub server {
-    return $_[0]->{server};
-}
-
 sub new {
-    my ($class, $sock, $server) = @_;
+    my ($class, $sock, $vhost) = @_;
     my $self = $class->SUPER::new($sock);
 
-    warn "Server = $server\n";
+    warn "Vhost = $vhost\n";
 
     # FIXME: circular reference from self to jabberhandler to self, use weakrefs
     my $jabberhandler = $self->{'jabberhandler'} = DJabberd::SAXHandler->new($self);
@@ -43,12 +41,18 @@ sub new {
     my $p = XML::SAX::Expat::Incremental->new( Handler => $jabberhandler );
     $self->{parser} = $p;
 
-    $self->{server}   = $server;
-    Scalar::Util::weaken($self->{server});
+    $self->{vhost}   = $vhost;
+    Scalar::Util::weaken($self->{vhost});
 
     warn "CONNECTION from " . $self->peer_ip_string . " == $self\n";
 
     return $self;
+}
+
+# TODO: maybe this should be moved down only into ServerOut connections?
+sub set_rcvd_features {
+    my ($self, $feat_stanza) = @_;
+    $self->{rcvd_features} = $feat_stanza;
 }
 
 sub set_bound_jid {
@@ -93,7 +97,7 @@ sub run_hook_chain {
 
     my @hooks;
     foreach my $ph (@$phase) {
-        push @hooks, @{ $self->{server}->{hooks}->{$ph} || [] };
+        push @hooks, @{ $self->{vhost}->{hooks}->{$ph} || [] };
     }
     push @hooks, $fallback if $fallback;
 
@@ -129,7 +133,7 @@ sub vhost {
 }
 sub server {
     my $self = shift;
-    return $self->{'server'};
+    return $self->{'vhost'};
 }
 
 # called by DJabberd::SAXHandler
@@ -147,7 +151,8 @@ sub process_stanza_builtin {
     my ($self, $node) = @_;
 
     my %stanzas = (
-                   "{urn:ietf:params:xml:ns:xmpp-tls}starttls" => 'DJabberd::Stanza::StartTLS',
+                   "{urn:ietf:params:xml:ns:xmpp-tls}starttls"  => 'DJabberd::Stanza::StartTLS',
+                   "{http://etherx.jabber.org/streams}features" => 'DJabberd::Stanza::StreamFeatures',
                    );
 
     my $class = $stanzas{$node->element};
@@ -170,8 +175,8 @@ sub jid {
 
 sub send_stanza {
     my ($self, $stanza, %opts) = @_;
-    my $to_jid    = delete $opts{to}    or die "no to";
-    my $from_jid  = delete $opts{from}  or die "no from";
+    my $to_jid    = delete $opts{to}   || $stanza->to   || die "no to";
+    my $from_jid  = delete $opts{from} || $stanza->from || die "no from";
     die if %opts;
 
     my $elename = $stanza->element_name;
@@ -179,10 +184,12 @@ sub send_stanza {
     my $other_attrs = "";
     while (my ($k, $v) = each %{ $stanza->attrs }) {
         $k =~ s/.+\}//; # get rid of the namespace
+        next if $k eq "to" || $k eq "from";
         $other_attrs .= "$k=\"" . DJabberd::Util::exml($v) . "\" ";
     }
 
     my $xml = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
+    warn "sending stanza to $self:  $xml\n";
     $self->write($xml);
 }
 

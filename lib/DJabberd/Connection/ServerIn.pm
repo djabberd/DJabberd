@@ -30,9 +30,9 @@ sub on_stream_start {
 sub on_stanza_received {
     my ($self, $node) = @_;
 
-
     my %class = (
                    "{jabber:server:dialback}result" => "DJabberd::Stanza::DialbackResult",
+                   "{jabber:server:dialback}verify" => "DJabberd::Stanza::DialbackVerify",
                    "{jabber:server}iq"       => 'DJabberd::IQ',
                    "{jabber:server}message"  => 'DJabberd::Message',
                    "{jabber:server}presence" => 'DJabberd::Presence',
@@ -80,7 +80,8 @@ sub switch_incoming_server_builtin {
     # FIXME: we want to process here.. like for presence and stuff later,
     # but for now all we care about is message delivery.  ghettos:
 
-    if ($stanza->isa("DJabberd::Stanza::DialbackResult")) {
+    if ($stanza->isa("DJabberd::Stanza::DialbackResult")
+        || $stanza->isa("DJabberd::Stanza::DialbackVerify")) {
         $stanza->process($self);
     } else {
         $stanza->deliver($self);
@@ -93,8 +94,7 @@ sub dialback_verify_valid {
     my $self = shift;
     my %opts = @_;
 
-    my $res = qq{<db:result from='$opts{recv_server}' to='$opts{orig_server}' type='valid'/>};
-    $self->{verified_remote_domain} = $opts{orig_server};
+    my $res = qq{<db:verify from='$opts{recv_server}' to='$opts{orig_server}' type='valid'/>};
 
     warn "Dialback verify valid for $self.  from=$opts{recv_server}, to=$opts{orig_server}: $res\n";
     $self->write($res);
@@ -103,6 +103,23 @@ sub dialback_verify_valid {
 sub dialback_verify_invalid {
     my ($self, $reason) = @_;
     warn "Dialback verify invalid for $self, reason: $reason\n";
+    $self->close_stream;
+}
+
+sub dialback_result_valid {
+    my $self = shift;
+    my %opts = @_;
+
+    my $res = qq{<db:result from='$opts{recv_server}' to='$opts{orig_server}' type='valid'/>};
+    $self->{verified_remote_domain} = $opts{orig_server};
+
+    warn "Dialback result valid for $self.  from=$opts{recv_server}, to=$opts{orig_server}: $res\n";
+    $self->write($res);
+}
+
+sub dialback_result_invalid {
+    my ($self, $reason) = @_;
+    warn "Dialback result invalid for $self, reason: $reason\n";
     $self->close_stream;
 }
 

@@ -23,7 +23,7 @@ sub local_delivery {
     $conn->send_stanza($stanza,
                        to   => $to->as_string,
                        from => $stanza->from);
-    $cb->finished;
+    $cb->delivered;
 }
 
 1;

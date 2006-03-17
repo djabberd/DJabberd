@@ -15,7 +15,7 @@ sub deliver {
     $conn->run_hook_chain(phase => "deliver",
                           args  => [ $stanza ],
                           methods => {
-                              finished => sub { },
+                              delivered => sub { },
                               # FIXME: in future, this should note deliver was
                               # complete and the next message to this jid should be dequeued and
                               # subsequently delivered.  (in order deliver)
