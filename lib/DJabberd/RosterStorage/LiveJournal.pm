@@ -1,21 +1,28 @@
-package DJabberd::Roster::LiveJournal;
+package DJabberd::RosterStorage::LiveJournal;
 use strict;
-use base 'DJabberd::Roster';
+use base 'DJabberd::RosterStorage';
+use LWP::Simple;
 
-sub register {
-    my ($self, $server) = @_;
-    $server->register_hook("getroster", sub {
-        my ($conn, $cb) = @_;
+sub blocking { 1 }
 
-        my $items;
-        my $friends = LWP::Simple::get("http://www.livejournal.com/misc/fdata.bml?user=" . $self->{username});
-        foreach my $line (sort split(/\n/, $friends)) {
-            next unless $line =~ m!> (\w+)!;
-            my $fuser = $1;
-            $items .= "<item jid='$fuser\@$conn->{server_name}' name='$fuser' subscription='both'><group>Friends</group></item>\n";
-        }
-        $cb->set_roster_body($items);
-    });
+sub get_roster {
+    my ($self, $cb, $conn, $jid) = @_;
+
+    my $user = $jid->node;
+    my $roster = DJabberd::Roster->new;
+
+    my $friends = LWP::Simple::get("http://www.livejournal.com/misc/fdata.bml?user=" . $user);
+    foreach my $line (sort split(/\n/, $friends)) {
+        next unless $line =~ m!> (\w+)!;
+        my $fuser = $1;
+        my $ri = DJabberd::RosterItem->new(
+                                           jid => "$fuser\@" . $conn->vhost->name,
+                                           name => $fuser,
+                                           );
+        $ri->add_group("LJ Friends");
+        $roster->add($ri);
+    }
+    $cb->set_roster($roster);
 }
 
 1;

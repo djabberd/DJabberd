@@ -10,6 +10,7 @@ use DJabberd::Delivery::S2S;
 
 use DJabberd::RosterStorage::SQLite;
 use DJabberd::RosterStorage::Dummy;
+use DJabberd::RosterStorage::LiveJournal;
 
 use Getopt::Long;
 
@@ -36,12 +37,9 @@ my $server = DJabberd->new(
                                          DJabberd::Auth::StaticPassword->new(password => "password"),
                                          DJabberd::Delivery::Local->new(),
                                          DJabberd::Delivery::S2S->new(),
-                                         DJabberd::RosterStorage::SQLite->new("$Bin/roster.sqlite"),
-#                                         DJabberd::RosterStorage::Dummy->new,
+                                         #DJabberd::RosterStorage::SQLite->new("$Bin/roster.sqlite"),
+                                         #DJabberd::RosterStorage::Dummy->new,
+                                         DJabberd::RosterStorage::LiveJournal->new,
                                          ],
-#                           roster_hooks => [
-#                                            DJabberd::Roster::Mysql->new(host => "127.0.0.1",
-#                                                                         db => "djabberd_roster"),
-#                                            ],
                            );
 $server->run;

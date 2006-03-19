@@ -21,6 +21,11 @@ sub new {
     }, $class;
 }
 
+sub node {
+    my $self = shift;
+    return $self->{node};
+}
+
 sub domain {
     my $self = shift;
     return $self->{domain};
