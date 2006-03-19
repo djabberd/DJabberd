@@ -1,9 +1,17 @@
 package DJabberd::IQ;
 use strict;
 use base qw(DJabberd::Stanza);
+use fields (
+            'connection',   # Store the connection the IQ came in on so we can respond.  may be undef, as it's a weakref.
+            );
 
+# DO NOT OVERRIDE THIS
 sub process {
-    my ($self, $conn) = @_;
+    my DJabberd::IQ $self = shift;
+    my $conn = shift;
+
+    $self->{connection} = $conn;
+    Scalar::Util::weaken($self->{connection});
 
     my $handler = {
         'get-{jabber:iq:roster}query' => \&process_iq_getroster,
@@ -31,35 +39,43 @@ sub signature {
     return $iq->type . "-" . ($fc ? $fc->element : "(BOGUS)");
 }
 
+sub send_result_nodes {
+}
+
+# caller must send well-formed XML (but we do the wrapping element)
+sub send_result_raw {
+    my DJabberd::IQ $self = shift;
+    my $raw = shift;
+
+    my $conn = $self->{connection}
+        or return;
+
+    my $id = $self->id;
+    my $to = $conn->bound_jid->as_string;
+    my $xml = qq{<iq to='$to' type='result' id='$id'>$raw</iq>};
+    warn "About to send IQ reply: $xml\n";
+    $conn->write(\$xml);
+}
+
 sub process_iq_getroster {
     my ($conn, $iq) = @_;
-
-    my $to = $conn->jid;
-    my $id = $iq->id;
+    $conn->set_requested_roster(1);
 
     my $send_roster = sub {
-        my $body = shift;
-        my $roster_res = qq{
-            <iq to='$to' type='result' id='$id'>
-                <query xmlns='jabber:iq:roster'>
-                $body
-                </query>
-                </iq>
-            };
-        $conn->write($roster_res);
+        my $roster = shift;
+        # TODO: walk roster and add presence subscriptions for everybody
+        $iq->send_result_raw($roster->as_xml);
     };
 
-    $conn->run_hook_chain(phase => "getroster",
-                          args => [ $iq ],
+    $conn->run_hook_chain(phase => "RosterGet",
                           methods => {
-                              set_roster_body => sub {
-                                  my ($self, $body) = @_;
-                                  $send_roster->($body);
+                              set_roster => sub {
+                                  my ($self, $roster) = @_;
+                                  $send_roster->($roster);
                               },
                           },
                           fallback => sub {
-                              $send_roster->("<item jid='xxxxx\@example.com' name='XXXXXXXXX' subscription='both'><group>Friends</group></item>\n");
-
+                              $send_roster->(DJabberd::Roster->new()),
                           });
     return 1;
 }

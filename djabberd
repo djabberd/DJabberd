@@ -8,6 +8,9 @@ use DJabberd::Auth::StaticPassword;
 use DJabberd::Delivery::Local;
 use DJabberd::Delivery::S2S;
 
+use DJabberd::RosterStorage::SQLite;
+use DJabberd::RosterStorage::Dummy;
+
 use Getopt::Long;
 
 use vars qw($DEBUG);
@@ -20,6 +23,8 @@ Getopt::Long::GetOptions(
     'debug=i'        => \$DEBUG,
    );
 
+use FindBin qw($Bin);
+
 my $server = DJabberd->new(
                            #server_name => '207.7.148.210',
                            server_name => 'jabber.bradfitz.com',
@@ -31,6 +36,8 @@ my $server = DJabberd->new(
                                          DJabberd::Auth::StaticPassword->new(password => "password"),
                                          DJabberd::Delivery::Local->new(),
                                          DJabberd::Delivery::S2S->new(),
+#                                         DJabberd::RosterStorage::SQLite->new("$Bin/roster.sqlite"),
+                                         DJabberd::RosterStorage::Dummy->new,
                                          ],
 #                           roster_hooks => [
 #                                            DJabberd::Roster::Mysql->new(host => "127.0.0.1",

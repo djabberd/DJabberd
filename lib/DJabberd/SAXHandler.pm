@@ -140,9 +140,7 @@ sub _nodes_from_events {
         }
 
         my $localname = $ev->[1]{LocalName};
-        my $ele = DJabberd::XMLElement->new(["{$ns}$localname",
-                                     $attr,
-                                     _nodes_from_events(\@children)]);
+        my $ele = DJabberd::XMLElement->new($ns, $localname, $attr, _nodes_from_events(\@children));
         push @$nodelist, $ele;
     };
 

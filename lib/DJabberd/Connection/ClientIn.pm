@@ -2,6 +2,20 @@ package DJabberd::Connection::ClientIn;
 use strict;
 use base 'DJabberd::Connection';
 
+use fields (
+            'requested_roster',  # bool: if user has requested their roster,
+            );
+
+sub set_requested_roster {
+    my ($self, $val) = @_;
+    $self->{requested_roster} = $val;
+}
+
+sub requested_roster {
+    my $self = shift;
+    return $self->{requested_roster};
+}
+
 sub on_stream_start {
     my DJabberd::Connection $self = shift;
     my $ss = shift;

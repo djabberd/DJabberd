@@ -20,3 +20,19 @@ switch_incoming_server
 
 
 
+Roster
+----------------------------------------------------------------------------
+RosterGet ($conn, $cb)
+   where $cb supports methods:
+      ->set_roster(DJabberd::Roster)
+      ->decline
+
+Users subclasses DJabberd::RosterStorage can override get_roster, which gets:
+
+     my ($plugininstance, $cb, $conn, $jid) = @_;
+
+(where $jid is just the $conn->bound_jid)
+
+
+
+

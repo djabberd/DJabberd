@@ -1,61 +1,79 @@
 package DJabberd::XMLElement;
 use strict;
-use constant ELEMENT  => 0;
-use constant ATTRS    => 1;
-use constant CHILDREN => 2;
+use fields (
+            'ns',        # namespace name
+            'element',   # element name
+            'attrs',     # hashref of {namespace}attr => value
+            'children',  # arrayref of child elements of this same type, or scalars for text nodes
+            );
 
 use DJabberd::Util;
 
 sub new {
-    my ($class, $node) = @_;
-    return bless $node, $class;
+    my $class = shift;
+    if (ref $_[0]) {
+        # the down-classer that subclasses can inherit
+        return bless $_[0], $class;
+    }
+
+    # constructing a new XMLElement:
+    my ($ns, $elementname, $attrs, $children) = @_;
+
+    Carp::confess("children isn't an arrayref, is: $children") unless ref $children eq "ARRAY";
+
+    my $self = fields::new($class);
+    $self->{ns}       = $ns;
+    $self->{element}  = $elementname;
+    $self->{attrs}    = $attrs;
+    $self->{children} = $children;
+
+    return $self;
 }
 
 sub children {
-    my $self = shift;
-    return @{ $self->[CHILDREN] };
+    my DJabberd::XMLElement $self = shift;
+    return @{ $self->{children} };
 }
 
 sub first_child {
     my $self = shift;
-    return @{ $self->[CHILDREN] } ? $self->[CHILDREN][0] : undef;
+    return @{ $self->{children} } ? $self->{children}[0] : undef;
 }
 
 sub first_element {
     my $self = shift;
-    foreach my $c (@{ $self->[CHILDREN] }) {
+    foreach my $c (@{ $self->{children} }) {
         return $c if ref $c;
     }
     return undef;
 }
 
 sub attr {
-    return $_[0]->[ATTRS]{$_[1]};
+    return $_[0]->{attrs}{$_[1]};
 }
 
 sub set_attr {
-    $_[0]->[ATTRS]{$_[1]} = $_[2];
+    $_[0]->{attrs}{$_[1]} = $_[2];
 }
 
 sub attrs {
-    return $_[0]->[ATTRS];
+    return $_[0]->{attrs};
 }
 
 sub element {
-    return $_[0]->[ELEMENT] unless wantarray;
-    my $el = $_[0]->[ELEMENT];
-    $el =~ /^\{(.+)\}(.+)/;
-    return ($1, $2);
+    my $self = shift;
+    return ($self->{ns}, $self->{element}) if wantarray;
+    return "{$self->{ns}}$self->{element}";
 }
 
 sub element_name {
     my $self = shift;
-    return ($self->element)[1];
+    return $self->{element};
 }
 
 sub namespace {
     my $self = shift;
-    return ($self->element)[0];
+    return $self->{ns};
 }
 
 sub as_xml {

@@ -1,0 +1,7 @@
+Contradictory?
+
+   5.  The user's server MUST also stamp the presence stanza of type
+       "subscribe" with the user's bare JID (i.e., <user@example.com>)
+       as the 'from' address (if the user provided a 'from' address set
+       to the user's full JID, the server SHOULD remove the resource
+       identifier).  If the contact is served by a different host than

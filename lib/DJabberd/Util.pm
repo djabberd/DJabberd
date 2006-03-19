@@ -1,5 +1,8 @@
 package DJabberd::Util;
 use strict;
+require Exporter;
+our @ISA = qw(Exporter);
+our @EXPORT_OK = qw(exml);
 
 sub exml
 {

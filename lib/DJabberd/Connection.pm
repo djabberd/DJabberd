@@ -88,7 +88,7 @@ sub run_hook_chain {
 
     my $phase    = delete $opts{'phase'};
     my $methods  = delete $opts{'methods'} || {};
-    my $args     = delete $opts{'args'};
+    my $args     = delete $opts{'args'}    || [];
     my $fallback = delete $opts{'fallback'};
     die if %opts;
 
@@ -318,7 +318,7 @@ sub close_stream {
 
 sub close {
     my DJabberd::Connection $self = shift;
-    print "DISCONNECT: $self\n";
+    warn "DISCONNECT: $self\n";
 
     if (my $ssl = $self->{ssl}) {
         Net::SSLeay::free($ssl);
