@@ -1,28 +1,18 @@
 package DJabberd::Delivery::S2S;
 use strict;
+use warnings;
+use base 'DJabberd::Delivery';
+
 use DJabberd::Queue::ServerOut;
-use Scalar::Util;
 
 sub new {
-    my ($class) = @_;
-    return bless {
-        'cache' => {},    # domain -> DJabberd::Queue::ServerOut
-        'vhost' => undef, # Vhost we're for, set first on ->register
-    }, $class;
+    my $class = shift;
+    my $self = $class->SUPER::new(@_);
+    $self->{cache} = {}; # domain -> DJabberd::Queue::ServerOut
+    return $self;
 }
 
-sub register {
-    my ($self, $vhost) = @_;
-    $self->{vhost} = $vhost;
-    Scalar::Util::weaken($self->{vhost});
-
-    $vhost->register_hook("deliver", sub {
-        my ($conn, $cb, $stanza) = @_;
-        return $self->s2s_delivery($conn, $cb, $stanza);
-    });
-}
-
-sub s2s_delivery {
+sub deliver {
     my ($self, $conn, $cb, $stanza) = @_;
 
     warn "s2s delivery!\n";

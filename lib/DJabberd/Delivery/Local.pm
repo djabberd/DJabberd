@@ -1,18 +1,10 @@
 package DJabberd::Delivery::Local;
 use strict;
+use warnings;
+use base 'DJabberd::Delivery';
 
-sub new {
-    my ($class) = @_;
-    return bless {}, $class;
-}
-
-sub register {
-    my ($self, $server) = @_;
-    $server->register_hook("deliver", \&local_delivery);
-}
-
-sub local_delivery {
-    my ($conn, $cb, $stanza) = @_;
+sub deliver {
+    my ($self, $conn, $cb, $stanza) = @_;
     warn "local delivery!\n";
     my $to = $stanza->to_jid                or return $cb->declined;
     warn "  to = $to (" . $to->as_string . ")!\n";
