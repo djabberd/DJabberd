@@ -33,6 +33,11 @@ sub new {
     return $self;
 }
 
+sub add_group {
+    my ($self, $group) = @_;
+    push @{ $self->{groups} }, $group;
+}
+
 sub as_xml {
     my $self = shift;
     my $xml = "<item jid='" . exml($self->{jid}->as_bare_string) . "' subscription='" . exml($self->{subscription}) . "' ";

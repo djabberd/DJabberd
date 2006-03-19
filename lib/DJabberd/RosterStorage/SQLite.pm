@@ -66,6 +66,47 @@ sub blocking { 1 }
 sub get_roster {
     my ($self, $cb, $conn, $jid) = @_;
 
+    my $dbh = $self->{dbh};
+
+    my $roster = DJabberd::Roster->new;
+
+    my $sql = qq{
+        SELECT r.contactid, r.name, r.subscription, jmc.jid
+        FROM roster r, jidmap jm, jidmap jmc
+        WHERE r.userid=jm.jidid and jm.jid=? and jmc.jidid=r.contactid
+    };
+
+    # contacts is { contactid -> $row_hashref }
+    my $contacts = $dbh->selectall_hashref($sql, "contactid", undef, $jid->as_bare_string);
+
+    foreach my $contact (values %$contacts) {
+        my $item =
+          DJabberd::RosterItem->new(
+                                    jid  => $contact->{jid},
+                                    name => $contact->{name},
+                                    subscription => 'none', #FIXME: $self->subscription_name($contact->{subscription})
+                                    );
+
+        # convert all the values in the hashref into RosterItems
+        $contacts->{$contact->{contactid}} = $item;
+        $roster->add($item);
+    }
+
+    # get all the groups, and add them to the roster items
+    $sql = qq{
+        SELECT rg.name, gi.contactid
+        FROM   rostergroup rg, jidmap j, groupitem gi
+        WHERE  gi.groupid=rg.groupid AND rg.userid=j.jidid AND j.jid=?
+    };
+    my $sth = $dbh->prepare($sql);
+    $sth->execute($jid->as_bare_string);
+    while (my ($group_name, $contactid) = $sth->fetchrow_array) {
+        my $ri = $contacts->{$contactid} or next;
+        $ri->add_group($group_name);
+    }
+
+    $cb->set_roster($roster);
+
 }
 
 1;
