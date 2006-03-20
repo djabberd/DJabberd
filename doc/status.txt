@@ -1,0 +1,4 @@
+
+SSL - was working - has bugs - needs nonblocking
+SASL - needs implementation
+presence - needs implementation
