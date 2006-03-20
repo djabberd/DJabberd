@@ -2,3 +2,4 @@
 SSL - was working - has bugs - needs nonblocking
 SASL - needs implementation
 presence - needs implementation
+s2s - dialback works, no SSL/SASL - shared secret hook doesn't exist
