@@ -195,6 +195,36 @@ sub start_s2s_server {
     Danga::Socket->AddOtherFds(fileno($server) => $accept_handler);
 }
 
+sub start_simple_server {
+    my ($self, $port) = @_;
+    eval "use DJabberd::Connection::SimpleIn; 1"
+        or die "Failed to load DJabberd::Connection::SimpleIn: $@\n";
+
+    # establish SERVER socket, bind and listen.
+    my $server = IO::Socket::INET->new(LocalPort => $port,
+                                       Type      => SOCK_STREAM,
+                                       Proto     => IPPROTO_TCP,
+                                       Blocking  => 0,
+                                       Reuse     => 1,
+                                       Listen    => 10 )
+        or die "Error creating socket: $@\n";
+
+    IO::Handle::blocking($server, 0);
+
+    my $accept_handler = sub {
+        my $csock = $server->accept
+            or return;
+
+        IO::Handle::blocking($csock, 0);
+        setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or die;
+
+        my $client = DJabberd::Connection::SimpleIn->new($csock, $self);
+        $client->watch_read(1);
+    };
+
+    Danga::Socket->AddOtherFds(fileno($server) => $accept_handler);
+}
+
 sub daemonize {
     my($pid, $sess_id, $i);
 
