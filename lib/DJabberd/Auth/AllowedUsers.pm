@@ -20,11 +20,16 @@ sub check_auth {
     warn "$self --- user=$user, allowed: @{$self->{allowed}}\n";
 
     if ($self->{'policy'} eq "deny") {
-        if (grep { $user eq $_ } @{$self->{allowed}}) {
-            $cb->decline;  # okay username, may continue in auth phase
-        } else {
-            $cb->reject;
+        foreach my $allowed (@{$self->{allowed}}) {
+            if (ref $allowed eq "Regexp" && $user =~ /$allowed/) {
+                $cb->decline; # okay username, may continue in auth phase
+                return;
+            } elsif ($user eq $allowed) {
+                $cb->decline; # okay username, may continue in auth phase
+                return;
+            }
         }
+        $cb->reject;
         return;
     }
 
