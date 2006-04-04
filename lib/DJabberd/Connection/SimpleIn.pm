@@ -37,7 +37,7 @@ sub event_read {
     return $self->close unless defined $bref;
     $self->{read_buf} .= $$bref;
 
-    if ($self->{read_buf} =~ s/^(.+?)\r?\n//) {
+    if ($self->{read_buf} =~ s/^(.*)\r?\n//) {
         my $line = $1;
         $self->process_line( $line );
     }
@@ -46,11 +46,23 @@ sub event_read {
 sub process_line {
     my DJabberd::Connection::SimpleIn $self = shift;
     my $line = shift;
+    return $self->close unless $line =~ /^(\w+)\s*(.*)/;
+    my ($cmd, $rest) = ($1, $2);
+    if ($cmd eq "send_xml") {
+        my ($to, $enc_xml) = split(/\s+/, $rest);
+        my $xml = durl($enc_xml);
+        warn "SIMPLE: sending to '$to', the XML '$xml'\n";
 
-    if ($line =~ /^(\d+)\s+(.*)/) {
-        my ($to, $msg) = ($1, $2);
-        warn "message to: $to, msg: $msg, server = $self->{vhost}\n";
-        return;
+        my $dconn = $self->vhost->find_jid($to);
+        unless ($dconn) {
+            warn "error.\n";
+            $self->write("ERROR\n");
+            return;
+        }
+
+        warn "all good. dconn = $dconn\n";
+        $dconn->write($xml);
+        $self->write("OK\n");
     }
 
     return $self->close;
@@ -59,6 +71,13 @@ sub process_line {
 # DJabberd::Connection::SimpleIn
 sub event_err { my $self = shift; $self->close; }
 sub event_hup { my $self = shift; $self->close; }
+
+sub durl {
+    my ($a) = @_;
+    $a =~ tr/+/ /;
+    $a =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
+    return $a;
+}
 
 
 
