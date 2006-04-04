@@ -1,5 +1,6 @@
-
 SSL - was working - has bugs - needs nonblocking
 SASL - needs implementation
 presence - needs implementation
+roster - needs support for subscription states
+rosterstorage - SQLite version needs add/modify methods
 s2s - dialback works, no SSL/SASL - shared secret hook doesn't exist
