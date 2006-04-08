@@ -34,7 +34,7 @@ sub process {
 
 sub signature {
     my $iq = shift;
-    my $fc = $iq->first_child;
+    my $fc = $iq->first_element;
     # FIXME: should signature ever get called on a bogus IQ packet?
     return $iq->type . "-" . ($fc ? $fc->element : "(BOGUS)");
 }
