@@ -34,6 +34,7 @@ sub on_stanza_received {
                  "{jabber:client}iq"       => 'DJabberd::IQ',
                  "{jabber:client}message"  => 'DJabberd::Message',
                  "{jabber:client}presence" => 'DJabberd::Presence',
+                 "{urn:ietf:params:xml:ns:xmpp-tls}starttls"  => 'DJabberd::Stanza::StartTLS',
                  );
     my $class = $class{$node->element} or
         return $self->stream_error("unsupported-stanza-type");
