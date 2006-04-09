@@ -28,6 +28,7 @@ use DJabberd::IQ;
 use DJabberd::Message;
 
 use Data::Dumper;
+use Carp qw(croak);
 
 sub new {
     my ($class, $sock, $vhost) = @_;
@@ -97,6 +98,8 @@ sub run_hook_chain {
 
     my @hooks;
     foreach my $ph (@$phase) {
+        croak("Undocumented hook phase: '$ph'") unless
+            $DJabberd::HookDocs::hook{$ph};
         push @hooks, @{ $self->{vhost}->{hooks}->{$ph} || [] };
     }
     push @hooks, $fallback if $fallback;

@@ -12,6 +12,7 @@ use POSIX ();
 
 use DJabberd::Callback;
 use Scalar::Util;
+use DJabberd::HookDocs;
 use DJabberd::Connection;
 use DJabberd::Connection::ServerIn;
 use DJabberd::Connection::ClientIn;
