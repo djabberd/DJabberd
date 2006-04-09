@@ -109,4 +109,16 @@ sub get_roster {
 
 }
 
+sub set_roster_item {
+    my ($self, $cb, $conn, $jid, $ritem) = @_;
+    warn "set roster item!\n";
+    $cb->declined;
+}
+
+sub delete_roster_item {
+    my ($self, $cb, $conn, $jid, $ritem) = @_;
+    warn "delete roster item!\n";
+    $cb->declined;
+}
+
 1;

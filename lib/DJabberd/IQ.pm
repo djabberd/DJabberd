@@ -108,7 +108,7 @@ sub process_iq_setroster {
     }
 
     # {=xmpp-ip-7.6-must-ignore-subscription-values}
-    my $subattr  = $item->attr('subscription') || "";
+    my $subattr  = $item->attr('{jabber:iq:roster}subscription') || "";
     my $removing = $subattr eq "remove" ? 1 : 0;
 
     my $jid = $item->attr("{jabber:iq:roster}jid")
