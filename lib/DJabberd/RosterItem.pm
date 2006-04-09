@@ -2,12 +2,13 @@ package DJabberd::RosterItem;
 use strict;
 use Carp qw(croak);
 use DJabberd::Util qw(exml);
+use DJabberd::Subscription;
 
 use fields (
             'jid',
             'name',
-            'groups',       # arrayref of group names
-            'subscription', # subscription state
+            'groups',        # arrayref of group names
+            'subscription',  # DJabberd::Subscription object
             );
 
 sub new {
@@ -29,9 +30,31 @@ sub new {
     }
 
     $self->{groups}       ||= [];
-    $self->{subscription} ||= "none";
+
+    # convert subscription name to an object
+    if ($self->{subscription} && ! ref $self->{subscription}) {
+        $self->{subscription} = DJabberd::Subscription->new_from_name($self->{subscription});
+    }
+
+    $self->{subscription} ||= DJabberd::Subscription->none;
     return $self;
 }
+
+sub jid {
+    my $self = shift;
+    return $self->{jid};
+}
+
+sub name {
+    my $self = shift;
+    return $self->{name};
+}
+
+sub subscription {
+    my $self = shift;
+    return $self->{name};
+}
+
 
 sub add_group {
     my ($self, $group) = @_;
@@ -40,7 +63,7 @@ sub add_group {
 
 sub as_xml {
     my $self = shift;
-    my $xml = "<item jid='" . exml($self->{jid}->as_bare_string) . "' subscription='" . exml($self->{subscription}) . "' ";
+    my $xml = "<item jid='" . exml($self->{jid}->as_bare_string) . "' " . $self->{subscription}->as_attributes;
     if (defined $self->{name}) {
         $xml .= " name='" . exml($self->{name}) . "'";
     }

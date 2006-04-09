@@ -109,10 +109,49 @@ sub get_roster {
 
 }
 
+sub _jidid_alloc {
+    my ($self, $jid) = @_;
+    my $dbh  = $self->{dbh};
+    my $jids = $jid->as_bare_string;
+    my $id   = $dbh->selectrow_array("SELECT jidid FROM jidmap WHERE jid=?",
+                                     undef, $jids);
+    return $id if $id;
+
+    $dbh->begin_work;
+    $dbh->do("INSERT INTO jidmap (jidid, jid) VALUES (NULL, ?)",
+             undef, $jids);
+    $dbh->commit or die "Failed to allocate jidid";
+
+    return $dbh->selectrow_array("SELECT jidid FROM jidmap WHERE jid=?",
+                                 undef, $jids) or die "Failed to load just-allocated jidid";
+}
+
 sub set_roster_item {
     my ($self, $cb, $conn, $jid, $ritem) = @_;
     warn "set roster item!\n";
-    $cb->declined;
+    my $dbh  = $self->{dbh};
+
+    my $fail = sub {
+        $cb->error;
+        return;
+    };
+
+    my $userid    = $jid->_jidid_alloc($jid);
+    my $contactid = $jid->_jidid_alloc($ritem->jid);
+    unless ($userid && $contactid) {
+        $cb->error;
+        return;
+    }
+
+    $dbh->begin_work;
+    $dbh->do("REPLACE INTO roster (userid, contactid, name, subscription) ".
+             "VALUES (?,?,?,?)", undef,
+             $userid, $contactid, $ritem->name, $ritem->subscription->as_bitmask)
+        or return $fail->();
+    $dbh->commit
+        or return $fail->();
+
+    $cb->done;
 }
 
 sub delete_roster_item {

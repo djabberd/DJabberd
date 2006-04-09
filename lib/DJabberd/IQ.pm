@@ -139,6 +139,9 @@ sub process_iq_setroster {
                                   $iq->send_result;
                                   # TODO: roster push
                               },
+                              error => sub {
+                                  $iq->send_error;
+                              },
                           },
                           fallback => sub {
                               $iq->send_error;
