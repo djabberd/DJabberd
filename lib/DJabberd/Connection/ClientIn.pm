@@ -94,8 +94,10 @@ sub switch_incoming_client_builtin {
     my ($self, $stanza) = @_;
 
     my $to = $stanza->to_jid;
-    if (!$to
-        || ($to && $self->vhost->uses_jid($to)) ) {
+    if (!$to ||
+        ($to && $self->vhost->uses_jid($to)) ||
+        $stanza->isa("DJabberd::Presence"))
+    {
         $stanza->process($self);
         return;
     }

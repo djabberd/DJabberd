@@ -6,6 +6,8 @@ use base 'DJabberd::RosterStorage';
 
 use DBI;
 
+use vars qw($_respect_subscription);
+
 sub new {
     my $class = shift;
     my $self = $class->SUPER::new();
@@ -164,24 +166,32 @@ sub _groupid_alloc {
     return $get->() or die "Failed to load just-allocated groupid";
 }
 
+sub set_roster_item {
+    my ($self, $cb, $conn, $jid, $ritem) = @_;
+    local $_respect_subscription = 1;
+    warn "set roster item!\n";
+    $self->addupdate_roster_item($cb, $conn, $jid, $ritem);
+}
+
 sub addupdate_roster_item {
     my ($self, $cb, $conn, $jid, $ritem) = @_;
-    warn "set roster item!\n";
+    warn "addupdate roster item!\n";
     my $dbh  = $self->{dbh};
 
     my $userid    = $self->_jidid_alloc($jid);
     my $contactid = $self->_jidid_alloc($ritem->jid);
 
     unless ($userid && $contactid) {
-        $cb->error;
+        $cb->error("no userid and contactid");
         return;
     }
 
     $self->begin_work;
 
     my $fail = sub {
+        my $reason = shift;
         $dbh->rollback;
-        $cb->error;
+        $cb->error($reason);
         return;
     };
 
@@ -206,9 +216,17 @@ sub addupdate_roster_item {
                      undef, $contactid);
         }
 
-        $dbh->do("UPDATE roster SET name=? WHERE userid=? AND contactid=?",
-                 undef, $ritem->name, $userid, $contactid)
-            or return $fail->();
+        # by default, don't change subscription, unless we're being called
+        # via set_roster_item.
+        my $sub_value = "subscription";
+        if ($_respect_subscription) {
+            $sub_value = $ritem->subscription->as_bitmask;
+            warn " sub_value = $sub_value\n";
+        }
+
+        my $sql  = "UPDATE roster SET name=?, subscription=$sub_value WHERE userid=? AND contactid=?";
+        my @args = ($ritem->name, $userid, $contactid);
+        $dbh->do($sql, undef, @args);
     } else {
         $dbh->do("INSERT INTO roster (userid, contactid, name, subscription) ".
                  "VALUES (?,?,?,?)", undef,
@@ -258,7 +276,7 @@ sub delete_roster_item {
     my $contactid = $self->_jidid_alloc($ritem->jid);
 
     unless ($userid && $contactid) {
-        $cb->error;
+        $cb->error("no userid/contactid in delete");
         return;
     }
 
@@ -285,5 +303,40 @@ sub delete_roster_item {
 
     $cb->done;
 }
+
+sub load_roster_item {
+    my ($self, $jid, $contact_jid, $cb) = @_;
+
+    my $dbh  = $self->{dbh};
+
+    my $userid    = $self->_jidid_alloc($jid);
+    my $contactid = $self->_jidid_alloc($contact_jid);
+    unless ($userid && $contactid) {
+        $cb->error("no userid/contactid in load");
+        return;
+    }
+
+    my $row = $dbh->selectrow_hashref("SELECT name, subscription FROM roster ".
+                                      "WHERE userid=? AND contactid=?",
+                                      undef, $userid, $contactid);
+    unless ($row) {
+        $cb->set(undef);
+        return;
+    }
+
+    my $item =
+        DJabberd::RosterItem->new(
+                                  jid          => $contact_jid,,
+                                  name         => $row->{name},
+                                  subscription => DJabberd::Subscription->from_bitmask($row->{subscription}),
+                                  );
+    foreach my $ga ($self->_groups_of_contactid($userid, $contactid)) {
+        $item->add_group($ga->[1]);
+    }
+
+    $cb->set($item);
+    return;
+}
+
 
 1;

@@ -48,6 +48,13 @@ sub new_from_name {
     return $sb->();
 }
 
+sub set_pending_out {
+    my ($self, $val) = @_;
+    $val = 1 unless defined $val;
+    $self->{pendout} = $val;
+    return $self;
+}
+
 sub as_bitmask {
     my $self = shift;
     my $ret = 0;
