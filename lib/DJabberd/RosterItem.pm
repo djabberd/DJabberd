@@ -50,9 +50,14 @@ sub name {
     return $self->{name};
 }
 
+sub groups {
+    my $self = shift;
+    return @{ $self->{groups} };
+}
+
 sub subscription {
     my $self = shift;
-    return $self->{name};
+    return $self->{subscription};
 }
 
 

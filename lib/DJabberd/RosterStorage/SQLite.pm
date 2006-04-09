@@ -12,10 +12,26 @@ sub new {
 
     my $file = shift;
     warn "file = $file\n";
-    my $dbh = DBI->connect("dbi:SQLite:dbname=$file","","", { RaiseError => 1, PrintError => 0, AutoCommit => 0 });
+    my $dbh = DBI->connect("dbi:SQLite:dbname=$file","","", { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
     $self->{dbh} = $dbh;
     $self->check_install_schema;
     return $self;
+}
+
+sub begin_work {
+    my $self = shift;
+    if (++$self->{tx_depth} == 1) {
+        return $self->{dbh}->begin_work or die "Failed to begin work.\n";
+    }
+    return 1;
+}
+
+sub commit {
+    my $self = shift;
+    if (--$self->{tx_depth} == 0) {
+        return $self->{dbh}->commit or die "Failed to commit.\n";
+    }
+    return 1;
 }
 
 sub check_install_schema {
@@ -31,10 +47,11 @@ sub check_install_schema {
                                  )});
         $dbh->do(qq{
             CREATE TABLE roster (
-                                 userid        INTEGER PRIMARY KEY REFERENCES jidmap NOT NULL,
+                                 userid        INTEGER REFERENCES jidmap NOT NULL,
                                  contactid     INTEGER REFERENCES jidmap NOT NULL,
                                  name          VARCHAR(255),
-                                 subscription  INTEGER NOT NULL REFERENCES substates DEFAULT 0
+                                 subscription  INTEGER NOT NULL REFERENCES substates DEFAULT 0,
+                                 PRIMARY KEY (userid, contactid)
                                  )});
         $dbh->do(qq{
             CREATE TABLE rostergroup (
@@ -82,9 +99,9 @@ sub get_roster {
     foreach my $contact (values %$contacts) {
         my $item =
           DJabberd::RosterItem->new(
-                                    jid  => $contact->{jid},
-                                    name => $contact->{name},
-                                    subscription => 'none', #FIXME: $self->subscription_name($contact->{subscription})
+                                    jid          => $contact->{jid},
+                                    name         => $contact->{name},
+                                    subscription => DJabberd::Subscription->from_bitmask($contact->{subscription}),
                                     );
 
         # convert all the values in the hashref into RosterItems
@@ -113,51 +130,160 @@ sub _jidid_alloc {
     my ($self, $jid) = @_;
     my $dbh  = $self->{dbh};
     my $jids = $jid->as_bare_string;
-    my $id   = $dbh->selectrow_array("SELECT jidid FROM jidmap WHERE jid=?",
+    my $get  = sub {
+        return $dbh->selectrow_array("SELECT jidid FROM jidmap WHERE jid=?",
                                      undef, $jids);
+    };
+    my $id   = $get->();
     return $id if $id;
 
-    $dbh->begin_work;
+    $self->begin_work;
     $dbh->do("INSERT INTO jidmap (jidid, jid) VALUES (NULL, ?)",
              undef, $jids);
-    $dbh->commit or die "Failed to allocate jidid";
+    $self->commit or die "Failed to allocate jidid";
 
-    return $dbh->selectrow_array("SELECT jidid FROM jidmap WHERE jid=?",
-                                 undef, $jids) or die "Failed to load just-allocated jidid";
+    return $get->() or die "Failed to load just-allocated jidid";
 }
 
-sub set_roster_item {
+sub _groupid_alloc {
+    my ($self, $userid, $name) = @_;
+    my $dbh  = $self->{dbh};
+    my $get = sub {
+        return $dbh->selectrow_array("SELECT groupid FROM rostergroup WHERE userid=? AND name=?",
+                                     undef, $userid, $name);
+    };
+
+    my $id = $get->();
+    return $id if $id;
+
+    $self->begin_work;
+    $dbh->do("INSERT INTO rostergroup (groupid, userid, name) VALUES (NULL, ?, ?)",
+             undef, $userid, $name);
+    $self->commit or die "Failed to allocate jidid";
+
+    return $get->() or die "Failed to load just-allocated groupid";
+}
+
+sub addupdate_roster_item {
     my ($self, $cb, $conn, $jid, $ritem) = @_;
     warn "set roster item!\n";
     my $dbh  = $self->{dbh};
 
-    my $fail = sub {
-        $cb->error;
-        return;
-    };
+    my $userid    = $self->_jidid_alloc($jid);
+    my $contactid = $self->_jidid_alloc($ritem->jid);
 
-    my $userid    = $jid->_jidid_alloc($jid);
-    my $contactid = $jid->_jidid_alloc($ritem->jid);
     unless ($userid && $contactid) {
         $cb->error;
         return;
     }
 
-    $dbh->begin_work;
-    $dbh->do("REPLACE INTO roster (userid, contactid, name, subscription) ".
-             "VALUES (?,?,?,?)", undef,
-             $userid, $contactid, $ritem->name, $ritem->subscription->as_bitmask)
-        or return $fail->();
-    $dbh->commit
+    $self->begin_work;
+
+    my $fail = sub {
+        $dbh->rollback;
+        $cb->error;
+        return;
+    };
+
+    my $exists = $dbh->selectrow_array("SELECT COUNT(*) FROM roster WHERE userid=? AND contactid=?",
+                                       undef, $userid, $contactid);
+
+
+    my %in_group;  # groupname -> 1
+
+    if ($exists) {
+        my @groups = $self->_groups_of_contactid($userid, $contactid);
+        my %to_del; # groupname -> groupid
+        foreach my $g (@groups) {
+            $in_group{$g->[1]} = 1;
+            $to_del  {$g->[1]} = $g->[0];
+        }
+        foreach my $gname ($ritem->groups) {
+            delete $to_del{$gname};
+        }
+        if (my $in = join(",", values %to_del)) {
+            $dbh->do("DELETE FROM groupitem WHERE groupid IN ($in) AND contactid=?",
+                     undef, $contactid);
+        }
+
+        $dbh->do("UPDATE roster SET name=? WHERE userid=? AND contactid=?",
+                 undef, $ritem->name, $userid, $contactid)
+            or return $fail->();
+    } else {
+        $dbh->do("INSERT INTO roster (userid, contactid, name, subscription) ".
+                 "VALUES (?,?,?,?)", undef,
+                 $userid, $contactid, $ritem->name, $ritem->subscription->as_bitmask)
+    }
+
+    # add to groups
+    foreach my $gname ($ritem->groups) {
+        next if $in_group{$gname};  # already in this group, skip
+        my $gid = $self->_groupid_alloc($userid, $gname);
+        $dbh->do("INSERT OR IGNORE INTO groupitem (groupid, contactid) VALUES (?,?)",
+                 undef, $gid, $contactid);
+    }
+
+    $self->commit
         or return $fail->();
 
+    print "DONE!\n";
+
     $cb->done;
+}
+
+# returns ([groupid, groupname], ...)
+sub _groups_of_contactid {
+    my ($self, $userid, $contactid) = @_;
+    my @ret;
+    my $sql = qq{
+        SELECT rg.groupid, rg.name
+            FROM   rostergroup rg, groupitem gi
+            WHERE  rg.userid=? AND gi.groupid=rg.groupid AND gi.contactid=?
+        };
+    my $sth = $self->{dbh}->prepare($sql);
+    $sth->execute($userid, $contactid);
+    while (my ($gid, $name) = $sth->fetchrow_array) {
+        push @ret, [$gid, $name];
+    }
+    return @ret;
 }
 
 sub delete_roster_item {
     my ($self, $cb, $conn, $jid, $ritem) = @_;
     warn "delete roster item!\n";
-    $cb->declined;
+
+    my $dbh  = $self->{dbh};
+
+    my $userid    = $self->_jidid_alloc($jid);
+    my $contactid = $self->_jidid_alloc($ritem->jid);
+
+    unless ($userid && $contactid) {
+        $cb->error;
+        return;
+    }
+
+    $self->begin_work;
+
+    my $fail = sub {
+        $dbh->rollback;
+        $cb->error;
+        return;
+    };
+
+    my @groups = $self->_groups_of_contactid($userid, $contactid);
+
+    if (my $in = join(",", map { $_->[0] } @groups)) {
+        $dbh->do("DELETE FROM groupitem WHERE groupid IN ($in) AND contactid=?",
+                 undef, $contactid);
+    }
+
+    $dbh->do("DELETE FROM roster WHERE userid=? AND contactid=?",
+             undef, $userid, $contactid)
+        or return $fail->();
+
+    $self->commit or $fail->();
+
+    $cb->done;
 }
 
 1;

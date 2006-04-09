@@ -99,8 +99,6 @@ sub process_iq_getroster {
 sub process_iq_setroster {
     my ($conn, $iq) = @_;
 
-    $DB::single = 1;
-
     my $item = $iq->query->first_element;
     unless ($item && $item->element eq "{jabber:iq:roster}item") {
         $iq->send_error;
@@ -126,11 +124,12 @@ sub process_iq_setroster {
         }
     }
 
-    my $ritem = DJabberd::RosterItem->new(jid    => $jid,
-                                          name   => $name,
-                                          groups => \@groups);
+    my $ritem = DJabberd::RosterItem->new(jid          => $jid,
+                                          name         => $name,
+                                          groups       => \@groups,
+                                          );
 
-    my $phase = $removing ? "RosterRemoveItem" : "RosterSetItem";
+    my $phase = $removing ? "RosterRemoveItem" : "RosterAddUpdateItem";
     $conn->run_hook_chain(phase   => $phase,
                           args    => [ $ritem ],
                           methods => {

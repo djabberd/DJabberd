@@ -19,10 +19,10 @@ sub register {
         my $jid = $conn->bound_jid;
         $self->get_roster($cb, $conn, $jid);
     });
-    $vhost->register_hook("RosterSetItem", sub {
+    $vhost->register_hook("RosterAddUpdateItem", sub {
         my ($conn, $cb, $ritem) = @_;
         my $jid = $conn->bound_jid;
-        $self->set_roster_item($cb, $conn, $jid, $ritem);
+        $self->addupdate_roster_item($cb, $conn, $jid, $ritem);
     });
     $vhost->register_hook("RosterRemoveItem", sub {
         my ($conn, $cb, $ritem) = @_;
@@ -38,7 +38,7 @@ sub get_roster {
 }
 
 # override this.
-sub set_roster_item {
+sub addupdate_roster_item {
     my ($self, $cb, $conn, $jid, $ritem) = @_;
     $cb->declined;
 }

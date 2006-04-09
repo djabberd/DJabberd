@@ -48,6 +48,27 @@ sub new_from_name {
     return $sb->();
 }
 
+sub as_bitmask {
+    my $self = shift;
+    my $ret = 0;
+    $ret = $ret | 1   if $self->{to};
+    $ret = $ret | 2   if $self->{from};
+    $ret = $ret | 4   if $self->{pendin};
+    $ret = $ret | 8   if $self->{pendout};
+    return $ret;
+}
+
+sub from_bitmask {
+    my ($class, $mask) = @_;
+    $mask += 0;  # force to numeric context
+    my $new = $class->new;
+    $new->{to}      = 1 if $mask & 1;
+    $new->{from}    = 1 if $mask & 2;
+    $new->{pendin}  = 1 if $mask & 4;
+    $new->{pendout} = 1 if $mask & 8;
+    return $new;
+}
+
 sub as_attributes {
     my $self = shift;
     my $state;
