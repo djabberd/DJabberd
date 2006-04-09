@@ -30,6 +30,11 @@ sub new {
     return $self;
 }
 
+sub children_elements {
+    my DJabberd::XMLElement $self = shift;
+    return grep { ref $_ } @{ $self->{children} };
+}
+
 sub children {
     my DJabberd::XMLElement $self = shift;
     return @{ $self->{children} };

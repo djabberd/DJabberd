@@ -15,6 +15,7 @@ sub process {
 
     my $handler = {
         'get-{jabber:iq:roster}query' => \&process_iq_getroster,
+        'set-{jabber:iq:roster}query' => \&process_iq_setroster,
         'get-{jabber:iq:auth}query' => \&process_iq_getauth,
         'set-{jabber:iq:auth}query' => \&process_iq_setauth,
     };
@@ -39,20 +40,35 @@ sub signature {
     return $iq->type . "-" . ($fc ? $fc->element : "(BOGUS)");
 }
 
-sub send_result_nodes {
+sub send_result {
+    my DJabberd::IQ $self = shift;
+    $self->send_reply("result");
+}
+
+sub send_error {
+    my DJabberd::IQ $self = shift;
+    # TODO: take more parameters
+    $self->send_reply("error");
 }
 
 # caller must send well-formed XML (but we do the wrapping element)
 sub send_result_raw {
     my DJabberd::IQ $self = shift;
     my $raw = shift;
+    return $self->send_reply("result", $raw);
+}
+
+sub send_reply {
+    my DJabberd::IQ $self = shift;
+    my ($type, $raw) = @_;
 
     my $conn = $self->{connection}
         or return;
 
+    $raw ||= "";
     my $id = $self->id;
     my $to = $conn->bound_jid->as_string;
-    my $xml = qq{<iq to='$to' type='result' id='$id'>$raw</iq>};
+    my $xml = qq{<iq to='$to' type='$type' id='$id'>$raw</iq>};
     warn "About to send IQ reply: $xml\n";
     $conn->write(\$xml);
 }
@@ -77,6 +93,58 @@ sub process_iq_getroster {
                           fallback => sub {
                               $send_roster->(DJabberd::Roster->new()),
                           });
+    return 1;
+}
+
+sub process_iq_setroster {
+    my ($conn, $iq) = @_;
+
+    $DB::single = 1;
+
+    my $item = $iq->query->first_element;
+    unless ($item && $item->element eq "{jabber:iq:roster}item") {
+        $iq->send_error;
+        return;
+    }
+
+    # {=xmpp-ip-7.6-must-ignore-subscription-values}
+    my $subattr  = $item->attr('subscription') || "";
+    my $removing = $subattr eq "remove" ? 1 : 0;
+
+    my $jid = $item->attr("{jabber:iq:roster}jid")
+        or return $iq->send_error;
+
+    my $name = $item->attr("{jabber:iq:roster}name");
+
+    # find list of group names to add/update.  can ignore
+    # if we're just removing.
+    my @groups;  # scalars of names
+    unless ($removing) {
+        foreach my $ele ($item->children_elements) {
+            next unless $ele->element eq "{jabber:iq:roster}group";
+            push @groups, $ele->first_child;
+        }
+    }
+
+    my $ritem = DJabberd::RosterItem->new(jid    => $jid,
+                                          name   => $name,
+                                          groups => \@groups);
+
+    my $phase = $removing ? "RosterRemoveItem" : "RosterSetItem";
+    $conn->run_hook_chain(phase   => $phase,
+                          args    => [ $ritem ],
+                          methods => {
+                              done => sub {
+                                  my ($self) = @_;
+                                  $iq->send_result;
+                                  # TODO: roster push
+                              },
+                          },
+                          fallback => sub {
+                              $iq->send_error;
+                              # TODO: roster push
+                          });
+
     return 1;
 }
 
