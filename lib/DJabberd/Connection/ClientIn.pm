@@ -40,7 +40,7 @@ sub on_stanza_received {
         return $self->stream_error("unsupported-stanza-type");
 
     # same variable as $node, but down(specific)-classed.
-    my $stanza = $class->new($node);
+    my $stanza = $class->downbless($node, $self);
 
     $self->run_hook_chain(phase => "filter_incoming_client",
                           args  => [ $stanza ],

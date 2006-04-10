@@ -12,9 +12,7 @@ sub deliver {
     my $dconn = $conn->vhost->find_jid($to)  or return $cb->declined;
     warn "  dest conn = $dconn\n";
 
-    $dconn->send_stanza($stanza,
-                       to   => $to->as_string,
-                       from => $stanza->from);
+    $dconn->send_stanza($stanza);
     $cb->delivered;
 }
 

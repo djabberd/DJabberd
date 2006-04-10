@@ -4,7 +4,7 @@ filter_incoming_client
    \|/
 switch_incoming_client
   |
-  +-->  proceess_client_stanza   (if no to='' or to='' is for server)
+  +-->  process_client_stanza   (if no to='' or to='' is for server)
   |
   +-->  deliver
 
@@ -14,9 +14,13 @@ filter_incoming_server
    \|/
 switch_incoming_server
   |
-  +-->  proceess_server_stanza   (if to='' is for server)
+  +-->  process_server_stanza   (if to='' is for server)
   |
   +-->  deliver   ( same as earlier deliver )
+
+
+pre_stanza_write  (before a stanza gets written to client)
+
 
 
 

@@ -121,4 +121,14 @@ sub innards_as_xml {
     return $ret;
 }
 
+sub clone {
+    my $self = shift;
+    my $clone = fields::new(ref($self));
+    $clone->{ns}       = $self->{ns};
+    $clone->{element}  = $self->{element};
+    $clone->{attrs}    = { %{ $self->{attrs} } };
+    $clone->{children} = [ map { ref($_) ? $_->clone : $_ } @{ $self->{children} } ];
+    return $clone;
+}
+
 1;

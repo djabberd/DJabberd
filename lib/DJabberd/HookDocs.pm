@@ -13,6 +13,11 @@ $hook{'filter_incoming_client'} = {};
 $hook{'switch_incoming_client'} = {};
 $hook{'filter_incoming_server'} = {};
 $hook{'switch_incoming_server'} = {};
+
+$hook{'pre_stanza_write'} = {
+    des => "Called before a stanza is written to a user.  Default action if all declined is to just deliver it.",4
+};
+
 $hook{'c2s-iq'} = {};
 $hook{'deliver'} = {};
 $hook{'Auth'} = {};

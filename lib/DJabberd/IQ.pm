@@ -1,17 +1,11 @@
 package DJabberd::IQ;
 use strict;
 use base qw(DJabberd::Stanza);
-use fields (
-            'connection',   # Store the connection the IQ came in on so we can respond.  may be undef, as it's a weakref.
-            );
 
 # DO NOT OVERRIDE THIS
 sub process {
     my DJabberd::IQ $self = shift;
     my $conn = shift;
-
-    $self->{connection} = $conn;
-    Scalar::Util::weaken($self->{connection});
 
     my $handler = {
         'get-{jabber:iq:roster}query' => \&process_iq_getroster,

@@ -165,7 +165,7 @@ sub process_stanza_builtin {
         return;
     }
 
-    my $obj = $class->new($node);
+    my $obj = $class->downbless($node, $self);
     $obj->process($self);
 }
 
@@ -178,12 +178,44 @@ sub jid {
 }
 
 sub send_stanza {
-    my ($self, $stanza, %opts) = @_;
-    my $to_jid    = delete $opts{to}   || $stanza->to   || die "no to";
-    my $from_jid  = delete $opts{from} || $stanza->from || die "no from";
-    die if %opts;
+    my ($self, $stanza, @ex) = @_;
+    die if @ex;
 
-    my $elename = $stanza->element_name;
+    # getter subref for pre_stanza_write hooks to
+    # get at their own private copy of the stanza
+    my $cloned;
+    my $getter = sub {
+        return $cloned if $cloned;
+        if ($self != $stanza->connection) {
+            $cloned = $stanza->clone;
+            $cloned->set_connection($self);
+        } else {
+            $cloned = $stanza;
+        }
+        return $cloned;
+    };
+
+    $self->run_hook_chain(phase => "pre_stanza_write",
+                          args  => [ $getter ],
+                          methods => {
+                              # TODO: implement.
+                          },
+                          fallback => sub {
+                              # if any hooks called the $getter, instantiating
+                              # the $cloned copy, then that's what we write.
+                              # as an optimization (the fast path), we just
+                              # write the untouched, uncloned original.
+                              $self->write_stanza($cloned || $stanza);
+                          });
+}
+
+sub write_stanza {
+    my ($self, $stanza, @ex) = @_;
+    die "too many parameters" if @ex;
+
+    my $to_jid    = $stanza->to   || die "no to";
+    my $from_jid  = $stanza->from || die "no from";
+    my $elename   = $stanza->element_name;
 
     my $other_attrs = "";
     while (my ($k, $v) = each %{ $stanza->attrs }) {
@@ -194,7 +226,7 @@ sub send_stanza {
 
     my $xml = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
     warn "sending stanza to $self:  $xml\n";
-    $self->write($xml);
+    $self->write(\$xml);
 }
 
 # DJabberd::Connection

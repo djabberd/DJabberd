@@ -1,10 +1,43 @@
 package DJabberd::Stanza;
 use strict;
 use base qw(DJabberd::XMLElement);
+use fields (
+            'connection',   # Store the connection the stanza came in on so we can respond.
+                            # may be undef, as it's a weakref.  if you want to mess with the
+                            # structure, you can't do so unless you're the owner, so clone
+                            # it first otherwise.
+            );
+
+sub downbless {
+    my $class = shift;
+    if (ref $_[0]) {
+        my ($self, $conn) = @_;
+        # 'fields' hackery.  this will break in Perl 5.10
+        {
+            no strict 'refs';
+            $self->[0] = \%{$class . "::FIELDS" }
+        }
+        bless $self, $class;
+        $self->{connection} = $conn;
+        Scalar::Util::weaken($self->{connection});
+        return $self;
+    }
+
+}
 
 sub process {
     my ($self, $conn) = @_;
     warn "$self ->process not implemented\n";
+}
+
+sub connection {
+    my $self = shift;
+    return $self->{connection};
+}
+
+sub set_connection {
+    my ($self, $conn) = @_;
+    $self->{connection} = $conn;
 }
 
 # at this point, it's assumed the stanza has passed filtering checks,
