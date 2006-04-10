@@ -26,6 +26,7 @@ use DJabberd::SAXHandler;
 use DJabberd::JID;
 use DJabberd::IQ;
 use DJabberd::Message;
+use DJabberd::Util qw(exml);
 
 use Data::Dumper;
 use Carp qw(croak);
@@ -188,7 +189,7 @@ sub send_stanza {
     while (my ($k, $v) = each %{ $stanza->attrs }) {
         $k =~ s/.+\}//; # get rid of the namespace
         next if $k eq "to" || $k eq "from";
-        $other_attrs .= "$k=\"" . DJabberd::Util::exml($v) . "\" ";
+        $other_attrs .= "$k=\"" . exml($v) . "\" ";
     }
 
     my $xml = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
