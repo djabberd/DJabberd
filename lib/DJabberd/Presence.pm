@@ -26,9 +26,13 @@ sub process_inbound {
     my $from_jid  = DJabberd::JID->new($from)
         or return $fail->("no/invalid 'from' attribute");
 
-    if ($type eq "subscribed") {
-        # somebody said we're subscribed to them now, but we want
-        # to ignore it unless user was waiting on said announcement
+    if (!$type || $type eq "unavailable") {
+        $self->deliver($conn);
+        return;
+    }
+
+    if ($type eq "subscribe" || $type eq "subscribed" || $type eq "probe") {
+        # load the rosteritem in question before we decide whether to ignore/act
         $conn->run_hook_chain(phase => "RosterLoadItem",
                               args  => [ $to_jid, $from_jid ],
                               methods => {
@@ -38,9 +42,22 @@ sub process_inbound {
                                   },
                                   set => sub {
                                       my ($cb, $ritem) = @_;
-                                      if ($ritem && $ritem->subscription->pending_out) {
-                                          $self->_process_subscribed($conn, $to_jid, $ritem);
+
+                                      if ($type eq "subscribed") {
+                                          if ($ritem && $ritem->subscription->pending_out) {
+                                              $self->_process_subscribed($conn, $to_jid, $ritem);
+                                          }
+                                      } elsif ($type eq "subscribe") {
+                                          # ...  vivivy to whatever+pending in in roster
+                                          $self->deliver($conn);  # TEMP
+                                      } elsif ($type eq "probe") {
+                                          warn("Got a PROBE from " . $from_jid->as_string . " and ritem = $ritem\n");
+                                          if ($ritem && $ritem->subscription->sub_from) {
+                                              # ....
+                                          }
                                       }
+
+
                                   },
                               },
                               fallback => sub {
@@ -86,8 +103,13 @@ sub process_outbound {
         return;
     };
 
-    # user wanting to subscribe to target
-    if ($type eq "subscribe") {
+    if (! $type || $type eq "unavailable") {
+        warn "NOT IMPLEMENTED: Outbound presence broadcast!\n";
+        return;
+    }
+
+    # user wanting to subscribe or approve subscription request to contact
+    if ($type eq "subscribe" || $type eq "subscribed") {
         my $contact_jid = DJabberd::JID->new($to)
             or return $fail->("no/invalid 'to' attribute");
 
@@ -99,6 +121,7 @@ sub process_outbound {
                                       return $fail->("RosterSubscribe hook failed: $reason");
                                   },
                                   done => sub {
+                                      # TODO: based on $type, set things in roster
                                       # now send the packet to the other party
                                       $self->deliver($conn);
                                   },

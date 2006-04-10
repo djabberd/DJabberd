@@ -53,6 +53,11 @@ sub pending_out {
     return $self->{pendout};
 }
 
+sub sub_from {
+    my $self = shift;
+    return $self->{from};
+}
+
 sub set_pending_out {
     my ($self, $val) = @_;
     $val = 1 unless defined $val;
