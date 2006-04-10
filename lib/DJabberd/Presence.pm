@@ -1,11 +1,26 @@
 package DJabberd::Presence;
 use strict;
 use base qw(DJabberd::Stanza);
+use Carp qw(confess);
 
 sub process {
+    confess "No generic 'process' method for $_[0]";
+}
+
+sub process_inbound {
     my ($self, $conn) = @_;
+
     my $is_client = $conn->isa("DJabberd::Connection::ClientIn");
     my $ns        = $is_client ? "{jabber:client}" : "{jabber:server}";
+    my $type      = $self->attr("${ns}type");
+
+    warn "$self PRESENCE INBOUND type='$type' from $conn not implemented\n";
+}
+
+sub process_outbound {
+    my ($self, $conn) = @_;
+
+    my $ns        = "{jabber:client}";
     my $type      = $self->attr("${ns}type");
 
     my $fail = sub {
@@ -15,7 +30,7 @@ sub process {
     };
 
     # user wanting to subscribe to target
-    if ($is_client && $type eq "subscribe") {
+    if ($type eq "subscribe") {
         my $to = $self->attr("${ns}to");
         my $contact_jid = DJabberd::JID->new($to)
             or return $fail->("no/invalid 'to' attribute");
@@ -39,7 +54,7 @@ sub process {
         return;
     }
 
-    warn "$self PRESENCE type='$type' from $conn not implemented\n";
+    warn "$self PRESENCE OUTBOUND type='$type' from $conn not implemented\n";
 }
 
 

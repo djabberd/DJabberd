@@ -1,2 +1,6 @@
 cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...
   give them types?
+
+-- $stanza->process and $stanza->deliver take a $conn, but
+   now that stanzas always know their connection, that
+   parameter is kinda useless.  remove them all?

@@ -93,10 +93,14 @@ sub filter_incoming_client_builtin {
 sub switch_incoming_client_builtin {
     my ($self, $stanza) = @_;
 
+    if ($stanza->isa("DJabberd::Presence")) {
+        $stanza->process_outbound($self);
+        return;
+    }
+
     my $to = $stanza->to_jid;
     if (!$to ||
-        ($to && $self->vhost->uses_jid($to)) ||
-        $stanza->isa("DJabberd::Presence"))
+        ($to && $self->vhost->uses_jid($to)))
     {
         $stanza->process($self);
         return;

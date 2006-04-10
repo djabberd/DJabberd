@@ -81,10 +81,11 @@ sub switch_incoming_server_builtin {
     # but for now all we care about is message delivery.  ghettos:
 
     if ($stanza->isa("DJabberd::Stanza::DialbackResult") ||
-        $stanza->isa("DJabberd::Stanza::DialbackVerify") ||
-        $stanza->isa("DJabberd::Presence"))
+        $stanza->isa("DJabberd::Stanza::DialbackVerify"))
     {
         $stanza->process($self);
+    } elsif ($stanza->isa("DJabberd::Presence")) {
+        $stanza->process_inbound($self);
     } else {
         $stanza->deliver($self);
     }
