@@ -39,7 +39,7 @@ sub process_inbound {
                                   set => sub {
                                       my ($cb, $ritem) = @_;
                                       if ($ritem && $ritem->subscription->pending_out) {
-                                          $self->_process_subscribed($conn->vhost, $ritem, $from_jid, $to_jid);
+                                          $self->_process_subscribed($conn, $to_jid, $ritem);
                                       }
                                   },
                               },
@@ -55,8 +55,21 @@ sub process_inbound {
 # called after filtering.  at this point, we know $to_jid was waiting
 # for the 'subscribed' stanza
 sub _process_subscribed {
-    my ($self, $vhost, $ritem, $from_jid, $to_jid) = @_;
+    my ($self, $conn, $to_jid, $ritem) = @_;
 
+    warn "processing subscribed...\n";
+    $ritem->subscription->got_inbound_subscribed;
+
+    $conn->run_hook_chain(phase => "RosterSetItem",
+                          args  => [ $to_jid, $ritem ],
+                          methods => {
+                              done => sub {
+                                  # TODO: roster push.
+                                  warn "subscribed is processed!\n";
+                              },
+                              error => sub { my $reason = $_[1]; },
+                          },
+                          );
 
 }
 

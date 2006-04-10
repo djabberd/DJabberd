@@ -49,6 +49,12 @@ sub register {
         $self->load_roster_item($user_jid, $contact_jid, $cb);
     });
 
+    $vhost->register_hook("RosterSetItem", sub {
+        my (undef, $cb, $user_jid, $ritem) = @_;
+        # cb can ->error($reason) and ->done()
+        $self->set_roster_item($cb, $user_jid, $ritem);
+    });
+
 }
 
 # override this.

@@ -54,4 +54,13 @@ $hook{'RosterLoadItem'} = {
     des  => "Called to load first JID's rosteritem of second given JID.",
 };
 
+$hook{'RosterSetItem'} = {
+    args => ['JID', 'RosterItem'],
+    callback => {
+        error => [ 'reason' ],
+        done  => [],
+    },
+    des  => "Called to set an item in a JID's roster.",
+};
+
 1;
