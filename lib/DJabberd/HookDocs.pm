@@ -45,4 +45,13 @@ $hook{'RosterSubscribe'} = {
     des  => "Called when a connection wants to subscribe to another JID's presence.  Hook is responsible for updating the roster with the new subscription pending substate.",
 };
 
+$hook{'RosterLoadItem'} = {
+    args => ['JID', 'JID'],
+    callback => {
+        error => [ 'reason' ],
+        set   => [ 'RosterItem' ],  # or undef if second JID not in first JID's roster
+    },
+    des  => "Called to load first JID's rosteritem of second given JID.",
+};
+
 1;

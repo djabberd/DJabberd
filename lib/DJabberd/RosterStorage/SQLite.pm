@@ -83,7 +83,7 @@ sub check_install_schema {
 sub blocking { 1 }
 
 sub get_roster {
-    my ($self, $cb, $conn, $jid) = @_;
+    my ($self, $cb, $jid) = @_;
 
     my $dbh = $self->{dbh};
 
@@ -167,14 +167,14 @@ sub _groupid_alloc {
 }
 
 sub set_roster_item {
-    my ($self, $cb, $conn, $jid, $ritem) = @_;
+    my ($self, $cb, $jid, $ritem) = @_;
     local $_respect_subscription = 1;
     warn "set roster item!\n";
-    $self->addupdate_roster_item($cb, $conn, $jid, $ritem);
+    $self->addupdate_roster_item($cb, $jid, $ritem);
 }
 
 sub addupdate_roster_item {
-    my ($self, $cb, $conn, $jid, $ritem) = @_;
+    my ($self, $cb, $jid, $ritem) = @_;
     warn "addupdate roster item!\n";
     my $dbh  = $self->{dbh};
 
@@ -267,7 +267,7 @@ sub _groups_of_contactid {
 }
 
 sub delete_roster_item {
-    my ($self, $cb, $conn, $jid, $ritem) = @_;
+    my ($self, $cb, $jid, $ritem) = @_;
     warn "delete roster item!\n";
 
     my $dbh  = $self->{dbh};
