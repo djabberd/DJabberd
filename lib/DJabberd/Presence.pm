@@ -1,7 +1,19 @@
 package DJabberd::Presence;
 use strict;
 use base qw(DJabberd::Stanza);
-use Carp qw(confess);
+use Carp qw(croak confess);
+
+# constructor
+sub probe {
+    my ($class, %opts) = @_;
+    my ($from, $to) = map { delete $opts{$_} } qw(from to);
+    croak "Invalid options" if %opts;
+
+    my $xml = DJabberd::XMLElement->new("", "presence", { '{}type' => 'probe',
+                                                          '{}from' => $from->as_string,
+                                                          '{}to'   => $to->as_bare_string }, []);
+    return $class->downbless($xml);
+}
 
 sub process {
     confess "No generic 'process' method for $_[0]";
@@ -104,6 +116,9 @@ sub process_outbound {
     };
 
     if (! $type || $type eq "unavailable") {
+        if ($conn->is_initial_presence) {
+            $conn->send_presence_probes;
+        }
         warn "NOT IMPLEMENTED: Outbound presence broadcast!\n";
         return;
     }

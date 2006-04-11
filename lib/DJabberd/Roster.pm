@@ -16,6 +16,16 @@ sub add {
     push @{$self->{items}}, $item;
 }
 
+sub items {
+    my $self = shift;
+    return @{ $self->{items} };
+}
+
+sub from_items {
+    my $self = shift;
+    return grep { $_->subscription->sub_from } @{ $self->{items} };
+}
+
 sub as_xml {
     my $self = shift;
     my $xml = "<query xmlns='jabber:iq:roster'>";

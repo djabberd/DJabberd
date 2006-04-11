@@ -1,6 +1,7 @@
 package DJabberd::Stanza;
 use strict;
 use base qw(DJabberd::XMLElement);
+use Carp qw(croak);
 use fields (
             'connection',   # Store the connection the stanza came in on so we can respond.
                             # may be undef, as it's a weakref.  if you want to mess with the
@@ -18,9 +19,13 @@ sub downbless {
             $self->[0] = \%{$class . "::FIELDS" }
         }
         bless $self, $class;
-        $self->{connection} = $conn;
-        Scalar::Util::weaken($self->{connection});
+        if ($conn) {
+            $self->{connection} = $conn;
+            Scalar::Util::weaken($self->{connection});
+        }
         return $self;
+    } else {
+        croak("Bogus use of downbless.");
     }
 
 }

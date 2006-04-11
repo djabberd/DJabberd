@@ -224,9 +224,15 @@ sub write_stanza {
         $other_attrs .= "$k=\"" . exml($v) . "\" ";
     }
 
+    my $ns = $self->namespace;
+
     my $xml = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
     warn "sending stanza to $self:  $xml\n";
     $self->write(\$xml);
+}
+
+sub namespace {
+    return "";
 }
 
 # DJabberd::Connection

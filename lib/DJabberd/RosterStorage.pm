@@ -16,6 +16,7 @@ sub register {
     my ($self, $vhost) = @_;
     $vhost->register_hook("RosterGet", sub {
         my ($conn, $cb) = @_;
+        # cb can '->set_roster(Roster)' or decline
         my $jid = $conn->bound_jid;
         $self->get_roster($cb, $jid);
     });

@@ -3,12 +3,50 @@ use strict;
 use base 'DJabberd::Connection';
 
 use fields (
-            'requested_roster',  # bool: if user has requested their roster,
+            'requested_roster',      # bool: if user has requested their roster,
+            'got_initial_presence',  # bool: if user has already sent their initial presence
             );
 
 sub set_requested_roster {
     my ($self, $val) = @_;
     $self->{requested_roster} = $val;
+}
+
+# called when a presence broadcast is received.  on first time,
+# returns tru.
+sub is_initial_presence {
+    my $self = shift;
+    return 0 if $self->{got_initial_presence};
+    return $self->{got_initial_presence} = 1;
+}
+
+sub send_presence_probes {
+    my $self = shift;
+
+    my $send_probes = sub {
+        my $roster = shift;
+        # go through rosteritems that are subscribed to our
+        # presence.  (XMPPIM-5.1.2-p2)
+       warn "Sending presence probes given $roster ...\n";
+        my $from_jid = $self->bound_jid;
+        foreach my $it ($roster->from_items) {
+            my $probe = DJabberd::Presence->probe(to => $it->jid, from => $from_jid);
+            warn "Sending probe: " . $probe->as_xml . "\n";
+            $probe->deliver($self);  # FIXME: lame that we need to pass $self to this, just for the hook chain running
+        }
+    };
+
+    $self->run_hook_chain(phase => "RosterGet",
+                          methods => {
+                              set_roster => sub {
+                                  my (undef, $roster) = @_;
+                                  $send_probes->($roster);
+                              },
+                          });
+}
+
+sub namespace {
+    return "jabber:client";
 }
 
 sub requested_roster {

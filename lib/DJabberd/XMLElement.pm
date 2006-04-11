@@ -93,13 +93,16 @@ sub as_xml {
     my $attr = $self->attrs;
     foreach my $k (keys %$attr) {
         my $value = $attr->{$k};
-        $k =~ s!^\{(.+)\}!!;
+        # FIXME: ignoring all namespaces on attributes
+        $k =~ s!^\{(.*)\}!!;
         my $ns = $1;
         $attr_str .= " $k='" . DJabberd::Util::exml($value) . "'";
     }
 
-    my $xmlns = $ns eq $def_ns ? "" : " xmlns='$ns'";
-    my $innards = $self->innards_as_xml($nsmap, $ns);
+    my $xmlns = ($ns eq $def_ns || !$ns ||
+                 $ns eq "jabber:server" || $ns eq "jabber:client") ?
+                 "" : " xmlns='$ns'";
+    my $innards = $self->innards_as_xml($nsmap, $ns, $def_ns);
     return length $innards ?
         "<$el$xmlns$attr_str>$innards</$el>" :
         "<$el$xmlns$attr_str/>";

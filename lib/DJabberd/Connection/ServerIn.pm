@@ -93,6 +93,10 @@ sub switch_incoming_server_builtin {
 
 sub is_server { 1 }
 
+sub namespace {
+    return "jabber:server";
+}
+
 sub dialback_verify_valid {
     my $self = shift;
     my %opts = @_;
