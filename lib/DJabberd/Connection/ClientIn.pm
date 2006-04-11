@@ -29,7 +29,7 @@ sub send_presence_probes {
         # presence.  (XMPPIM-5.1.2-p2)
        warn "Sending presence probes given $roster ...\n";
         my $from_jid = $self->bound_jid;
-        foreach my $it ($roster->from_items) {
+        foreach my $it ($roster->to_items) {
             my $probe = DJabberd::Presence->probe(to => $it->jid, from => $from_jid);
             warn "Sending probe: " . $probe->as_xml . "\n";
             $probe->deliver($self);  # FIXME: lame that we need to pass $self to this, just for the hook chain running

@@ -58,6 +58,11 @@ sub sub_from {
     return $self->{from};
 }
 
+sub sub_to {
+    my $self = shift;
+    return $self->{to};
+}
+
 sub set_pending_out {
     my ($self, $val) = @_;
     $val = 1 unless defined $val;

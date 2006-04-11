@@ -26,6 +26,11 @@ sub from_items {
     return grep { $_->subscription->sub_from } @{ $self->{items} };
 }
 
+sub to_items {
+    my $self = shift;
+    return grep { $_->subscription->sub_to } @{ $self->{items} };
+}
+
 sub as_xml {
     my $self = shift;
     my $xml = "<query xmlns='jabber:iq:roster'>";
