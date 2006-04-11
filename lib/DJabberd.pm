@@ -109,6 +109,14 @@ sub uses_jid {
     return $jid->as_string eq $self->{server_name};
 }
 
+# returns true if given jid is controlled by this vhost
+sub handles_jid {
+    my ($self, $jid) = @_;
+    return 0 unless $jid;
+    # FIXME: this does no canonicalization of server_name, for one
+    return $jid->domain eq $self->{server_name};
+}
+
 sub debug {
     my $self = shift;
     return unless $self->{debug};

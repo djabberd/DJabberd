@@ -43,6 +43,8 @@ sub process_inbound {
         return;
     }
 
+    warn "INBOUND presence from $conn, type = '$type'\n";
+
     if ($type eq "subscribe" || $type eq "subscribed" || $type eq "probe") {
         # load the rosteritem in question before we decide whether to ignore/act
         $conn->run_hook_chain(phase => "RosterLoadItem",
@@ -61,6 +63,7 @@ sub process_inbound {
                                           }
                                       } elsif ($type eq "subscribe") {
                                           # ...  vivivy to whatever+pending in in roster
+
                                           $self->deliver($conn);  # TEMP
                                       } elsif ($type eq "probe") {
                                           warn("Got a PROBE from " . $from_jid->as_string . " and ritem = $ritem\n");
@@ -115,6 +118,8 @@ sub process_outbound {
         return;
     };
 
+    warn "OUTBOUND presence from $conn, type = '$type'\n";
+
     if (! $type || $type eq "unavailable") {
         if ($conn->is_initial_presence) {
             $conn->send_presence_probes;
@@ -123,8 +128,7 @@ sub process_outbound {
         return;
     }
 
-    # user wanting to subscribe or approve subscription request to contact
-    if ($type eq "subscribe" || $type eq "subscribed") {
+    if ($type eq "subscribe") {
         my $contact_jid = DJabberd::JID->new($to)
             or return $fail->("no/invalid 'to' attribute");
 
@@ -136,13 +140,45 @@ sub process_outbound {
                                       return $fail->("RosterSubscribe hook failed: $reason");
                                   },
                                   done => sub {
+                                      # XMPPIP-9.2-p2: MUST without exception
+                                      # route these, to combat sync issues
+                                      # between parties
+                                      if ($conn->vhost->handles_jid($contact_jid)) {
+                                          my $clone = $self->clone;
+                                          $clone->process_inbound($conn);
+                                      } else {
+                                          $self->deliver($conn);
+                                      }
+                                  },
+                              },
+                              fallback => sub {
+                                  return $fail->("no RosterSubscribe hooks");
+                              });
+
+        return;
+    }
+
+    # user wanting to subscribe or approve subscription request to contact
+    if ($type eq "subscribed") {
+        my $contact_jid = DJabberd::JID->new($to)
+            or return $fail->("no/invalid 'to' attribute");
+
+        $conn->run_hook_chain(phase => "RosterSubscribed",
+                              args  => [ $contact_jid ],
+                              methods => {
+                                  error   => sub {
+                                      my ($cb, $reason) = @_;
+                                      return $fail->("RosterSubscribe hook failed: $reason");
+                                  },
+                                  done => sub {
+
                                       # TODO: based on $type, set things in roster
                                       # now send the packet to the other party
                                       $self->deliver($conn);
                                   },
                               },
                               fallback => sub {
-                                  return $fail->("no RosterSubscriber hooks");
+                                  return $fail->("no RosterSubscribe hooks");
                               });
 
         return;
