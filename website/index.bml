@@ -24,12 +24,36 @@ body<=
 
 <p>Or, if you're lazy, choose mix and match behaviors from other CPAN modules:  mix LDAP auth with SQLite storage with LDAP roster-population, with Spread inter-node communication...</p>
 
+<p>You can even have multiple plugins per hook, in any order.  Also, rather than implementing the hooks directly, the framework comes with simple objects you can subclass which further eases the use of the async plugin system.</p>
+
 <h2>High Performance</h2>
 
+<p>While implemented in Perl (which might dissuade you), DJabberd is written using the same event-based architecture that powers <a href="http://danga.com/perlbal/">Perlbal</a>, which pushes out billions of HTTP requests per month.  In detail, it:</p>
+
+<ul class='spaced'>
+<li>Is single-threaded, event-based.</li>
+<li>Uses epoll on Linux 2.6, enabling tens to hundreds of thousands of connections in a single process, limited only by memory.  (but new connections use signifigantly less memory than a threaded server)</li>
+<li>Is single-threaded, event-based.</li>
+<li>All the aforementioned plugins can operate asynchronously.  (If you're lazy, you can block in them, for low-traffic servers...)</li>
+
+
+</ul>
 
 <h2>Scalable</h2>
 
+<p>Internode-communication lets you just scale out, providing both load balancing and high availability in your Jabber farm.  Because good Jabber clients will quietly reconnect on TCP connection failure, you can even do rolling code upgrades without users noticing.</p>
 
+<p>As a user, you're free to choose which internode communication method to use or you can write your own, specific to your application (assuming you're integrating this into an application).</p>
+
+<h2>Compliant</h2>
+
+<p>The DJabberd core aims to be fully XMPP 1.0 compliant, as well as supporting common pre-XMPP standards.  To name the obvious ones, DJabberd supports:</p>
+
+<ul class='spaced'>
+<li>s2s (Server to Server), but may be disabled</li>
+<li>StartTLS support.  (pre-XMPP SSL on alternate port not yet done, but easy)</li>
+<li>...</li>
+</ul>
 
 <=body
 page?>
