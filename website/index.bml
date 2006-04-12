@@ -4,16 +4,31 @@ body<=
 
 <h2>What</h2>
 
-<p>notes</p>
+<p>DJabberd is a high-performance, scalable, extensible Jabber/XMPP server <i>framework</i>.  While it comes with an example server, it's really a set of classes for you to build your own Jabber server without understanding Jabber.  Instead of working with XML and protocol-specific details, you subclass parts and work with sane objects and data structures and let DJabberd do all the ugly work.</p>
+
+<h2>Extensible</h2>
+
+<p>Consider DJabberd the mod_perl/qpsmtpd/Perlbal/Plagger of the XMPP world.  Everything is a plugin.  The framework lets you override the behavior of:</p>
 
 <ul class='spaced'>
-<li>foo</li>
-<li>foo</li>
-<li>foo</li>
-<li>foo</li>
+<li>Authentication</li>
+<li>Authorization</li>
+<li>Roster Storage</li>
+<li>Automatic roster population</li>
+<li>Presence lookup</li>
+<li>Message delivery</li>
+<li>Internode communication</li>
+<li>...</li>
+<li><i>everything else</i.
 </ul>
 
-<h2>How's it work?</h2>
+<p>Or, if you're lazy, choose mix and match behaviors from other CPAN modules:  mix LDAP auth with SQLite storage with LDAP roster-population, with Spread inter-node communication...</p>
+
+<h2>High Performance</h2>
+
+
+<h2>Scalable</h2>
+
 
 
 <=body
