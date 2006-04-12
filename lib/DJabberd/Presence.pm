@@ -20,25 +20,6 @@ sub type {
     return
         $self->attr("{jabber:client}type") ||
         $self->attr("{jabber:server}type");
-
-}
-
-sub to_jid {
-    my $self = shift;
-    my $to =
-        $self->attr("{jabber:client}to") ||
-        $self->attr("{jabber:server}to")
-        or return undef;
-    return DJabberd::JID->new($to) or return undef;
-}
-
-sub from_jid {
-    my $self = shift;
-    my $from =
-        $self->attr("{jabber:client}from") ||
-        $self->attr("{jabber:server}from")
-        or return undef;
-    return DJabberd::JID->new($from) or return undef;
 }
 
 sub fail {
