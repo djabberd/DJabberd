@@ -223,6 +223,29 @@ sub _process_inbound_probe {
                           );
 }
 
+sub _process_broadcast_outbound {
+    my ($self, $conn) = @_;
+    my $from_jid = $conn->bound_jid;
+
+    my $broadcast = sub {
+        my $roster = shift;
+        foreach my $it ($roster->to_items) {
+            warn "Broadcasting presence to @{[ $it->jid ]} ...\n";
+            my $dpres = $self->clone;
+            $dpres->set_to($it->jid);
+            $dpres->procdeliver($conn);
+        }
+    };
+
+    $conn->run_hook_chain(phase => "RosterGet",
+                          methods => {
+                              set_roster => sub {
+                                  my (undef, $roster) = @_;
+                                  $broadcast->($roster);
+                              },
+                          });
+}
+
 sub _process_outbound_available {
     my ($self, $conn) = @_;
     if ($self->to_jid) {
@@ -236,7 +259,8 @@ sub _process_outbound_available {
     if ($conn->is_initial_presence) {
         $conn->send_presence_probes;
     }
-    warn "NOT IMPLEMENTED: Outbound presence broadcast!\n";
+
+    $self->_process_broadcast_outbound($conn);
 }
 
 sub _process_outbound_unavailable {
@@ -249,7 +273,7 @@ sub _process_outbound_unavailable {
     my $jid = $conn->bound_jid;
     $last_bcast{$jid->as_bare_string}{$jid->as_string} = $self->clone;
 
-    warn "NOT IMPLEMENTED: Unavailable presence broadcast!\n";
+    $self->_process_broadcast_outbound($conn);
 }
 
 sub _process_outbound_subscribe {
