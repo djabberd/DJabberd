@@ -70,6 +70,20 @@ sub sub_to {
     return $self->{to};
 }
 
+sub set_from {
+    my ($self, $val) = @_;
+    $val = 1 unless defined $val;
+    $self->{from} = $val;
+    return $self;
+}
+
+sub set_to {
+    my ($self, $val) = @_;
+    $val = 1 unless defined $val;
+    $self->{to} = $val;
+    return $self;
+}
+
 sub set_pending_out {
     my ($self, $val) = @_;
     $val = 1 unless defined $val;

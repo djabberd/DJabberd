@@ -1,5 +1,4 @@
 package DJabberd::PresenceChecker::Local;
-# abstract base class
 use strict;
 use warnings;
 use base 'DJabberd::PresenceChecker';

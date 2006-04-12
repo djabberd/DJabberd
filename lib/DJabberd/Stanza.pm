@@ -104,9 +104,9 @@ sub from_jid {
 }
 
 sub set_from {
-    my ($self, $fromstr) = @_;
+    my ($self, $from) = @_;
     my $ns = $self->namespace;
-    return $self->set_attr("{$ns}from", $fromstr);
+    return $self->set_attr("{$ns}from", ref $from ? $from->as_string : $from);
 }
 
 sub set_to {

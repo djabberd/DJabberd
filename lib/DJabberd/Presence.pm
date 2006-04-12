@@ -24,6 +24,13 @@ sub probe {
     return $class->downbless($xml);
 }
 
+# constructor
+sub available_stanza {
+    my ($class) = @_;
+    my $xml = DJabberd::XMLElement->new("", "presence", {}, []);
+    return $class->downbless($xml);
+}
+
 sub type {
     my $self = shift;
     return
@@ -184,7 +191,8 @@ sub _process_inbound_subscribed {
 
 sub _process_inbound_probe {
     my ($self, $conn, $ritem, $from_jid) = @_;
-    warn("Got a PROBE from " . $ritem->jid->as_string . " and ritem = $ritem\n");
+    my $subs = $ritem->subscription;
+    warn("Got a PROBE regarding " . $ritem->jid->as_string . " and whose subscription is $subs\n");
     # ignore if they don't have access
     return unless $ritem && $ritem->subscription->sub_from;
 
