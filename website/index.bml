@@ -4,9 +4,13 @@ body<=
 
 <h2>What</h2>
 
-<p>DJabberd is a high-performance, scalable, extensible Jabber/XMPP server <i>framework</i>.  While it comes with an example server, it's really a set of classes for you to build your own Jabber server without understanding Jabber.  Instead of working with XML and protocol-specific details, you subclass parts and work with sane objects and data structures and let DJabberd do all the ugly work.</p>
+<p>DJabberd is a <a href="#perf">high-performance</a>, <a href="#scalable">scalable</a>, <a href="#ext">extensible</a> Jabber/XMPP server <i>framework</i>.  While it comes with an example server, it's really a set of classes for you to build your own Jabber server without understanding Jabber.  Instead of working with XML and protocol-specific details, you subclass parts and work with sane objects and data structures and let DJabberd do <a href="#compliant">all the ugly work</a>.</p>
 
-<h2>Extensible</h2>
+<h2>Status</h2>
+
+<p>Current status:  2006-04-11, still under heavy development, but now ~90% done, though very much still in development mode.  Cleaning stuff up now, adding polish.  There will be no official release until it's been used in production and hasn't blown up on us.  For now, the brave can get it from <a href="http://code.sixapart.com/svn/djabberd/">subversion</a>.</p>
+
+<a name='ext'></a><h2>Extensible</h2>
 
 <p>Consider DJabberd the mod_perl/qpsmtpd/Perlbal/Plagger of the XMPP world.  Everything is a plugin.  The framework lets you override the behavior of:</p>
 
@@ -26,7 +30,7 @@ body<=
 
 <p>You can even have multiple plugins per hook, in any order.  Also, rather than implementing the hooks directly, the framework comes with simple objects you can subclass which further eases the use of the async plugin system.</p>
 
-<h2>High Performance</h2>
+<a name='perf'></a><h2>High Performance</h2>
 
 <p>While implemented in Perl (which might dissuade you), DJabberd is written using the same event-based architecture that powers <a href="http://danga.com/perlbal/">Perlbal</a>, which pushes out billions of HTTP requests per month for LiveJournal.com.  In detail, it:</p>
 
@@ -37,13 +41,13 @@ body<=
 <li>Uses expat (implemented in C) for the XML processing.</li>
 </ul>
 
-<h2>Scalable</h2>
+<a name='scalable'></a><h2>Scalable</h2>
 
 <p>Internode-communication lets you just scale out, providing both load balancing and high availability in your Jabber farm.  Because good Jabber clients will quietly reconnect on TCP connection failure, you can even do rolling code upgrades without users noticing.</p>
 
 <p>As an admin, you're free to choose which internode communication method to use or you can write your own, specific to your application (assuming you're integrating this into an application).</p>
 
-<h2>Compliant</h2>
+<a name='compliant'></a><h2>Compliant</h2>
 
 <p>The DJabberd core aims to be fully XMPP 1.0 compliant, as well as supporting common pre-XMPP standards.  To name the obvious ones, DJabberd supports:</p>
 
