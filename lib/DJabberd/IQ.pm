@@ -61,8 +61,9 @@ sub send_reply {
 
     $raw ||= "";
     my $id = $self->id;
-    my $to = $conn->bound_jid->as_string;
-    my $xml = qq{<iq to='$to' type='$type' id='$id'>$raw</iq>};
+    my $bj = $conn->bound_jid;
+    my $to = $bj ? (" to='" . $bj->as_string . "'") : "";
+    my $xml = qq{<iq $to type='$type' id='$id'>$raw</iq>};
     warn "About to send IQ reply: $xml\n";
     $conn->write(\$xml);
 }
@@ -201,14 +202,14 @@ sub process_iq_setauth {
         $conn->server->register_jid($jid, $conn);
         $conn->set_bound_jid($jid);
 
-        # FIXME: escape, or make $iq->send_good_result, or something
-        $conn->write(qq{<iq id='$id' type='result' />});
+        $iq->send_result;
         return;
     };
 
     my $reject = sub {
+        # FIXME: more info?
+        $iq->send_error;
         warn " BAD LOGIN!\n";
-        # FIXME: FAIL
         return 1;
     };
 
