@@ -76,6 +76,9 @@ sub process_outbound {
     my $type      = $self->type || "available";
     warn "OUTBOUND presence from $conn, type = '$type'\n";
 
+    my $bjid = $conn->bound_jid;
+    return 0 unless $bjid;
+
     return $self->fail($conn, "bogus type") unless $type =~ /^\w+$/;
 
     my $meth = "_process_outbound_$type";
