@@ -48,6 +48,20 @@ sub fail {
     return;
 }
 
+# like delivery, but handles inbound processing if the target
+# is somebody on our domain.  TODO: IQs are going to need
+# this same out-vs-in processing.  it should be generic.
+sub post_outbound_processing {
+    my ($self, $conn) = @_;
+    my $contact_jid = $self->to_jid or die;
+    if ($conn->vhost->handles_jid($contact_jid)) {
+        my $clone = $self->clone;
+        $clone->process_inbound($conn);
+    } else {
+        $self->deliver($conn);
+    }
+}
+
 sub process {
     confess "No generic 'process' method for $_[0]";
 }
@@ -62,7 +76,7 @@ sub process_outbound {
     my $meth = "_process_outbound_$type";
     eval { $self->$meth($conn) };
     if ($@) {
-        warn "  ... NOT IMPLEMENTED.\n";
+        warn "  ... ERROR: [$@]\n";
     }
     return;
 }
@@ -91,9 +105,9 @@ sub process_inbound {
                                   my ($cb, $ritem) = @_;
 
                                   my $meth = "_process_inbound_$type";
-                                  eval { $self->$meth($conn, $ritem) };
+                                  eval { $self->$meth($conn, $ritem, $from_jid) };
                                   if ($@) {
-                                      warn "  ... NOT IMPLEMENTED.\n";
+                                      warn "  ... ERROR: [$@].\n";
                                   }
                               },
                           });
@@ -110,10 +124,46 @@ sub _process_inbound_unavailable {
 }
 
 sub _process_inbound_subscribe {
-    my ($self, $conn, $ritem) = @_;
+    my ($self, $conn, $ritem, $from_jid) = @_;
 
-    # ...  vivivy to whatever+pending in in roster
-    $self->deliver($conn);  # TEMP
+    my $subs = $ritem ? $ritem->subscription : "";
+    warn "inbound subscribe!  from=$from_jid, curr_subs=$subs\n";
+
+    # XMPP: server SHOULD auto-reply if contact already subscribed from
+    if ($ritem && $ritem->subscription->sub_from) {
+        # TODO: auto-reply with 'subscribed'
+        return;
+    }
+
+    warn "   ... not already subscribed from, didn't shortcut.\n";
+
+    $ritem ||= DJabberd::RosterItem->new($from_jid);
+    my $to_jid = $self->to_jid;
+
+    # ignore duplicate pending-in subscriptions
+    if ($ritem->subscription->pending_in) {
+        warn "ignoring dup inbound subscribe, already pending-in.\n";
+        return;
+    }
+
+    # TODO: HOOK FOR auto-subscribed sending.  violates spec, but LiveJournal
+    # could use it.  i think spec isn't thoughtful enough there.
+
+    # mark the roster item as pending-in, and save it:
+    $ritem->subscription->set_pending_in;
+    warn "   ... now subscription is: $subs\n";
+
+    $conn->run_hook_chain(phase => "RosterSetItem",
+                          args  => [ $to_jid, $ritem ],
+                          methods => {
+                              done => sub {
+                                  # no roster push, i don't think.  (TODO: re-read spec)
+                                  warn "subscribe is saved.\n";
+                                  $self->deliver($conn);
+                              },
+                              error => sub { my $reason = $_[1]; },
+                          },
+                          );
 }
 
 sub _process_inbound_subscribed {
@@ -143,16 +193,21 @@ sub _process_inbound_subscribed {
 
 sub _process_inbound_probe {
     my ($self, $conn, $ritem) = @_;
-
     warn("Got a PROBE from " . $ritem->jid->as_string . " and ritem = $ritem\n");
-    if ($ritem && $ritem->subscription->sub_from) {
-        # ....
-    }
+    # ignore if they don't have access
+    return unless $ritem && $ritem->subscription->sub_from;
+
+
 }
 
 
 sub _process_outbound_available {
     my ($self, $conn) = @_;
+    if ($self->to_jid) {
+        # TODO: directed presence...
+        return;
+    }
+
     if ($conn->is_initial_presence) {
         $conn->send_presence_probes;
     }
@@ -161,38 +216,68 @@ sub _process_outbound_available {
 
 sub _process_outbound_unavailable {
     my ($self, $conn) = @_;
+    if ($self->to_jid) {
+        # TODO: directed presence...
+        return;
+    }
+
     warn "NOT IMPLEMENTED: Unavailable presence broadcast!\n";
 }
 
 sub _process_outbound_subscribe {
     my ($self, $conn) = @_;
 
+    my $from_jid    = $conn->bound_jid;
     my $contact_jid = $self->to_jid or die "Can't subscribe to bogus jid";
 
-    $conn->run_hook_chain(phase => "RosterSubscribe",
-                          args  => [ $contact_jid ],
+    # XMPPIP-9.2-p2: MUST without exception
+    # route these, to combat sync issues
+    # between parties
+
+    my $deliver = sub {
+        $self->post_outbound_processing($conn);
+    };
+
+    my $save = sub {
+        my $ritem = shift;
+        $conn->run_hook_chain(phase => "RosterSetItem",
+                              args  => [ $from_jid, $ritem ],
+                              methods => {
+                                  done => sub {
+                                      # TODO: roster push, then:
+                                      $deliver->();
+                                  },
+                                  error => sub { my $reason = $_[1]; },
+                              },
+                              );
+    };
+
+    my $on_load = sub {
+        my (undef, $ritem) = @_;
+
+        # not in roster, skip.
+        $ritem ||= DJabberd::RosterItem->new($contact_jid);
+
+        if ($ritem->subscription->got_outbound_subscribe) {
+            # subscription modified, must save, which will then
+            # deliver when done.
+            $save->($ritem);
+        } else {
+            $deliver->();
+        }
+    };
+
+    $conn->run_hook_chain(phase => "RosterLoadItem",
+                          args  => [ $from_jid, $contact_jid ],
                           methods => {
                               error   => sub {
-                                  my ($cb, $reason) = @_;
-                                  return $self->fail($conn, "RosterSubscribe hook failed: $reason");
+                                  my (undef, $reason) = @_;
+                                  return $self->fail($conn, "RosterLoadItem hook failed: $reason");
                               },
-                              done => sub {
-                                  # XMPPIP-9.2-p2: MUST without exception
-                                  # route these, to combat sync issues
-                                  # between parties
-                                  if ($conn->vhost->handles_jid($contact_jid)) {
-                                      my $clone = $self->clone;
-                                      $clone->process_inbound($conn);
-                                  } else {
-                                      warn "Delivering subscribe request...\n";
-                                      $self->deliver($conn);
-                                  }
-                              },
-                          },
-                          fallback => sub {
-                              return $self->fail($conn, "no RosterSubscribe hooks");
+                              set => $on_load,
                           });
 }
+
 
 sub _process_outbound_subscribed {
     my ($self, $conn) = @_;
@@ -201,23 +286,51 @@ sub _process_outbound_subscribed {
     my $contact_jid = $self->to_jid
         or return $self->fail($conn, "no/invalid 'to' attribute");
 
-    $conn->run_hook_chain(phase => "RosterSubscribed",
-                          args  => [ $contact_jid ],
+    $conn->run_hook_chain(phase => "RosterLoadItem",
+                          args  => [ $conn->bound_jid, $contact_jid ],
                           methods => {
                               error   => sub {
-                                  my ($cb, $reason) = @_;
-                                  return $self->fail($conn, "RosterSubscribe hook failed: $reason");
+                                  my (undef, $reason) = @_;
+                                  return $self->fail($conn, "RosterLoadItem hook failed: $reason");
                               },
-                              done => sub {
+                              set => sub {
+                                  my (undef, $ritem) = @_;
 
-                                  # TODO: based on $type, set things in roster
-                                  # now send the packet to the other party
-                                  $self->deliver($conn);
+                                  # not in roster, skip.
+                                  return unless $ritem;
+
+                                  my $subs = $ritem->subscription;
+                                  warn "   current subscription = $subs\n";
+
+                                  # skip unless we were in pending in state
+                                  return unless $subs->pending_in;
+
+                                  $self->_process_outbound_subscribed_with_ritem($conn, $ritem);
                               },
-                          },
-                          fallback => sub {
-                              return $self->fail($conn, "no RosterSubscribe hooks");
                           });
+}
+
+# second stage of outbound 'subscribed' processing, once we load the item and
+# decide to skip processing or not.  see above.
+sub _process_outbound_subscribed_with_ritem {
+    my ($self, $conn, $ritem) = @_;
+
+    $ritem->subscription->got_outbound_subscribed;
+
+    my $subs = $ritem->subscription;
+    warn "   updated subscription = $subs\n";
+
+    $conn->run_hook_chain(phase => "RosterSetItem",
+                          args  => [ $conn->bound_jid, $ritem ],
+                          methods => {
+                              done => sub {
+                                  # TODO: roster push
+                                  warn "outbound subscribed is saved.\n";
+                                  $self->post_outbound_processing($conn);
+                              },
+                              error => sub { my $reason = $_[1]; },
+                          },
+                          );
 }
 
 

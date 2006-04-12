@@ -2,6 +2,8 @@ package DJabberd::Subscription;
 use strict;
 use Carp qw(croak);
 use DJabberd::Util qw(exml);
+use overload
+    '""' => \&as_string;
 
 use fields (
             'to',        # all bools
@@ -53,6 +55,11 @@ sub pending_out {
     return $self->{pendout};
 }
 
+sub pending_in {
+    my $self = shift;
+    return $self->{pendin};
+}
+
 sub sub_from {
     my $self = shift;
     return $self->{from};
@@ -70,10 +77,40 @@ sub set_pending_out {
     return $self;
 }
 
+sub set_pending_in {
+    my ($self, $val) = @_;
+    $val = 1 unless defined $val;
+    $self->{pendin} = $val;
+    return $self;
+}
+
 sub got_inbound_subscribed {
     my $self = shift;
     $self->{to}      = 1;
     $self->{pendout} = 0;
+}
+
+sub got_outbound_subscribed {
+    my $self = shift;
+    $self->{from}    = 1;
+    $self->{pendin}  = 0;
+}
+
+# returns 1 if any action was taken, 0 if it was no-op
+sub got_outbound_subscribe {
+    my $self = shift;
+    # the no-op case
+    return 0 if $self->{to} && ! $self->{pendout};
+
+    # for some reason, user's pendout bit is set even though
+    # it shouldn't be.  fix up.
+    if ($self->{to} && $self->{pendout}) {
+        $self->{pendout} = 0;
+        return 1;
+    }
+
+    $self->{pendout} = 1;
+    return 1;
 }
 
 sub as_bitmask {
@@ -95,6 +132,12 @@ sub from_bitmask {
     $new->{pendin}  = 1 if $mask & 4;
     $new->{pendout} = 1 if $mask & 8;
     return $new;
+}
+
+sub as_string {
+    my $self = shift;
+    my @fields = grep { $self->{$_} } qw(to from pendin pendout);
+    return "[@fields]";
 }
 
 sub as_attributes {

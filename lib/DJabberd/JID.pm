@@ -1,6 +1,9 @@
 package DJabberd::JID;
 use strict;
 
+use overload
+    '""' => \&as_string;
+
 # returns DJabberd::JID object, or undef on failure due to invalid format
 sub new {
     my ($class, $jidstring) = @_;
