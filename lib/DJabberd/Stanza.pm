@@ -109,4 +109,10 @@ sub set_from {
     return $self->set_attr("{$ns}from", $fromstr);
 }
 
+sub set_to {
+    my ($self, $to) = @_;
+    my $ns = $self->namespace;
+    return $self->set_attr("{$ns}to", ref $to ? $to->as_string : $to);
+}
+
 1;

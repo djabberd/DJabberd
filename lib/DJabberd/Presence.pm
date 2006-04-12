@@ -3,6 +3,15 @@ use strict;
 use base qw(DJabberd::Stanza);
 use Carp qw(croak confess);
 
+# used by DJabberd::PresenceChecker::Local.
+my %last_bcast;   # barejidstring -> { full_jid_string -> $cloned_pres_stanza }
+
+sub local_presence_info {
+    my ($class, $jid) = @_;
+    my $barestr = $jid->as_bare_string;
+    return $last_bcast{$barestr} || {};
+}
+
 # constructor
 sub probe {
     my ($class, %opts) = @_;
@@ -19,7 +28,8 @@ sub type {
     my $self = shift;
     return
         $self->attr("{jabber:client}type") ||
-        $self->attr("{jabber:server}type");
+        $self->attr("{jabber:server}type") ||
+        $self->attr("{}type");
 }
 
 sub fail {
@@ -32,7 +42,7 @@ sub fail {
 # like delivery, but handles inbound processing if the target
 # is somebody on our domain.  TODO: IQs are going to need
 # this same out-vs-in processing.  it should be generic.
-sub post_outbound_processing {
+sub procdeliver {
     my ($self, $conn) = @_;
     my $contact_jid = $self->to_jid or die;
     if ($conn->vhost->handles_jid($contact_jid)) {
@@ -173,14 +183,37 @@ sub _process_inbound_subscribed {
 }
 
 sub _process_inbound_probe {
-    my ($self, $conn, $ritem) = @_;
+    my ($self, $conn, $ritem, $from_jid) = @_;
     warn("Got a PROBE from " . $ritem->jid->as_string . " and ritem = $ritem\n");
     # ignore if they don't have access
     return unless $ritem && $ritem->subscription->sub_from;
 
+    my $jid = $self->to_jid;
+    warn " probe is checking on jid=$jid\n";
 
+    my %map;  # fullstrres -> stanza
+    my $add_presence = sub {
+        my ($jid, $stanza) = @_;
+        warn "  ... adding presence $jid = $stanza\n";
+        $map{$jid->as_string} = $stanza;
+    };
+
+    # this hook chain is a little different, it's expected
+    # to always fall through to the end.
+    $conn->run_hook_chain(phase => "PresenceCheck",
+                          args  => [ $jid, $add_presence ],
+                          fallback => sub {
+                              # send them
+                              warn "  ... fallback!\n";
+                              foreach my $fullstr (keys %map) {
+                                  my $stanza = $map{$fullstr};
+                                  my $to_send = $stanza->clone;
+                                  $to_send->set_to($from_jid);
+                                  $to_send->deliver($conn);
+                              }
+                          },
+                          );
 }
-
 
 sub _process_outbound_available {
     my ($self, $conn) = @_;
@@ -188,6 +221,9 @@ sub _process_outbound_available {
         # TODO: directed presence...
         return;
     }
+
+    my $jid = $conn->bound_jid;
+    $last_bcast{$jid->as_bare_string}{$jid->as_string} = $self->clone;
 
     if ($conn->is_initial_presence) {
         $conn->send_presence_probes;
@@ -201,6 +237,9 @@ sub _process_outbound_unavailable {
         # TODO: directed presence...
         return;
     }
+
+    my $jid = $conn->bound_jid;
+    $last_bcast{$jid->as_bare_string}{$jid->as_string} = $self->clone;
 
     warn "NOT IMPLEMENTED: Unavailable presence broadcast!\n";
 }
@@ -216,7 +255,7 @@ sub _process_outbound_subscribe {
     # between parties
 
     my $deliver = sub {
-        $self->post_outbound_processing($conn);
+        $self->procdeliver($conn);
     };
 
     my $save = sub {
@@ -307,7 +346,7 @@ sub _process_outbound_subscribed_with_ritem {
                               done => sub {
                                   # TODO: roster push
                                   warn "outbound subscribed is saved.\n";
-                                  $self->post_outbound_processing($conn);
+                                  $self->procdeliver($conn);
                               },
                               error => sub { my $reason = $_[1]; },
                           },

@@ -32,7 +32,7 @@ sub send_presence_probes {
         foreach my $it ($roster->to_items) {
             my $probe = DJabberd::Presence->probe(to => $it->jid, from => $from_jid);
             warn "Sending probe: " . $probe->as_xml . "\n";
-            $probe->deliver($self);  # FIXME: lame that we need to pass $self to this, just for the hook chain running
+            $probe->procdeliver($self);  # FIXME: lame that we need to pass $self to this, just for the hook chain running
         }
     };
 
