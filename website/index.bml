@@ -19,7 +19,7 @@ body<=
 <li>Message delivery</li>
 <li>Internode communication</li>
 <li>...</li>
-<li><i>everything else</i.
+<li><i>everything else</i></li>
 </ul>
 
 <p>Or, if you're lazy, choose mix and match behaviors from other CPAN modules:  mix LDAP auth with SQLite storage with LDAP roster-population, with Spread inter-node communication...</p>
@@ -35,15 +35,14 @@ body<=
 <li>Uses epoll on Linux 2.6, enabling tens to hundreds of thousands of connections in a single process, limited only by memory.  (but new connections use signifigantly less memory than a threaded server)</li>
 <li>Is single-threaded, event-based.</li>
 <li>All the aforementioned plugins can operate asynchronously.  (If you're lazy, you can block in them, for low-traffic servers...)</li>
-
-
+<li>Uses expat (implemented in C) for the XML processing.</li>
 </ul>
 
 <h2>Scalable</h2>
 
 <p>Internode-communication lets you just scale out, providing both load balancing and high availability in your Jabber farm.  Because good Jabber clients will quietly reconnect on TCP connection failure, you can even do rolling code upgrades without users noticing.</p>
 
-<p>As a user, you're free to choose which internode communication method to use or you can write your own, specific to your application (assuming you're integrating this into an application).</p>
+<p>As an admin, you're free to choose which internode communication method to use or you can write your own, specific to your application (assuming you're integrating this into an application).</p>
 
 <h2>Compliant</h2>
 
