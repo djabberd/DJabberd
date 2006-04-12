@@ -31,6 +31,13 @@ sub available_stanza {
     return $class->downbless($xml);
 }
 
+# constructor
+sub unavailable_stanza {
+    my ($class) = @_;
+    my $xml = DJabberd::XMLElement->new("", "presence", { '{}type' => "unavailable" }, []);
+    return $class->downbless($xml);
+}
+
 sub type {
     my $self = shift;
     return
@@ -223,7 +230,9 @@ sub _process_inbound_probe {
                           );
 }
 
-sub _process_broadcast_outbound {
+# TODO: make this broadcast_from a JID, not a connection, just for
+# cleanliness, once we can run hook chains on vhosts, not conns
+sub broadcast_from {
     my ($self, $conn) = @_;
     my $from_jid = $conn->bound_jid;
 
@@ -233,6 +242,7 @@ sub _process_broadcast_outbound {
             warn "Broadcasting presence to @{[ $it->jid ]} ...\n";
             my $dpres = $self->clone;
             $dpres->set_to($it->jid);
+            $dpres->set_from($from_jid);
             $dpres->procdeliver($conn);
         }
     };
@@ -260,7 +270,8 @@ sub _process_outbound_available {
         $conn->send_presence_probes;
     }
 
-    $self->_process_broadcast_outbound($conn);
+    $conn->set_available(1);
+    $self->broadcast_from($conn);
 }
 
 sub _process_outbound_unavailable {
@@ -273,7 +284,8 @@ sub _process_outbound_unavailable {
     my $jid = $conn->bound_jid;
     $last_bcast{$jid->as_bare_string}{$jid->as_string} = $self->clone;
 
-    $self->_process_broadcast_outbound($conn);
+    $conn->set_available(0);
+    $self->broadcast_from($conn);
 }
 
 sub _process_outbound_subscribe {

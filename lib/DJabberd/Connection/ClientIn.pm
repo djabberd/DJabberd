@@ -5,11 +5,22 @@ use base 'DJabberd::Connection';
 use fields (
             'requested_roster',      # bool: if user has requested their roster,
             'got_initial_presence',  # bool: if user has already sent their initial presence
+            'is_available',          # bool: is an "available resource"
             );
 
 sub set_requested_roster {
     my ($self, $val) = @_;
     $self->{requested_roster} = $val;
+}
+
+sub set_available {
+    my ($self, $val) = @_;
+    $self->{is_available} = $val;
+}
+
+sub is_available {
+    my $self = shift;
+    return $self->{is_available};
 }
 
 # called when a presence broadcast is received.  on first time,
@@ -43,6 +54,18 @@ sub send_presence_probes {
                                   $send_probes->($roster);
                               },
                           });
+}
+
+sub close {
+    my $self = shift;
+
+    # send an unavailable presence broadcast if we've gone away
+    if ($self->is_available) {
+        my $unavail = DJabberd::Presence->unavailable_stanza;
+        $unavail->broadcast_from($self);
+    }
+
+    $self->SUPER::close;
 }
 
 sub namespace {
