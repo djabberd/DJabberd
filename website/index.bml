@@ -28,12 +28,11 @@ body<=
 
 <h2>High Performance</h2>
 
-<p>While implemented in Perl (which might dissuade you), DJabberd is written using the same event-based architecture that powers <a href="http://danga.com/perlbal/">Perlbal</a>, which pushes out billions of HTTP requests per month.  In detail, it:</p>
+<p>While implemented in Perl (which might dissuade you), DJabberd is written using the same event-based architecture that powers <a href="http://danga.com/perlbal/">Perlbal</a>, which pushes out billions of HTTP requests per month for LiveJournal.com.  In detail, it:</p>
 
 <ul class='spaced'>
-<li>Is single-threaded, event-based.</li>
+<li>Is async/event-based.</li>
 <li>Uses epoll on Linux 2.6, enabling tens to hundreds of thousands of connections in a single process, limited only by memory.  (but new connections use signifigantly less memory than a threaded server)</li>
-<li>Is single-threaded, event-based.</li>
 <li>All the aforementioned plugins can operate asynchronously.  (If you're lazy, you can block in them, for low-traffic servers...)</li>
 <li>Uses expat (implemented in C) for the XML processing.</li>
 </ul>
