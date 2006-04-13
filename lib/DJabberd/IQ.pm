@@ -211,14 +211,11 @@ sub process_iq_setauth {
 
     my $reject = sub {
         # FIXME: more info?
-        $iq->send_error;
-        warn " BAD LOGIN!\n";
+        $iq->send_reply("error", qq{<error code='401' type='auth'><not-authorized xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/></error>});
         return 1;
     };
 
     my $can_get_password = $conn->vhost->are_hooks("GetPassword");
-
-    warn "Can get password?  $can_get_password\n";
 
     if ($can_get_password) {
         $conn->run_hook_chain(phase => "GetPassword",
