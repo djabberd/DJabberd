@@ -3,7 +3,6 @@
 use strict;
 use lib 'lib';
 use DJabberd;
-use DJabberd::Authen::SixApart;
 
 use DJabberd::Delivery::Local;
 use DJabberd::Delivery::S2S;
@@ -46,6 +45,7 @@ $server->run;
 
 package DJabberd::Authen::SixApart;
 use base 'DJabberd::Authen';
+use Net::LDAP;
 
 sub can_retrieve_cleartext { 0 }
 
