@@ -74,7 +74,7 @@ sub acceptable_from_server {
 
 sub delivery_failure {
     my ($self, $conn) = @_;
-    warn "$self has no ->delivery_failure method implemented\n";
+    #warn "$self has no ->delivery_failure method implemented\n";
 }
 
 sub to {

@@ -74,7 +74,7 @@ sub process {
 sub process_outbound {
     my ($self, $conn) = @_;
     my $type      = $self->type || "available";
-    warn "OUTBOUND presence from $conn, type = '$type'\n";
+    #warn "OUTBOUND presence from $conn, type = '$type'\n";
 
     my $bjid = $conn->bound_jid;
     return 0 unless $bjid;
@@ -92,7 +92,7 @@ sub process_outbound {
 sub process_inbound {
     my ($self, $conn) = @_;
     my $type      = $self->type || "available";
-    warn "INBOUND presence from $conn, type = '$type'\n";
+    #warn "INBOUND presence from $conn, type = '$type'\n";
     return $self->fail($conn, "bogus type") unless $type =~ /^\w+$/;
 
     my $to_jid    = $self->to_jid
@@ -135,7 +135,7 @@ sub _process_inbound_subscribe {
     my ($self, $conn, $ritem, $from_jid) = @_;
 
     my $subs = $ritem ? $ritem->subscription : "";
-    warn "inbound subscribe!  from=$from_jid, curr_subs=$subs\n";
+    #warn "inbound subscribe!  from=$from_jid, curr_subs=$subs\n";
 
     # XMPP: server SHOULD auto-reply if contact already subscribed from
     if ($ritem && $ritem->subscription->sub_from) {
@@ -143,7 +143,7 @@ sub _process_inbound_subscribe {
         return;
     }
 
-    warn "   ... not already subscribed from, didn't shortcut.\n";
+    #warn "   ... not already subscribed from, didn't shortcut.\n";
 
     $ritem ||= DJabberd::RosterItem->new($from_jid);
     my $to_jid = $self->to_jid;
@@ -159,14 +159,12 @@ sub _process_inbound_subscribe {
 
     # mark the roster item as pending-in, and save it:
     $ritem->subscription->set_pending_in;
-    warn "   ... now subscription is: $subs\n";
 
     $conn->run_hook_chain(phase => "RosterSetItem",
                           args  => [ $to_jid, $ritem ],
                           methods => {
                               done => sub {
                                   # no roster push, i don't think.  (TODO: re-read spec)
-                                  warn "subscribe is saved.\n";
                                   $self->deliver($conn);
                               },
                               error => sub { my $reason = $_[1]; },
@@ -183,7 +181,7 @@ sub _process_inbound_subscribed {
 
     my $to_jid    = $self->to_jid;
 
-    warn "processing inbound subscribed...\n";
+    #warn "processing inbound subscribed...\n";
     $ritem->subscription->got_inbound_subscribed;
 
     $conn->run_hook_chain(phase => "RosterSetItem",
@@ -191,7 +189,6 @@ sub _process_inbound_subscribed {
                           methods => {
                               done => sub {
                                   # TODO: roster push.
-                                  warn "subscribed is processed!\n";
                               },
                               error => sub { my $reason = $_[1]; },
                           },
@@ -204,7 +201,7 @@ sub _process_inbound_probe {
     return unless $ritem && $ritem->subscription->sub_from;
 
     my $jid = $self->to_jid;
-    warn " probe is checking on jid=$jid\n";
+    #warn " probe is checking on jid=$jid\n";
 
     my %map;  # fullstrres -> stanza
     my $add_presence = sub {
@@ -218,7 +215,6 @@ sub _process_inbound_probe {
                           args  => [ $jid, $add_presence ],
                           fallback => sub {
                               # send them
-                              warn "  ... fallback!\n";
                               foreach my $fullstr (keys %map) {
                                   my $stanza = $map{$fullstr};
                                   my $to_send = $stanza->clone;
@@ -238,7 +234,7 @@ sub broadcast_from {
     my $broadcast = sub {
         my $roster = shift;
         foreach my $it ($roster->to_items) {
-            warn "Broadcasting presence to @{[ $it->jid ]} ...\n";
+            #warn "Broadcasting presence to @{[ $it->jid ]} ...\n";
             my $dpres = $self->clone;
             $dpres->set_to($it->jid);
             $dpres->set_from($from_jid);
@@ -363,7 +359,6 @@ sub _process_outbound_subscribed {
                                   return unless $ritem;
 
                                   my $subs = $ritem->subscription;
-                                  warn "   current subscription = $subs\n";
 
                                   # skip unless we were in pending in state
                                   return unless $subs->pending_in;
@@ -381,14 +376,12 @@ sub _process_outbound_subscribed_with_ritem {
     $ritem->subscription->got_outbound_subscribed;
 
     my $subs = $ritem->subscription;
-    warn "   updated subscription = $subs\n";
 
     $conn->run_hook_chain(phase => "RosterSetItem",
                           args  => [ $conn->bound_jid, $ritem ],
                           methods => {
                               done => sub {
                                   # TODO: roster push
-                                  warn "outbound subscribed is saved.\n";
                                   $self->procdeliver($conn);
                               },
                               error => sub { my $reason = $_[1]; },

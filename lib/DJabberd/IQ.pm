@@ -64,7 +64,7 @@ sub send_reply {
     my $bj = $conn->bound_jid;
     my $to = $bj ? (" to='" . $bj->as_string . "'") : "";
     my $xml = qq{<iq $to type='$type' id='$id'>$raw</iq>};
-    warn "About to send IQ reply: $xml\n";
+    #warn "About to send IQ reply: $xml\n";
     $conn->write(\$xml);
 }
 
