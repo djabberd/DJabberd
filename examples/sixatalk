@@ -55,8 +55,14 @@ sub check_cleartext {
     my $pass = $args{password};
     my $conn = $args{conn};
 
+    unless ($user =~ /^\w+$/) {
+        $cb->reject;
+        return;
+    }
+
     my $ldap = Net::LDAP->new( 'ldap.sixapart.com' ) or die "$@";
-    my $okay = $ldap->bind($user, password => $pass, version => 3);
+    my $dn   = "uid=$user,ou=People,dc=sixapart,dc=com";
+    my $okay = $ldap->bind($dn, password => $pass, version => 3);
     if ($okay) {
         $cb->accept;
     } else {
