@@ -309,7 +309,7 @@ sub start_stream_back {
         # {=must-send-features-on-1.0}
         my $tls = "";
         if (!$self->{ssl} && DJabberd::Stanza::StartTLS->can_do_ssl) {
-            $tls = "<starttls xmsns='urn:ietf:params:xml:ns:xmpp-tls' />";
+            $tls = "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls' />";
         }
         $features = qq{<stream:features>$tls</stream:features>};
     }
