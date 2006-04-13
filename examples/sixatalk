@@ -3,8 +3,7 @@
 use strict;
 use lib 'lib';
 use DJabberd;
-use DJabberd::Auth::AllowedUsers;
-use DJabberd::Auth::StaticPassword;
+use DJabberd::Authen::SixApart;
 
 use DJabberd::Delivery::Local;
 use DJabberd::Delivery::S2S;
@@ -35,14 +34,19 @@ my $server = DJabberd->new(
                            daemonize => $daemonize,
                            s2s       => 0,
                            plugins   => [
-                                         DJabberd::Auth::StaticPassword->new(password => "password"),
-                                         DJabberd::PresenceChecker::Local->new(),
-                                         DJabberd::Delivery::Local->new(),
-                                         #DJabberd::Delivery::S2S->new(),
+                                         DJabberd::Authen::Sixapart->new,
+                                         DJabberd::PresenceChecker::Local->new,
+                                         DJabberd::Delivery::Local->new,
+                                         #DJabberd::Delivery::S2S->new,
                                          DJabberd::RosterStorage::SixApart->new("$Bin/roster.sqlite"),
                                          ],
                            );
 $server->run;
+
+
+package DJabberd::Authen::SixApart;
+use base 'DJabberd::Authen';
+
 
 
 package DJabberd::RosterStorage::SixApart;
@@ -56,38 +60,38 @@ sub get_roster {
     warn "MYSELF: $myself\n";
 
     my $on_load_roster = sub {
-	my (undef, $roster) = @_;
+        my (undef, $roster) = @_;
 
-	# see which employees already in roster
-	my %has;
-	foreach my $it ($roster->items) {
-	    my $jid = $it->jid;
-	    next unless $jid->as_bare_string =~ /^(\w+)\@sixapart\.com$/;
-	    $has{lc $1} = $it;
-	}
+        # see which employees already in roster
+        my %has;
+        foreach my $it ($roster->items) {
+            my $jid = $it->jid;
+            next unless $jid->as_bare_string =~ /^(\w+)\@sixapart\.com$/;
+            $has{lc $1} = $it;
+        }
 
-	# add missing employees to the roster
-	my $emps = _employees();
-	foreach my $uid (keys %$emps) {
-	    $uid = lc $uid;
-	    next if $uid eq $myself;
+        # add missing employees to the roster
+        my $emps = _employees();
+        foreach my $uid (keys %$emps) {
+            $uid = lc $uid;
+            next if $uid eq $myself;
 
-	    my $emp = $emps->{$uid};
-	    my $ri = $has{$uid} || DJabberd::RosterItem->new(jid  => "$uid\@sixapart.com",
-							     name => ($emp->{displayName} || $emp->{cn}),
-							     groups => ["SixApart"]);
+            my $emp = $emps->{$uid};
+            my $ri = $has{$uid} || DJabberd::RosterItem->new(jid  => "$uid\@sixapart.com",
+                                                             name => ($emp->{displayName} || $emp->{cn}),
+                                                             groups => ["SixApart"]);
 
 
-	    $ri->subscription->set_from;
-	    $ri->subscription->set_to;
-	    $roster->add($ri);
-	}
+            $ri->subscription->set_from;
+            $ri->subscription->set_to;
+            $roster->add($ri);
+        }
 
-	$cb->set_roster($roster);
+        $cb->set_roster($roster);
     };
 
     my $cb2 = DJabberd::Callback->new(set_roster => $on_load_roster,
-				      decline    => sub { $cb->decline });
+                                      decline    => sub { $cb->decline });
     $self->SUPER::get_roster($cb2, $jid);
 }
 
@@ -100,26 +104,26 @@ sub _employees {
 #print "@lines\n";
     my $curuid = undef;
     foreach my $line (@lines) {
-	$line =~ s/^\#.*//;
-	if ($line =~ /^\s*$/) {
-	    $curuid = undef;
-	    next;
-	}
-	if ($line =~ /uid=(\w+)/) {
-	    $curuid = $1;
-	}
-	next unless $curuid;
+        $line =~ s/^\#.*//;
+        if ($line =~ /^\s*$/) {
+            $curuid = undef;
+            next;
+        }
+        if ($line =~ /uid=(\w+)/) {
+            $curuid = $1;
+        }
+        next unless $curuid;
 
-	if ($line =~ /^(\w+): (.+)/) {
-	    $info{$curuid}{$1} = $2;
-	}
+        if ($line =~ /^(\w+): (.+)/) {
+            $info{$curuid}{$1} = $2;
+        }
     }
 
     delete $info{'tempaccount'};
     delete $info{'usability'};
 
     foreach my $uid (keys %info) {
-	delete $info{$uid} unless $info{$uid}{mailLocalAddress} || $info{$uid}{mail};
+        delete $info{$uid} unless $info{$uid}{mailLocalAddress} || $info{$uid}{mail};
     }
     return \%info;
 }
@@ -128,20 +132,20 @@ sub load_roster_item {
     my ($self, $jid, $contact_jid, $cb) = @_;
 
     my $is_employee = sub {
-	my $jid = shift;
-	return $jid->domain eq "sixapart.com";
+        my $jid = shift;
+        return $jid->domain eq "sixapart.com";
     };
-    
+
     if ($is_employee->($jid) && $is_employee->($contact_jid)) {
-	my $both = DJabberd::Subscription->new;
-	$both->set_from;
-	$both->set_to;
-	my $rit = DJabberd::RosterItem->new(jid  => $contact_jid,
-					    subscription => $both);
-	$cb->set($rit);
-	return;
+        my $both = DJabberd::Subscription->new;
+        $both->set_from;
+        $both->set_to;
+        my $rit = DJabberd::RosterItem->new(jid  => $contact_jid,
+                                            subscription => $both);
+        $cb->set($rit);
+        return;
     }
-	
+
     $self->SUPER::load_roster_item($jid, $contact_jid, $cb);
 }
 
