@@ -21,6 +21,16 @@ sub register {
         }
 
     });
+
+    if ($self->can_retrieve_cleartext) {
+        $server->register_hook("GetPassword", sub {
+            #...
+        });
+    }
+}
+
+sub can_retrieve_cleartext {
+    0;
 }
 
 sub check_auth {
