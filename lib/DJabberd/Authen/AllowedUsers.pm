@@ -19,9 +19,9 @@ sub new {
     }, $class;
 }
 
-sub check_auth {
-    my ($self, $conn, $auth_info, $cb) = @_;
-    my $user = $auth_info->{'username'};
+sub check_cleartext {
+    my ($self, $cb, %args) = @_;
+    my $user = $args{'username'};
 
     if ($self->{'policy'} eq "deny") {
         warn "$self --- user=$user, denying, unless allowed: @{$self->{allowed}}\n";

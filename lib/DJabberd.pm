@@ -73,6 +73,11 @@ sub add_plugin {
     $plugin->register($self);
 }
 
+sub are_hooks {
+    my ($self, $phase) = @_;
+    return scalar @{ $self->{hooks}{$phase} || [] } ? 1 : 0;
+}
+
 sub register_hook {
     my ($self, $phase, $subref) = @_;
     # TODO: die if bogus phase

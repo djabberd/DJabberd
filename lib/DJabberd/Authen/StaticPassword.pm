@@ -10,11 +10,13 @@ sub new {
     }, $class;
 }
 
-sub check_auth {
-    my ($self, $conn, $auth_info, $cb) = @_;
-
-    my $good = Digest::SHA1::sha1_hex($conn->{stream_id} . $self->{password});
-    return $good eq $auth_info->{'digest'} ? 1 : 0;
+sub check_cleartext {
+    my ($self, $cb, %args) = @_;
+    if ($args{password} eq $self->{password}) {
+        $cb->accept;
+        return;
+    }
+    $cb->reject;
 }
 
 1;

@@ -14,13 +14,31 @@ $hook{'switch_incoming_client'} = {};
 $hook{'filter_incoming_server'} = {};
 $hook{'switch_incoming_server'} = {};
 
+
+$hook{'GetPassword'} = {
+    des => "Lookup a user's plaintext password",
+    args => [ "username" => '$username', "conn" => 'Connection', ],
+    callbacks => {
+        set => ['password'],
+    },
+};
+
+$hook{'CheckCleartext'} = {
+    des => "Check a user's plaintext password",
+    args => [ "username" => '$username', "conn" => 'Connection', 'password' => '$password', ],
+    callbacks => {
+        accept => [],
+        reject => [],
+    },
+};
+
+
 $hook{'pre_stanza_write'} = {
     des => "Called before a stanza is written to a user.  Default action if all declined is to just deliver it.",4
 };
 
 $hook{'c2s-iq'} = {};
 $hook{'deliver'} = {};
-$hook{'Auth'} = {};
 
 $hook{'RosterGet'} = {
     args => [],

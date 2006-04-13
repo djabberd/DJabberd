@@ -159,7 +159,9 @@ sub process_iq_getauth {
 
     my $id = $iq->id;
 
-    $conn->write("<iq id='$id' type='result'><query xmlns='jabber:iq:auth'><username>$username</username><digest/><resource/></query></iq>");
+    my $type = $conn->vhost->are_hooks("GetPassword") ? "<digest/>" : "<password/>";
+
+    $conn->write("<iq id='$id' type='result'><query xmlns='jabber:iq:auth'><username>$username</username>$type<resource/></query></iq>");
 
     return 1;
 }
@@ -186,6 +188,7 @@ sub process_iq_setauth {
 
     my $username = $get->("username");
     my $resource = $get->("resource");
+    my $password = $get->("password");
     my $digest   = $get->("digest");
 
     return unless $username =~ /^\w+$/;
@@ -213,13 +216,39 @@ sub process_iq_setauth {
         return 1;
     };
 
-    $conn->run_hook_chain(phase => "Auth",
-                          args  => [ { username => $username, resource => $resource, digest => $digest } ],
-                          methods => {
-                              accept => $accept,
-                              reject => $reject,
-                          },
-                          fallback => $reject);
+    my $can_get_password = $conn->vhost->are_hooks("GetPassword");
+
+    warn "Can get password?  $can_get_password\n";
+
+    if ($can_get_password) {
+        $conn->run_hook_chain(phase => "GetPassword",
+                              args  => [ username => $username, conn => $conn ],
+                              methods => {
+                                  set => sub {
+                                      my (undef, $good_password) = @_;
+                                      if ($password && $password eq $good_password) {
+                                          $accept->();
+                                      } elsif ($digest) {
+                                          my $good_dig = Digest::SHA1::sha1_hex($conn->{stream_id} . $good_password);
+                                          if ($good_dig eq $digest) {
+                                              $accept->();
+                                          } else {
+                                              $reject->();
+                                          }
+                                      } else {
+                                          $reject->();
+                                      }
+                                  },
+                              },
+                              fallback => $reject);
+    } else {
+        $conn->run_hook_chain(phase => "CheckCleartext",
+                              args => [ username => $username, conn => $conn, password => $password ],
+                              methods => {
+                                  accept => $accept,
+                                  reject => $reject,
+                              });
+    }
 
     return 1;  # signal that we've handled it
 }

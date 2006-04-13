@@ -47,6 +47,13 @@ $server->run;
 package DJabberd::Authen::SixApart;
 use base 'DJabberd::Authen';
 
+sub can_retrieve_cleartext { 0 }
+
+sub check_cleartext {
+    my ($self, $cb, $conn, $user, $cleartext) = @_;
+    warn "CHECKING cleartext for $conn, user=$user ....\n";
+    $cb->accept;
+}
 
 
 package DJabberd::RosterStorage::SixApart;

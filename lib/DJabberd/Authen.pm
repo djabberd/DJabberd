@@ -9,28 +9,26 @@ sub new {
 
 sub register {
     my ($self, $server) = @_;
-    $server->register_hook("Auth", sub {
-        warn "Auth.pm hook called with @_\n";
-        my ($conn, $cb, $auth_info) = @_;
-
-        my $rv = $self->check_auth($conn, $auth_info, $cb);
-        warn "  got rv = $rv\n";
-        if (defined $rv && ! $cb->already_fired) {
-            $cb->accept if $rv;
-            $cb->reject if ! $rv;
-        }
-
-    });
-
     if ($self->can_retrieve_cleartext) {
         $server->register_hook("GetPassword", sub {
             #...
         });
     }
+
+    $server->register_hook("CheckCleartext", sub {
+        my ($conn, $cb, %args) = @_;
+        # args containing:  username, conn, password
+        $self->check_cleartext($cb, %args);
+    });
 }
 
 sub can_retrieve_cleartext {
     0;
+}
+
+sub check_cleartext {
+    my ($self, $cb, %args) = @_;
+    $cb->reject;
 }
 
 sub check_auth {
