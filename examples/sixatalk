@@ -62,8 +62,8 @@ sub check_cleartext {
 
     my $ldap = Net::LDAP->new( 'ldap.sixapart.com' ) or die "$@";
     my $dn   = "uid=$user,ou=People,dc=sixapart,dc=com";
-    my $okay = $ldap->bind($dn, password => $pass, version => 3);
-    if ($okay) {
+    my $msg  = $ldap->bind($dn, password => $pass, version => 3);
+    if ($msg && !$msg->is_error) {
         $cb->accept;
     } else {
         $cb->reject;
