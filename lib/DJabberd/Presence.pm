@@ -201,9 +201,6 @@ sub _process_inbound_subscribed {
 
 sub _process_inbound_probe {
     my ($self, $conn, $ritem, $from_jid) = @_;
-    my $subs = $ritem->subscription;
-    warn("Got a PROBE regarding " . $ritem->jid->as_string . " and whose subscription is $subs\n");
-    # ignore if they don't have access
     return unless $ritem && $ritem->subscription->sub_from;
 
     my $jid = $self->to_jid;
@@ -212,7 +209,6 @@ sub _process_inbound_probe {
     my %map;  # fullstrres -> stanza
     my $add_presence = sub {
         my ($jid, $stanza) = @_;
-        warn "  ... adding presence $jid = $stanza\n";
         $map{$jid->as_string} = $stanza;
     };
 
