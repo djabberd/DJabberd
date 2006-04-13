@@ -1,6 +1,6 @@
-package DJabberd::Auth::StaticPassword;
+package DJabberd::Authen::StaticPassword;
 use strict;
-use base 'DJabberd::Auth';
+use base 'DJabberd::Authen';
 
 sub new {
     my ($class, %opts) = @_;

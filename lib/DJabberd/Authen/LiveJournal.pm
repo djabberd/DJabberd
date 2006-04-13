@@ -1,6 +1,6 @@
-package DJabberd::Auth::LiveJournal;
+package DJabberd::Authen::LiveJournal;
 use strict;
-use base 'DJabberd::Auth';
+use base 'DJabberd::Authen';
 use LWP::Simple;
 
 sub new {

@@ -3,8 +3,8 @@
 use strict;
 use lib 'lib';
 use DJabberd;
-use DJabberd::Auth::AllowedUsers;
-use DJabberd::Auth::StaticPassword;
+use DJabberd::Authen::AllowedUsers;
+use DJabberd::Authen::StaticPassword;
 
 use DJabberd::Delivery::Local;
 use DJabberd::Delivery::S2S;
@@ -36,9 +36,9 @@ my $server = DJabberd->new(
                            daemonize => $daemonize,
                            s2s       => 1,
                            plugins   => [
-                                         DJabberd::Auth::AllowedUsers->new(policy => "deny",
+                                         DJabberd::Authen::AllowedUsers->new(policy => "deny",
                                                                            allowed => [qw(brad daveman692 crucially bradfitz bob test revmischa)]),
-                                         DJabberd::Auth::StaticPassword->new(password => "password"),
+                                         DJabberd::Authen::StaticPassword->new(password => "password"),
                                          DJabberd::PresenceChecker::Local->new(),
                                          DJabberd::Delivery::Local->new(),
                                          DJabberd::Delivery::S2S->new(),

@@ -1,4 +1,4 @@
-package DJabberd::Auth;
+package DJabberd::Authen;
 use strict;
 use base 'DJabberd::Plugin';
 

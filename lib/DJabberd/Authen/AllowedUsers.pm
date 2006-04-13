@@ -1,6 +1,6 @@
-package DJabberd::Auth::AllowedUsers;
+package DJabberd::Authen::AllowedUsers;
 use strict;
-use base 'DJabberd::Auth';
+use base 'DJabberd::Authen';
 use Carp qw(croak);
 
 sub new {
