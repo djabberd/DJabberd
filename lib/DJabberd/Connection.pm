@@ -248,7 +248,7 @@ sub event_read {
 
         # Net::SSLeays buffers internally, so if we didn't read anything, it's
         # in its buffer
-        return unless length $data;
+        return unless $data && length $data;
         $bref = \$data;
     } else {
         # non-ssl mode:
@@ -258,7 +258,8 @@ sub event_read {
     return $self->close unless defined $bref;
 
     my $p = $self->{parser};
-    print "$self parsing more... [$$bref]\n";
+    my $len = length $$bref;
+    print "$self parsing $len bytes...\n";
     eval {
         $p->parse_more($$bref);
     };
@@ -269,7 +270,6 @@ sub event_read {
         $self->close;
         return;
     }
-    print "$self parsed\n";
 }
 
 sub on_stream_start {
