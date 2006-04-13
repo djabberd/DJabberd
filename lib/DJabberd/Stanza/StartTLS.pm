@@ -7,6 +7,10 @@ Net::SSLeay::load_error_strings();
 Net::SSLeay::SSLeay_add_ssl_algorithms();
 Net::SSLeay::randomize();
 
+sub can_do_ssl {
+    return -e 'server-key.pem' && -e 'server-cert.pem';
+}
+
 sub process {
     my ($self, $conn) = @_;
 

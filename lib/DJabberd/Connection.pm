@@ -308,7 +308,7 @@ sub start_stream_back {
         # unless we're already in SSL mode, advertise it as a feature...
         # {=must-send-features-on-1.0}
         my $tls = "";
-        unless ($self->{ssl}) {
+        unless ($self->{ssl} && DJabberd::Stanza::StartTLS->can_do_ssl) {
             $tls = "<starttls xmsns='urn:ietf:params:xml:ns:xmpp-tls' />";
         }
         $features = qq{<stream:features>$tls</stream:features>};
