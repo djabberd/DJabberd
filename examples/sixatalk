@@ -55,8 +55,13 @@ sub check_cleartext {
     my $pass = $args{password};
     my $conn = $args{conn};
 
-    warn "CHECKING cleartext for $conn, user=$user ....\n";
-    $cb->accept;
+    my $ldap = Net::LDAP->new( 'ldap.sixapart.com' ) or die "$@";
+    my $okay = $ldap->bind($user, password => $pass, version => 3);
+    if ($okay) {
+        $cb->accept;
+    } else {
+        $cb->reject;
+    }
 }
 
 
