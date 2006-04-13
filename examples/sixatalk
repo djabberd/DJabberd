@@ -50,7 +50,11 @@ use base 'DJabberd::Authen';
 sub can_retrieve_cleartext { 0 }
 
 sub check_cleartext {
-    my ($self, $cb, $conn, $user, $cleartext) = @_;
+    my ($self, $cb, %args) = @_;
+    my $user = $args{username};
+    my $pass = $args{password};
+    my $conn = $args{conn};
+
     warn "CHECKING cleartext for $conn, user=$user ....\n";
     $cb->accept;
 }
