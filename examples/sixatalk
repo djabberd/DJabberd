@@ -34,7 +34,7 @@ my $server = DJabberd->new(
                            daemonize => $daemonize,
                            s2s       => 0,
                            plugins   => [
-                                         DJabberd::Authen::Sixapart->new,
+                                         DJabberd::Authen::SixApart->new,
                                          DJabberd::PresenceChecker::Local->new,
                                          DJabberd::Delivery::Local->new,
                                          #DJabberd::Delivery::S2S->new,
