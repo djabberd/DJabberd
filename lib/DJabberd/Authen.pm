@@ -11,7 +11,10 @@ sub register {
     my ($self, $server) = @_;
     if ($self->can_retrieve_cleartext) {
         $server->register_hook("GetPassword", sub {
-            #...
+            my (undef, $cb, %args) = @_;
+            # args as 'username' and 'conn';
+            # cb can ->set or ->decline
+            $self->get_password($cb, %args);
         });
     }
 

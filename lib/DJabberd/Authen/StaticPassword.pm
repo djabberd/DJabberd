@@ -10,6 +10,13 @@ sub new {
     }, $class;
 }
 
+sub can_retrieve_cleartext { 1 }
+
+sub get_password {
+    my ($self, $cb, %args) = @_;
+    $cb->set($self->{password});
+}
+
 sub check_cleartext {
     my ($self, $cb, %args) = @_;
     if ($args{password} eq $self->{password}) {
