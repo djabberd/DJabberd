@@ -79,7 +79,6 @@ sub get_roster {
     # cb can '->set_roster(Roster)' or decline
 
     my $myself = lc $jid->node;
-    warn "MYSELF: $myself\n";
 
     my $on_load_roster = sub {
         my (undef, $roster) = @_;
