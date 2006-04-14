@@ -74,6 +74,7 @@ sub process_iq_getroster {
 
     my $send_roster = sub {
         my $roster = shift;
+        warn "Sending roster $roster to conn $conn, iq = $iq, iq->conn = $iq->{connection} ... \n";
         $iq->send_result_raw($roster->as_xml);
     };
 
