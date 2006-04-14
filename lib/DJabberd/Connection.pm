@@ -46,7 +46,7 @@ sub new {
     $self->{vhost}   = $vhost;
     Scalar::Util::weaken($self->{vhost});
 
-    warn "CONNECTION from " . $self->peer_ip_string . " == $self\n";
+    warn "CONNECTION from " . ($self->peer_ip_string || "<undef>") . " == $self\n";
 
     return $self;
 }
