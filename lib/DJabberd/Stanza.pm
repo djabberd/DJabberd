@@ -57,6 +57,10 @@ sub deliver {
                               # FIXME: in future, this should note deliver was
                               # complete and the next message to this jid should be dequeued and
                               # subsequently delivered.  (in order deliver)
+                              error => sub {
+                                  my $reason = $_[1];
+                                  $stanza->delivery_failure($conn, $reason);
+                              },
                           },
                           fallback => sub {
                               $stanza->delivery_failure($conn);
@@ -73,7 +77,7 @@ sub acceptable_from_server {
 }
 
 sub delivery_failure {
-    my ($self, $conn) = @_;
+    my ($self, $conn, $reason) = @_;
     #warn "$self has no ->delivery_failure method implemented\n";
 }
 

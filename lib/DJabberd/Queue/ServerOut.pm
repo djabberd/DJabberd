@@ -24,6 +24,13 @@ sub new {
     return $self;
 }
 
+# called by Connection::ServerOut constructor
+sub set_connection {
+    my ($self, $conn) = @_;
+    warn "$self connection set to $conn ...\n";
+    $self->{connection} = $conn;
+}
+
 sub vhost {
     my $self = shift;
     return $self->{vhost};
@@ -82,13 +89,23 @@ sub on_connection_failed {
 sub on_connection_error {
    my ($self, $conn) = @_;
    return unless $conn == $self->{connection};
-   warn "Connection error for $self / $conn\n";
+   my $pre_state = $self->{state};
+
    $self->{state}      = NO_CONN;
    $self->{connection} = undef;
 
-   if (@{ $self->{to_deliver} }) {
-       warn "Reconnecting on $self\n";
-       $self->start_connecting;
+   if ($pre_state == CONNECTING) {
+       # died while connecting:  no more luck
+       warn "Connection error while connecting, giving up.\n";
+       while (my $qi = shift @{ $self->{to_deliver} }) {
+           $qi->callback->error("connection failure");
+       }
+   } else {
+       # died during an active connection, let's try again
+       if (@{ $self->{to_deliver} }) {
+           warn "Reconnecting on $self\n";
+           $self->start_connecting;
+       }
    }
 }
 
@@ -116,7 +133,8 @@ sub start_connecting {
                            # FIXME: include port numbers
                            $self->{state} = CONNECTING;
                            my $conn = DJabberd::Connection::ServerOut->new(ip => $ip, queue => $self);
-                           $self->{connection} = $conn;
+                           $self->set_connection($conn);
+                           $conn->start_connecting;
                        });
 }
 

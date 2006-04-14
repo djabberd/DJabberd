@@ -29,12 +29,16 @@ sub new {
 
     my $self = $class->SUPER::new($sock, $queue->vhost);
     $self->{state}     = "connecting";
-
     $self->{queue}      = $queue;
+
     Scalar::Util::weaken($self->{queue});
 
-    $self->watch_write(1);
     return $self;
+}
+
+sub start_connecting {
+    my $self = shift;
+    $self->watch_write(1);
 }
 
 sub event_write {
@@ -105,6 +109,7 @@ sub on_stanza_received {
 sub event_err {
     my $self = shift;
     $self->{queue}->on_connection_error($self);
+    return $self->SUPER::event_err;
 }
 sub event_hup {
     my $self = shift;
