@@ -227,7 +227,13 @@ sub write_stanza {
     my $ns = $self->namespace;
 
     my $xml = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
-    warn "sending stanza to $self:  $xml\n";
+
+    if (1) {
+        local $DJabberd::ASXML_NO_TEXT = 1;
+        my $debug = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
+        warn "sending to $self:  $debug\n";
+    }
+
     $self->write(\$xml);
 }
 
@@ -259,7 +265,9 @@ sub event_read {
 
     my $p = $self->{parser};
     my $len = length $$bref;
-    print "$self parsing $len bytes...\n";
+
+    warn "$self parsing $len bytes...\n" unless $len == 1;
+
     eval {
         $p->parse_more($$bref);
     };
@@ -328,7 +336,7 @@ sub start_stream_back {
     my $sname = $self->server->name;
     # {=streams-namespace}
     my $back = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream from="$sname" id="$id" $ver_attr $extra_attr xmlns:stream="http://etherx.jabber.org/streams" xmlns="$ns">$features};
-    warn "Sending stream back: $back\n";
+    #warn "Sending stream back: $back\n";
     $self->write($back);
 }
 

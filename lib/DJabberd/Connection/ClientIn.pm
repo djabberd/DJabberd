@@ -90,6 +90,12 @@ sub is_server { 0 }
 sub on_stanza_received {
     my ($self, $node) = @_;
 
+    if (1) {
+        local $DJabberd::ASXML_NO_TEXT = 1;
+        my $as_xml = $node->as_xml;
+        warn "Got XML to $self: $as_xml\n";
+    }
+
     my %class = (
                  "{jabber:client}iq"       => 'DJabberd::IQ',
                  "{jabber:client}message"  => 'DJabberd::Message',
