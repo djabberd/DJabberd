@@ -82,10 +82,12 @@ sub process_iq_getroster {
                           methods => {
                               set_roster => sub {
                                   my ($self, $roster) = @_;
+                                  warn "set_roster called in process_iq_getroster.\n";
                                   $send_roster->($roster);
                               },
                           },
                           fallback => sub {
+                              warn "Fallback RosterGet invoked.\n";
                               $send_roster->(DJabberd::Roster->new()),
                           });
     return 1;

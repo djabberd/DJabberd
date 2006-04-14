@@ -79,9 +79,13 @@ sub get_roster {
     # cb can '->set_roster(Roster)' or decline
 
     my $myself = lc $jid->node;
+    warn "SixApart loading roster for $myself ...\n";
 
     my $on_load_roster = sub {
         my (undef, $roster) = @_;
+
+        my $pre_ct = scalar @{ $roster->items };
+        warn "  $pre_ct roster items prior to population...\n";
 
         # see which employees already in roster
         my %has;
@@ -107,6 +111,9 @@ sub get_roster {
             $ri->subscription->set_to;
             $roster->add($ri);
         }
+
+        my $post_ct = scalar @{ $roster->items };
+        warn "  $post_ct roster items prior to population...\n";
 
         $cb->set_roster($roster);
     };
