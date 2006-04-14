@@ -20,22 +20,6 @@ sub new {
     return $self;
 }
 
-sub begin_work {
-    my $self = shift;
-    if (++$self->{tx_depth} == 1) {
-        return $self->{dbh}->begin_work or die "Failed to begin work.\n";
-    }
-    return 1;
-}
-
-sub commit {
-    my $self = shift;
-    if (--$self->{tx_depth} == 0) {
-        return $self->{dbh}->commit or die "Failed to commit.\n";
-    }
-    return 1;
-}
-
 sub check_install_schema {
     my $self = shift;
     my $dbh = $self->{dbh};
@@ -128,42 +112,45 @@ sub get_roster {
 
 }
 
+# to be called outside of a transaction, in auto-commit mode
 sub _jidid_alloc {
     my ($self, $jid) = @_;
     my $dbh  = $self->{dbh};
     my $jids = $jid->as_bare_string;
-    my $get  = sub {
-        return $dbh->selectrow_array("SELECT jidid FROM jidmap WHERE jid=?",
+    my $id   = $dbh->selectrow_array("SELECT jidid FROM jidmap WHERE jid=?",
                                      undef, $jids);
-    };
-    my $id   = $get->();
     return $id if $id;
 
-    $self->begin_work;
-    $dbh->do("INSERT INTO jidmap (jidid, jid) VALUES (NULL, ?)",
-             undef, $jids);
-    $self->commit or die "Failed to allocate jidid";
+    eval {
+        $dbh->do("INSERT INTO jidmap (jidid, jid) VALUES (NULL, ?)",
+                 undef, $jids);
+    };
+    die "_jidid_alloc failed: $@" if $@;
 
-    return $get->() or die "Failed to load just-allocated jidid";
+    $id = $dbh->last_insert_id(undef, undef, "jidmap", "jidid")
+        or die "Failed to allocate a number in _jidid_alloc";
+
+    return $id;
 }
 
+# to be called outside of a transaction, in auto-commit mode
 sub _groupid_alloc {
     my ($self, $userid, $name) = @_;
     my $dbh  = $self->{dbh};
-    my $get = sub {
-        return $dbh->selectrow_array("SELECT groupid FROM rostergroup WHERE userid=? AND name=?",
+    my $id   = $dbh->selectrow_array("SELECT groupid FROM rostergroup WHERE userid=? AND name=?",
                                      undef, $userid, $name);
-    };
-
-    my $id = $get->();
     return $id if $id;
 
-    $self->begin_work;
-    $dbh->do("INSERT INTO rostergroup (groupid, userid, name) VALUES (NULL, ?, ?)",
-             undef, $userid, $name);
-    $self->commit or die "Failed to allocate jidid";
+    eval {
+        $dbh->do("INSERT INTO rostergroup (groupid, userid, name) VALUES (NULL, ?, ?)",
+                 undef, $userid, $name);
+    };
+    die "_groupid_alloc failed: $@" if $@;
 
-    return $get->() or die "Failed to load just-allocated groupid";
+    $id = $dbh->last_insert_id(undef, undef, "rostergroup", "groupid")
+        or die "Failed to allocate a number in _groupid_alloc";
+
+    return $id;
 }
 
 sub set_roster_item {
@@ -186,7 +173,7 @@ sub addupdate_roster_item {
         return;
     }
 
-    $self->begin_work;
+    $dbh->begin_work;
 
     my $fail = sub {
         my $reason = shift;
@@ -241,10 +228,8 @@ sub addupdate_roster_item {
                  undef, $gid, $contactid);
     }
 
-    $self->commit
+    $dbh->commit
         or return $fail->();
-
-    print "DONE!\n";
 
     $cb->done;
 }
@@ -280,7 +265,7 @@ sub delete_roster_item {
         return;
     }
 
-    $self->begin_work;
+    $dbh->begin_work;
 
     my $fail = sub {
         $dbh->rollback;
@@ -299,7 +284,7 @@ sub delete_roster_item {
              undef, $userid, $contactid)
         or return $fail->();
 
-    $self->commit or $fail->();
+    $dbh->commit or $fail->();
 
     $cb->done;
 }
