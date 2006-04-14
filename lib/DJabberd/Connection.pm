@@ -37,18 +37,22 @@ sub new {
 
     warn "Vhost = $vhost\n";
 
-    # FIXME: circular reference from self to jabberhandler to self, use weakrefs
-    my $jabberhandler = $self->{'jabberhandler'} = DJabberd::SAXHandler->new($self);
-
-    my $p = XML::SAX::Expat::Incremental->new( Handler => $jabberhandler );
-    $self->{parser} = $p;
-
+    $self->start_new_parser;
     $self->{vhost}   = $vhost;
     Scalar::Util::weaken($self->{vhost});
 
     warn "CONNECTION from " . ($self->peer_ip_string || "<undef>") . " == $self\n";
 
     return $self;
+}
+
+sub start_new_parser {
+    my $self = shift;
+
+    # FIXME: circular reference from self to jabberhandler to self, use weakrefs
+    my $jabberhandler = $self->{'jabberhandler'} = DJabberd::SAXHandler->new($self);
+    my $p = XML::SAX::Expat::Incremental->new( Handler => $jabberhandler );
+    $self->{parser} = $p;
 }
 
 # TODO: maybe this should be moved down only into ServerOut connections?
