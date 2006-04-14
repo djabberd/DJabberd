@@ -69,6 +69,8 @@ sub blocking { 1 }
 sub get_roster {
     my ($self, $cb, $jid) = @_;
 
+    warn "Getting roster for $jid.\n";
+
     my $dbh = $self->{dbh};
 
     my $roster = DJabberd::Roster->new;
@@ -84,6 +86,7 @@ sub get_roster {
         $dbh->selectall_hashref($sql, "contactid", undef, $jid->as_bare_string);
     };
     die "Failed to load roster: $@\n" if $@;
+    warn "  ... got contacts.\n";
 
     foreach my $contact (values %$contacts) {
         my $item =
@@ -113,7 +116,7 @@ sub get_roster {
         }
     };
     die "Failed to load roster groups: $@\n" if $@;
-
+    warn "  ... got groups, calling set_roster..\n";
     $cb->set_roster($roster);
 
 }
