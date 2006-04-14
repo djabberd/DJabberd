@@ -97,9 +97,7 @@ sub on_connection_error {
    if ($pre_state == CONNECTING) {
        # died while connecting:  no more luck
        warn "Connection error while connecting, giving up.\n";
-       while (my $qi = shift @{ $self->{to_deliver} }) {
-           $qi->callback->error("connection failure");
-       }
+       $self->on_final_error;
    } else {
        # died during an active connection, let's try again
        if (@{ $self->{to_deliver} }) {
@@ -107,6 +105,13 @@ sub on_connection_error {
            $self->start_connecting;
        }
    }
+}
+
+sub on_final_error {
+    my $self = shift;
+    while (my $qi = shift @{ $self->{to_deliver} }) {
+        $qi->callback->error("connection failure");
+    }
 }
 
 sub start_connecting {
@@ -132,6 +137,12 @@ sub start_connecting {
                            my $ip = shift @ips;
                            # FIXME: include port numbers
                            $self->{state} = CONNECTING;
+
+                           unless ($ip) {
+                               $self->on_final_error;
+                               return;
+                           }
+
                            my $conn = DJabberd::Connection::ServerOut->new(ip => $ip, queue => $self);
                            $self->set_connection($conn);
                            $conn->start_connecting;

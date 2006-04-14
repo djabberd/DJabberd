@@ -9,12 +9,13 @@ use fields (
 
 use IO::Handle;
 use Socket qw(PF_INET IPPROTO_TCP SOCK_STREAM);
+use Carp qw(croak);
 
 sub new {
     my ($class, %opts) = @_;
 
-    my $ip    = delete $opts{ip}    or die "no ip";
-    my $queue = delete $opts{queue} or die "no queue";
+    my $ip    = delete $opts{ip}    or croak "no ip";
+    my $queue = delete $opts{queue} or croak "no queue";
     die "unknown options" if %opts;
 
     my $sock;
