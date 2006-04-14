@@ -84,7 +84,7 @@ sub get_roster {
     my $on_load_roster = sub {
         my (undef, $roster) = @_;
 
-        my $pre_ct = scalar @{ $roster->items };
+        my $pre_ct = $roster->items;
         warn "  $pre_ct roster items prior to population...\n";
 
         # see which employees already in roster
@@ -112,7 +112,7 @@ sub get_roster {
             $roster->add($ri);
         }
 
-        my $post_ct = scalar @{ $roster->items };
+        my $post_ct = $roster->items;
         warn "  $post_ct roster items prior to population...\n";
 
         $cb->set_roster($roster);
