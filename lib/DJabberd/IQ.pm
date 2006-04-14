@@ -74,7 +74,6 @@ sub process_iq_getroster {
 
     my $send_roster = sub {
         my $roster = shift;
-        # TODO: walk roster and add presence subscriptions for everybody
         $iq->send_result_raw($roster->as_xml);
     };
 
