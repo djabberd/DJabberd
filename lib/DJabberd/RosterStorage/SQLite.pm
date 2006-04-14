@@ -80,7 +80,10 @@ sub get_roster {
     };
 
     # contacts is { contactid -> $row_hashref }
-    my $contacts = $dbh->selectall_hashref($sql, "contactid", undef, $jid->as_bare_string);
+    my $contacts = eval {
+        $dbh->selectall_hashref($sql, "contactid", undef, $jid->as_bare_string);
+    };
+    die "Failed to load roster: $@\n" if $@;
 
     foreach my $contact (values %$contacts) {
         my $item =
@@ -96,17 +99,20 @@ sub get_roster {
     }
 
     # get all the groups, and add them to the roster items
-    $sql = qq{
-        SELECT rg.name, gi.contactid
-        FROM   rostergroup rg, jidmap j, groupitem gi
-        WHERE  gi.groupid=rg.groupid AND rg.userid=j.jidid AND j.jid=?
+    eval {
+        $sql = qq{
+            SELECT rg.name, gi.contactid
+                FROM   rostergroup rg, jidmap j, groupitem gi
+                WHERE  gi.groupid=rg.groupid AND rg.userid=j.jidid AND j.jid=?
+            };
+        my $sth = $dbh->prepare($sql);
+        $sth->execute($jid->as_bare_string);
+        while (my ($group_name, $contactid) = $sth->fetchrow_array) {
+            my $ri = $contacts->{$contactid} or next;
+            $ri->add_group($group_name);
+        }
     };
-    my $sth = $dbh->prepare($sql);
-    $sth->execute($jid->as_bare_string);
-    while (my ($group_name, $contactid) = $sth->fetchrow_array) {
-        my $ri = $contacts->{$contactid} or next;
-        $ri->add_group($group_name);
-    }
+    die "Failed to load roster groups: $@\n" if $@;
 
     $cb->set_roster($roster);
 
@@ -117,8 +123,11 @@ sub _jidid_alloc {
     my ($self, $jid) = @_;
     my $dbh  = $self->{dbh};
     my $jids = $jid->as_bare_string;
-    my $id   = $dbh->selectrow_array("SELECT jidid FROM jidmap WHERE jid=?",
-                                     undef, $jids);
+    my $id   = eval {
+        $dbh->selectrow_array("SELECT jidid FROM jidmap WHERE jid=?",
+                              undef, $jids);
+    };
+    die "Failed to select from jidmap: $@\n" if $@;
     return $id if $id;
 
     eval {
@@ -137,8 +146,11 @@ sub _jidid_alloc {
 sub _groupid_alloc {
     my ($self, $userid, $name) = @_;
     my $dbh  = $self->{dbh};
-    my $id   = $dbh->selectrow_array("SELECT groupid FROM rostergroup WHERE userid=? AND name=?",
-                                     undef, $userid, $name);
+    my $id   = eval {
+        $dbh->selectrow_array("SELECT groupid FROM rostergroup WHERE userid=? AND name=?",
+                              undef, $userid, $name);
+    };
+    die "Failed to select from groupid: $@\n" if $@;
     return $id if $id;
 
     eval {
@@ -173,10 +185,12 @@ sub addupdate_roster_item {
         return;
     }
 
-    $dbh->begin_work;
+    $dbh->begin_work or
+        die "Failed to begin work";
 
     my $fail = sub {
         my $reason = shift;
+        die "Failing to addupdate: $reason";
         $dbh->rollback;
         $cb->error($reason);
         return;
