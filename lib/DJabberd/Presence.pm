@@ -3,6 +3,8 @@ use strict;
 use base qw(DJabberd::Stanza);
 use Carp qw(croak confess);
 
+# TODO:  _process_outbound_invisible   -- seen in wild.  is this in spec?
+
 # used by DJabberd::PresenceChecker::Local.
 my %last_bcast;   # barejidstring -> { full_jid_string -> $cloned_pres_stanza }
 
