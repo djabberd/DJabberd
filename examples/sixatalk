@@ -44,6 +44,7 @@ $server->run;
 
 
 package DJabberd::Authen::SixApart;
+use strict;
 use base 'DJabberd::Authen';
 use Net::LDAP;
 
@@ -72,6 +73,7 @@ sub check_cleartext {
 
 
 package DJabberd::RosterStorage::SixApart;
+use strict;
 use base 'DJabberd::RosterStorage::SQLite';
 
 sub get_roster {

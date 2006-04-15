@@ -53,7 +53,6 @@ sub check_install_schema {
                                     PRIMARY KEY (groupid, contactid)
                                     )});
 
-        $dbh->commit;
     };
     if ($@ && $@ !~ /table \w+ already exists/) {
         die "SQL error: $@\n";
