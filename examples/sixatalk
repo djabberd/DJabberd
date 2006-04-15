@@ -115,7 +115,7 @@ sub get_roster {
         }
 
         my $post_ct = $roster->items;
-        warn "  $post_ct roster items prior to population...\n";
+        warn "  $post_ct roster items post population...\n";
 
         $cb->set_roster($roster);
     };
@@ -128,6 +128,8 @@ sub get_roster {
 sub _employees {
     my $opts = "cn mailLocalAddress mail displayName";
     my @lines = `ldapsearch -H ldap://ldap.sixapart.com -x -b ou=People,dc=SixApart,dc=com $opts`;
+    my $line_ct = @lines;
+    warn "Got employee lines from LDAP: $line_ct\n";
 
     my %info;  # uid -> key -> value
 
