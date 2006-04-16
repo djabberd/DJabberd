@@ -277,7 +277,7 @@ sub event_read {
     my $len = length $$bref;
 
     warn "$self parsing $len bytes...\n" unless $len == 1;
-   
+
     eval {
         $p->parse_more($$bref);
     };
