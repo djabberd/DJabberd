@@ -2,6 +2,11 @@ package DJabberd::HookDocs;
 use strict;
 use vars qw(%hook);
 
+sub allow_hook {
+    my ($class, $ph) = @_;
+    $hook{$ph} = {};
+}
+
 # STUBS FOR NOW
 
 # TODO: make run_hook_chain() also validate (perhaps only in dev mode), the parameters
