@@ -14,6 +14,7 @@ WriteMakefile(
 			     DBI                          => 0,
 			     LWP::Simple                  => 0,
 			     DBD::SQLite                  => 0,
+			     Log::Log4perl                => 0,
 			    }, # e.g., Module::Name => 1.1
 	       AUTHOR     => 'Brad Fitzpatrick <brad@danga.com>',
 	     );

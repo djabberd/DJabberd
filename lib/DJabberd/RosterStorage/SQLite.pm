@@ -5,6 +5,8 @@ use warnings;
 use base 'DJabberd::RosterStorage';
 
 use DBI;
+use DJabberd::Log;
+our $logger = DJabberd::Log->get_logger();
 
 use vars qw($_respect_subscription);
 
@@ -13,7 +15,7 @@ sub new {
     my $self = $class->SUPER::new();
 
     my $file = shift;
-    warn "file = $file\n";
+    $logger->info("Loaded SQLite RosterStorage using file '$file'");
     my $dbh = DBI->connect("dbi:SQLite:dbname=$file","","", { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
     $self->{dbh} = $dbh;
     $self->check_install_schema;
@@ -55,11 +57,11 @@ sub check_install_schema {
 
     };
     if ($@ && $@ !~ /table \w+ already exists/) {
+	$logger->logdie("SQL error $@");
         die "SQL error: $@\n";
     }
 
-    warn "Created them all!\n";
-
+    $logger->info("Created all roster tables");
 
 }
 
@@ -68,7 +70,8 @@ sub blocking { 1 }
 sub get_roster {
     my ($self, $cb, $jid) = @_;
 
-    warn "Getting roster for $jid.\n";
+
+    $logger->debug("Getting roster for '$jid'");
 
     my $dbh = $self->{dbh};
 
@@ -84,8 +87,7 @@ sub get_roster {
     my $contacts = eval {
         $dbh->selectall_hashref($sql, "contactid", undef, $jid->as_bare_string);
     };
-    die "Failed to load roster: $@\n" if $@;
-    warn "  ... got contacts.\n";
+    $logger->logdie("Failed to load roster: $@") if $@;
 
     foreach my $contact (values %$contacts) {
         my $item =
@@ -114,8 +116,9 @@ sub get_roster {
             $ri->add_group($group_name);
         }
     };
-    die "Failed to load roster groups: $@\n" if $@;
-    warn "  ... got groups, calling set_roster..\n";
+    $logger->logdie("Failed to load roster groups: $@") if $@;
+    $logger->debug("  ... got groups, calling set_roster..");
+
     $cb->set_roster($roster);
 
 }
@@ -129,17 +132,17 @@ sub _jidid_alloc {
         $dbh->selectrow_array("SELECT jidid FROM jidmap WHERE jid=?",
                               undef, $jids);
     };
-    die "Failed to select from jidmap: $@\n" if $@;
+    $logger->logdie("Failed to select from jidmap: $@") if $@;
     return $id if $id;
 
     eval {
         $dbh->do("INSERT INTO jidmap (jidid, jid) VALUES (NULL, ?)",
                  undef, $jids);
     };
-    die "_jidid_alloc failed: $@" if $@;
+    $logger->logdie("_jidid_alloc failed: $@") if $@;
 
     $id = $dbh->last_insert_id(undef, undef, "jidmap", "jidid")
-        or die "Failed to allocate a number in _jidid_alloc";
+        or $logger->logdie("Failed to allocate a number in _jidid_alloc");
 
     return $id;
 }
@@ -152,17 +155,17 @@ sub _groupid_alloc {
         $dbh->selectrow_array("SELECT groupid FROM rostergroup WHERE userid=? AND name=?",
                               undef, $userid, $name);
     };
-    die "Failed to select from groupid: $@\n" if $@;
+    $logger->logdie("Failed to select from groupid: $@") if $@;
     return $id if $id;
 
     eval {
         $dbh->do("INSERT INTO rostergroup (groupid, userid, name) VALUES (NULL, ?, ?)",
                  undef, $userid, $name);
     };
-    die "_groupid_alloc failed: $@" if $@;
+    $logger->logdie("_groupid_alloc failed: $@") if $@;
 
     $id = $dbh->last_insert_id(undef, undef, "rostergroup", "groupid")
-        or die "Failed to allocate a number in _groupid_alloc";
+        or $logger->logdie("Failed to allocate a number in _groupid_alloc");
 
     return $id;
 }
@@ -170,7 +173,7 @@ sub _groupid_alloc {
 sub set_roster_item {
     my ($self, $cb, $jid, $ritem) = @_;
     local $_respect_subscription = 1;
-    warn "set roster item!\n";
+    $logger->debug("Set roster item");
     $self->addupdate_roster_item($cb, $jid, $ritem);
 }
 
@@ -188,7 +191,7 @@ sub addupdate_roster_item {
     }
 
     $dbh->begin_work or
-        die "Failed to begin work";
+        $logger->logdie("Failed to begin work");
 
     my $fail = sub {
         my $reason = shift;
@@ -224,7 +227,7 @@ sub addupdate_roster_item {
         my $sub_value = "subscription";
         if ($_respect_subscription) {
             $sub_value = $ritem->subscription->as_bitmask;
-            warn " sub_value = $sub_value\n";
+            $logger->logdie(" sub_value = $sub_value");
         }
 
         my $sql  = "UPDATE roster SET name=?, subscription=$sub_value WHERE userid=? AND contactid=?";
@@ -269,7 +272,7 @@ sub _groups_of_contactid {
 
 sub delete_roster_item {
     my ($self, $cb, $jid, $ritem) = @_;
-    warn "delete roster item!\n";
+    $logger->debug("delete roster item!");
 
     my $dbh  = $self->{dbh};
 

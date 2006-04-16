@@ -1,9 +1,11 @@
 package DJabberd::Plugin;
 use strict;
+use DJabberd::Log;
+our $logger = DJabberd::Log->get_logger();
 
 sub register {
     my ($self, $server) = @_;
-    warn "[not implemented] $self should register for $server\n";
+    $logger->warn("[not implemented] $self should register for $server");
 }
 
 1;

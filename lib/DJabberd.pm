@@ -26,12 +26,14 @@ use DJabberd::IQ;
 use DJabberd::Message;
 use DJabberd::Presence;
 use DJabberd::StreamVersion;
-
+use DJAbberd::Log;
 package DJabberd;
 use strict;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
 use Carp qw(croak);
 use DJabberd::Util qw(tsub);
+
+our $logger = DJabberd::Log->get_logger();
 
 sub new {
     my ($class, %opts) = @_;
@@ -48,9 +50,9 @@ sub new {
 
     bless $self, $class;
 
-    warn "Addding plugins...\n";
+    $logger->info("Addding plugins...");
     foreach my $pl (@{ $plugins || [] }) {
-        warn "  ... adding plugin: $pl\n";
+        $logger->info("  ... adding plugin: $pl");
         $self->add_plugin($pl);
     }
 
@@ -72,7 +74,7 @@ sub run_hook_chain {
 
     my @hooks;
     foreach my $ph (@$phase) {
-        croak("Undocumented hook phase: '$ph'") unless
+        $logger->logcroak("Undocumented hook phase: '$ph'") unless
             $DJabberd::HookDocs::hook{$ph};
         push @hooks, @{ $self->{hooks}->{$ph} || [] };
     }
@@ -244,7 +246,7 @@ sub start_c2s_server {
                                        Listen    => 10 )
         or die "Error creating socket: $@\n";
 
-    warn "file of c2s = ", fileno($server), "\n";
+    $logger->debug("file of c2s = ", fileno($server));
 
     # Not sure if I'm crazy or not, but I can't see in strace where/how
     # Perl 5.6 sets blocking to 0 without this.  In Perl 5.8, IO::Socket::INET
@@ -279,7 +281,7 @@ sub start_s2s_server {
                                        Listen    => 10 )
         or die "Error creating socket: $@\n";
 
-    warn "file of s2s = ", fileno($server), "\n";
+    $logger->debug("file of s2s = ", fileno($server));
 
     # Not sure if I'm crazy or not, but I can't see in strace where/how
     # Perl 5.6 sets blocking to 0 without this.  In Perl 5.8, IO::Socket::INET
