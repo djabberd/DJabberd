@@ -227,7 +227,7 @@ sub addupdate_roster_item {
         my $sub_value = "subscription";
         if ($_respect_subscription) {
             $sub_value = $ritem->subscription->as_bitmask;
-            $logger->logdie(" sub_value = $sub_value");
+            $logger->debug(" sub_value = $sub_value");
         }
 
         my $sql  = "UPDATE roster SET name=?, subscription=$sub_value WHERE userid=? AND contactid=?";
