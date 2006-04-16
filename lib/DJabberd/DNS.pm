@@ -7,6 +7,9 @@ use fields (
             'srv',
             );
 
+use DJabberd::Log;
+our $logger = DJabberd::Log->get_logger();
+
 use Net::DNS;
 my $resolver    = Net::DNS::Resolver->new;
 
@@ -19,9 +22,9 @@ sub srv {
 
     my $pkt = Net::DNS::Packet->new("$service.$hostname", "SRV", "IN");
 
-    warn "pkt = $pkt\n";
+    $logger->debug("pkt = $pkt");
     my $sock = $resolver->bgsend($pkt);
-    warn "sock = $sock\n";
+    $logger->debug("sock = $sock");
     my $self = $class->SUPER::new($sock);
 
     $self->{hostname} = $hostname;

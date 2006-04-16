@@ -4,7 +4,8 @@ use warnings;
 use base 'DJabberd::Delivery';
 
 use DJabberd::Queue::ServerOut;
-
+use DJabberd::Log;
+our $logger = DJabberd::Log->get_logger;
 sub new {
     my $class = shift;
     my $self = $class->SUPER::new(@_);
@@ -15,7 +16,8 @@ sub new {
 sub deliver {
     my ($self, $conn, $cb, $stanza) = @_;
 
-    warn "s2s delivery!\n";
+    
+    $logger->debug("s2s delivery attempt\n");
     my $to = $stanza->to_jid                or return $cb->declined;
     warn "  to = $to (" . $to->as_string . ")!\n";
 
