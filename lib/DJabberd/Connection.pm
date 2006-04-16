@@ -374,8 +374,9 @@ sub event_write {
 }
 
 sub stream_error {
-    my ($self, $err) = @_;
+    my ($self, $err, $info) = @_;
     # {=stream-errors}
+    $self->log->warn("$self->{id} stream error '$err': $info");
     $self->write("<stream:error><$err xmlns='urn:ietf:params:xml:ns:xmpp-streams'/></stream:error>");
     # {=error-must-close-stream}
     $self->close_stream;
