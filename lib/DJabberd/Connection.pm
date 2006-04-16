@@ -277,7 +277,7 @@ sub event_read {
     my $len = length $$bref;
 
     warn "$self parsing $len bytes...\n" unless $len == 1;
-
+   
     eval {
         $p->parse_more($$bref);
     };
@@ -285,6 +285,7 @@ sub event_read {
         # FIXME: give them stream error before closing them,
         # wait until they get the stream error written to them before closing
         print "disconnected $self because: $@\n";
+        print "parsing *****\n$$bref\n*******\n\n\n";
         $self->close;
         return;
     }
@@ -365,7 +366,7 @@ sub event_write {
 sub stream_error {
     my ($self, $err) = @_;
     # {=stream-errors}
-    $self->write("<stream:error><$err xmlns='xmlns='urn:ietf:params:xml:ns:xmpp-streams'/></stream:error>");
+    $self->write("<stream:error><$err xmlns='urn:ietf:params:xml:ns:xmpp-streams'/></stream:error>");
     # {=error-must-close-stream}
     $self->close_stream;
 }

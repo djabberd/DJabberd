@@ -32,12 +32,12 @@ use FindBin qw($Bin);
 
 my $server = DJabberd->new(
                            #server_name => '207.7.148.210',
-                           server_name => 'jabber.bradfitz.com',
+                           server_name => 'crucially.net',
                            daemonize => $daemonize,
                            s2s       => 1,
                            plugins   => [
                                          DJabberd::Authen::AllowedUsers->new(policy => "deny",
-                                                                           allowed => [qw(brad daveman692 crucially bradfitz bob test revmischa)]),
+                                                                           allowed => [qw(sky)]),
                                          DJabberd::Authen::StaticPassword->new(password => "password"),
                                          DJabberd::PresenceChecker::Local->new(),
                                          DJabberd::Delivery::Local->new(),
