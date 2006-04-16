@@ -319,7 +319,9 @@ sub start_init_stream {
     my $ver_attr    = $our_version->as_attr_string;
 
     # {=xml-lang}
-    $self->write(qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:server' xml:lang='en' $extra_attr $ver_attr>});
+    my $xml = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:server' xml:lang='en' $extra_attr $ver_attr>};
+    $self->log->debug("$self->{id} > $xml");
+    $self->write($xml);
 }
 
 sub start_stream_back {
@@ -337,7 +339,9 @@ sub start_stream_back {
         # unless we're already in SSL mode, advertise it as a feature...
         # {=must-send-features-on-1.0}
         my $tls = "";
-        if (!$self->{ssl} && DJabberd::Stanza::StartTLS->can_do_ssl) {
+        if (!$self->{ssl}
+            && DJabberd::Stanza::StartTLS->can_do_ssl
+            && !$self->isa("DJabberd::Connection::ServerIn")) {
             $tls = "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls' />";
         }
         $features = qq{<stream:features>$tls</stream:features>};
@@ -357,6 +361,7 @@ sub start_stream_back {
     my $sname = $self->server->name;
     # {=streams-namespace}
     my $back = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream from="$sname" id="$id" $ver_attr $extra_attr xmlns:stream="http://etherx.jabber.org/streams" xmlns="$ns">$features};
+    $self->log->debug("$self->{id} > $back");
     #warn "Sending stream back: $back\n";
     $self->write($back);
 }
