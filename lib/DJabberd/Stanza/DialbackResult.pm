@@ -8,10 +8,12 @@ use DJabberd::Connection::DialbackVerify;
 sub process {
     my ($self, $conn) = @_;
 
+
     my $recv_server = $self->recv_server;
     my $orig_server = $self->orig_server;
 
-    warn "Got a dialback result!  from(orig): $orig_server, to(recv): $recv_server\n";
+
+    $conn->log->debug("Got a dailback result, oring: $orig_server, recv: $recv_server");
 
     unless ($conn->server->name eq $recv_server) {
         # TODO: make this a hook, whether a name is recognized.

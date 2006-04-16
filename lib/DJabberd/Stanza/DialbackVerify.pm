@@ -12,7 +12,8 @@ sub process {
     if ($self->result_text =~ /ghetto/) { # FIXME: ghetto, literally
         warn " ... and it's ghetto.  match!\n";
         $conn->dialback_verify_valid(recv_server => $self->recv_server,
-                                     orig_server => $self->orig_server);
+                                     orig_server => $self->orig_server,
+				     id          => $self->attrs->{id});
     } else {
         warn " ... no ghetto, invalid.\n";
         $conn->dialback_verify_invalid;

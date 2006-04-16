@@ -30,16 +30,24 @@ sub on_stream_start {
 sub on_stanza_received {
     my ($self, $node) = @_;
 
+
+    if ($self->log->is_debug) {
+        local $DJabberd::ASXML_NO_TEXT = 0;
+        my $as_xml = $node->as_xml;
+	$self->log->debug("$self->{id} Got XML '$as_xml'");
+    }
+
     my %class = (
                    "{jabber:server:dialback}result" => "DJabberd::Stanza::DialbackResult",
                    "{jabber:server:dialback}verify" => "DJabberd::Stanza::DialbackVerify",
                    "{jabber:server}iq"       => 'DJabberd::IQ',
                    "{jabber:server}message"  => 'DJabberd::Message',
                    "{jabber:server}presence" => 'DJabberd::Presence',
+                   "{http://etherx.jabber.org/streams}features" => 'DJabberd::Stanza::StreamFeatures',
                    );
 
     my $class = $class{$node->element} or
-        return $self->stream_error("unsupported-stanza-type");
+        return $self->stream_error("unsupported-stanza-type", $node->element);
 
     # same variable as $node, but down(specific)-classed.
     my $stanza = $class->downbless($node, $self);
@@ -100,8 +108,9 @@ sub namespace {
 sub dialback_verify_valid {
     my $self = shift;
     my %opts = @_;
-
-    my $res = qq{<db:verify from='$opts{recv_server}' to='$opts{orig_server}' type='valid'/>};
+    
+    # according to page 45 of the spec we have to send the ID back
+    my $res = qq{<db:verify from='$opts{recv_server}' to='$opts{orig_server}' id='$opts{id}' type='valid'/>};
 
     warn "Dialback verify valid for $self.  from=$opts{recv_server}, to=$opts{orig_server}: $res\n";
     $self->write($res);
@@ -126,7 +135,7 @@ sub dialback_result_valid {
 
 sub dialback_result_invalid {
     my ($self, $reason) = @_;
-    warn "Dialback result invalid for $self, reason: $reason\n";
+    $self->log->warn("Dialback result invalid for $self, reason: $reason");
     $self->close_stream;
 }
 

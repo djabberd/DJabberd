@@ -2,6 +2,10 @@
 package DJabberd::Connection::DialbackVerify;
 use strict;
 use base 'DJabberd::Connection';
+
+use DJabberd::Log;
+our $logger = DJabberd::Log->get_logger();
+
 use fields (
             'db_result',    # our DJabberd::Stanza::DialbackResult xml node that started us
             'final_cb',     # our final callback to run ->pass or ->fail on.
@@ -43,10 +47,11 @@ sub new {
 
 sub event_write {
     my $self = shift;
-    warn "$self is writable, reporting for $self->{db_result}\n";
+
 
     if ($self->{state} eq "connecting") {
         $self->{state} = "connected";
+	$self->log->debug("$self->{id} connected for DialbackResult " . $self->{db_result}->orig_server);
         $self->start_init_stream(extra_attr => "xmlns:db='jabber:server:dialback'");
         $self->watch_read(1);
     } else {
@@ -63,17 +68,24 @@ sub on_stream_start {
     my $id   = $self->{conn}->stream_id;
 
     my $result = $self->{db_result}->result_text;
-    warn "result to verify: $result\n";
+    $logger->debug("result to verify: $result");
 
     my $res = qq{<db:verify from='$recv_server' to='$orig_server' id='$id'>$result</db:verify>};
 
-    warn "Writing to verify: [$res]\n";
+    $logger->debug("Writing to verify: [$res]");
 
     $self->write($res);
 }
 
 sub on_stanza_received {
     my ($self, $node) = @_;
+
+    if ($self->log->is_debug) {
+        local $DJabberd::ASXML_NO_TEXT = 0;
+        my $as_xml = $node->as_xml;
+        $self->log->debug("$self->{id} Got XML '$as_xml'");
+    }
+
 
     # we only deal with dialback verifies here.  kinda ghetto
     # don't make a Stanza::DialbackVerify, maybe we should.
@@ -87,7 +99,7 @@ sub on_stanza_received {
     # currently we only do one at a time per connection, so that's why it must match.
     # later we can scatter/gather.
     if ($id ne $self->{conn}->stream_id) {
-        $cb->fail("invalid ID");
+        $cb->fail("invalid ID '$id' ne '" . $self->{conn}->stream_id . "'");
         $self->close;
         return;
     }
