@@ -26,7 +26,7 @@ use DJabberd::IQ;
 use DJabberd::Message;
 use DJabberd::Presence;
 use DJabberd::StreamVersion;
-use DJAbberd::Log;
+use DJabberd::Log;
 package DJabberd;
 use strict;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
