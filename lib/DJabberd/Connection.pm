@@ -35,8 +35,6 @@ sub new {
     my ($class, $sock, $vhost) = @_;
     my $self = $class->SUPER::new($sock);
 
-    warn "Vhost = $vhost\n";
-
     $self->start_new_parser;
     $self->{vhost}   = $vhost;
     Scalar::Util::weaken($self->{vhost});
