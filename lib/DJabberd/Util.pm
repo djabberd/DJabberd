@@ -2,7 +2,7 @@ package DJabberd::Util;
 use strict;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(exml);
+our @EXPORT_OK = qw(exml tsub);
 
 sub exml
 {
@@ -19,6 +19,20 @@ sub exml
     $a =~ s/>/&gt;/g;
     $a =~ s/[\x00-\x08\x0B\x0C\x0E-\x1F]//g;
     return $a;
+}
+
+sub tsub (&) {
+    my $subref = shift;
+    bless $subref, 'DJabberd::TrackedSub';
+    DJabberd->track_new_obj($subref);
+    return $subref;
+}
+
+package DJabberd::TrackedSub;
+
+sub DESTROY {
+    my $self = shift;
+    DJabberd->track_destroyed_obj($self);
 }
 
 1;

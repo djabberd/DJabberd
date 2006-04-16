@@ -27,7 +27,13 @@ sub new {
     $self->{attrs}    = $attrs;
     $self->{children} = $children;
 
+    DJabberd->track_new_obj($self);
     return $self;
+}
+
+sub DESTROY {
+    my $self = shift;
+    DJabberd->track_destroyed_obj($self);
 }
 
 sub children_elements {

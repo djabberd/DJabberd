@@ -30,6 +30,8 @@ use DJabberd::StreamVersion;
 package DJabberd;
 use strict;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
+use Carp qw(croak);
+use DJabberd::Util qw(tsub);
 
 sub new {
     my ($class, %opts) = @_;
@@ -37,7 +39,6 @@ sub new {
     my $self = {
         'server_name' => delete $opts{server_name},
         'daemonize'   => delete $opts{daemonize},
-        'auth_hooks'  => delete $opts{auth_hooks},
         's2s'         => delete $opts{s2s},
         'hooks'       => {},
     };
@@ -54,6 +55,57 @@ sub new {
     }
 
     return $self;
+}
+
+sub run_hook_chain {
+    my $self = shift;
+    my %opts = @_;
+
+    my $phase    = delete $opts{'phase'};
+    my $methods  = delete $opts{'methods'} || {};
+    my $args     = delete $opts{'args'}    || [];
+    my $fallback = delete $opts{'fallback'};
+    die if %opts;
+
+    # make phase into an arrayref;
+    $phase = [ $phase ] unless ref $phase;
+
+    my @hooks;
+    foreach my $ph (@$phase) {
+        croak("Undocumented hook phase: '$ph'") unless
+            $DJabberd::HookDocs::hook{$ph};
+        push @hooks, @{ $self->{hooks}->{$ph} || [] };
+    }
+    push @hooks, $fallback if $fallback;
+
+    my $try_another;
+    my $stopper = tsub {
+        $try_another = undef;
+    };
+    $try_another = tsub {
+
+        my $hk = shift @hooks
+            or return;
+
+        # TODO: look into circular references on closures
+        $hk->($self,
+              DJabberd::Callback->new(
+                                      decline    => $try_another,
+                                      declined   => $try_another,
+                                      stop_chain => $stopper,
+                                      %$methods,
+                                      ),
+              @$args);
+
+        # experiment in stopping the common case of leaks
+        unless (@hooks) {
+            warn "Destroying hooks for phase $phase->[0]\n";
+            $try_another = undef;
+        }
+
+    };
+
+    $try_another->();
 }
 
 # return the version of the spec we implement
@@ -120,6 +172,47 @@ sub handles_jid {
     return 0 unless $jid;
     # FIXME: this does no canonicalization of server_name, for one
     return $jid->domain eq $self->{server_name};
+}
+
+my %obj_source;   # refaddr -> file/linenumber
+my %obj_living;   # file/linenumber -> ct
+use Scalar::Util qw(refaddr weaken);
+use Data::Dumper;
+sub dump_obj_stats {
+    print Dumper(\%obj_living);
+    my %class_ct;
+    foreach (values %obj_source) {
+        $class_ct{ref($_->[1])}++;
+    }
+    print Dumper(\%class_ct);
+}
+
+sub track_new_obj {
+    my ($class, $obj) = @_;
+    my $i = 0;
+    my $fileline;
+    while (!$fileline) {
+        $i++;
+        my ($pkg, $filename, $line, $subname) = caller($i);
+        next if $subname eq "new";
+        $fileline = "$filename/$line";
+    }
+    my $addr = refaddr($obj);
+    warn "New object $obj -- $fileline\n" if $ENV{TRACKOBJ};
+    $obj_source{$addr} = [$fileline, $obj];
+    weaken($obj_source{$addr}[1]);
+
+    $obj_living{$fileline}++;
+    dump_obj_stats() if $ENV{TRACKOBJ};
+}
+
+sub track_destroyed_obj {
+    my ($class, $obj) = @_;
+    my $addr = refaddr($obj);
+    my $fileline = $obj_source{$addr}->[0] or die "Where did $obj come from?";
+    warn "Destroyed object $obj -- $fileline\n" if $ENV{TRACKOBJ};
+    $obj_living{$fileline}--;
+    dump_obj_stats() if $ENV{TRACKOBJ};
 }
 
 sub debug {

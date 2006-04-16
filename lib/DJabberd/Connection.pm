@@ -26,7 +26,7 @@ use DJabberd::SAXHandler;
 use DJabberd::JID;
 use DJabberd::IQ;
 use DJabberd::Message;
-use DJabberd::Util qw(exml);
+use DJabberd::Util qw(exml tsub);
 
 use Data::Dumper;
 use Carp qw(croak);
@@ -110,10 +110,10 @@ sub run_hook_chain {
     push @hooks, $fallback if $fallback;
 
     my $try_another;
-    my $stopper = sub {
+    my $stopper = tsub {
         $try_another = undef;
     };
-    $try_another = sub {
+    $try_another = tsub {
 
         my $hk = shift @hooks
             or return;
@@ -127,6 +127,12 @@ sub run_hook_chain {
                                       %$methods,
                                       ),
               @$args);
+
+        # experiment in stopping the common case of leaks
+        unless (@hooks) {
+            warn "Destroying hooks for phase $phase->[0]\n";
+            $try_another = undef;
+        }
 
     };
 
@@ -188,7 +194,7 @@ sub send_stanza {
     # getter subref for pre_stanza_write hooks to
     # get at their own private copy of the stanza
     my $cloned;
-    my $getter = sub {
+    my $getter = tsub {
         return $cloned if $cloned;
         if ($self != $stanza->connection) {
             $cloned = $stanza->clone;
@@ -204,7 +210,7 @@ sub send_stanza {
                           methods => {
                               # TODO: implement.
                           },
-                          fallback => sub {
+                          fallback => tsub {
                               # if any hooks called the $getter, instantiating
                               # the $cloned copy, then that's what we write.
                               # as an optimization (the fast path), we just
