@@ -6,17 +6,20 @@ use fields (
             'jabberhandler',
             'builder',
             'parser',
-            'authed',     # bool, if authenticated
-            'username',   # username of user, once authenticated
-            'resource',   # resource of user, once authenticated
-            'bound_jid',  # undef until resource binding - then DJabberd::JID object
-            'vhost',      # DJabberd vhost instance (FIXME: for now just a server)
-            'ssl',        # undef when not in ssl mode, else the $ssl object from Net::SSLeay
-            'stream_id',  # undef until set first time
-            'version',    # the DJabberd::StreamVersion we negotiated
+            'authed',         # bool, if authenticated
+            'username',       # username of user, once authenticated
+            'resource',       # resource of user, once authenticated
+            'bound_jid',      # undef until resource binding - then DJabberd::JID object
+            'vhost',          # DJabberd vhost instance (FIXME: for now just a server)
+            'ssl',            # undef when not in ssl mode, else the $ssl object from Net::SSLeay
+            'stream_id',      # undef until set first time
+            'version',        # the DJabberd::StreamVersion we negotiated
             'rcvd_features',  # the features stanza we've received from the other party
+            'log',            # Log::Log4perl object for this connection
+            'id',             # connection id, used for logging purposes
             );
 
+our $connection_id = 1;
 
 use XML::SAX ();
 use XML::SAX::Expat::Incremental 0.04;
@@ -31,17 +34,26 @@ use DJabberd::Util qw(exml tsub);
 use Data::Dumper;
 use Carp qw(croak);
 
+use DJabberd::Log;
+our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
+
 sub new {
     my ($class, $sock, $vhost) = @_;
     my $self = $class->SUPER::new($sock);
 
     $self->start_new_parser;
     $self->{vhost}   = $vhost;
-    Scalar::Util::weaken($self->{vhost});
+    $self->{log}     = DJabberd::Log->get_logger($class);
+    $self->{id}      = $connection_id++;
 
-    warn "CONNECTION from " . ($self->peer_ip_string || "<undef>") . " == $self\n";
+    Scalar::Util::weaken($self->{vhost});
+    $self->log->debug("New connection '$self->{id}' from " . ($self->peer_ip_string || "<undef>"));
 
     return $self;
+}
+
+sub log {
+    return $_[0]->{log};
 }
 
 sub start_new_parser {
@@ -128,7 +140,7 @@ sub run_hook_chain {
 
         # experiment in stopping the common case of leaks
         unless (@hooks) {
-            warn "Destroying hooks for phase $phase->[0]\n";
+            $hook_logger->debug("Destroying hooks for phase $phase->[0]");
             $try_another = undef;
         }
 
@@ -274,7 +286,7 @@ sub event_read {
     my $p = $self->{parser};
     my $len = length $$bref;
 
-    warn "$self parsing $len bytes...\n" unless $len == 1;
+    $self->log->debug("$self->{id} parsing $len bytes...") unless $len == 1;
 
     eval {
         $p->parse_more($$bref);
@@ -282,8 +294,8 @@ sub event_read {
     if ($@) {
         # FIXME: give them stream error before closing them,
         # wait until they get the stream error written to them before closing
-        print "disconnected $self because: $@\n";
-        print "parsing *****\n$$bref\n*******\n\n\n";
+        $self->log->error("$self->{id} disconnected $self because: $@");
+        $self->log->warn("$self->{id} parsing *****\n$$bref\n*******\n\n\n");
         $self->close;
         return;
     }

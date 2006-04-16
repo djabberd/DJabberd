@@ -34,6 +34,7 @@ use Carp qw(croak);
 use DJabberd::Util qw(tsub);
 
 our $logger = DJabberd::Log->get_logger();
+our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
 
 sub new {
     my ($class, %opts) = @_;
@@ -155,7 +156,7 @@ sub find_jid {
 
 sub register_jid {
     my ($class, $jid, $sock) = @_;
-    warn "REGISTERING $jid  ==> $sock\n";
+    $logger->info("Registering '$jid' to connection '$sock->{id}'");
     $jid2sock{$jid->as_string}      = $sock;
     $jid2sock{$jid->as_bare_string} = $sock;
 }

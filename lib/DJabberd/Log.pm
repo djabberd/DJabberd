@@ -9,8 +9,9 @@ use warnings;
 
 no warnings 'redefine';
 sub get_logger {
+  my ($class, $category) = @_;
   my ($package, $filename, $line) = caller;
-  return Log::Log4perl->get_logger($package);
+  return Log::Log4perl->get_logger($category || $package);
 }
 
 

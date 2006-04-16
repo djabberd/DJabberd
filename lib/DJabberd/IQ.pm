@@ -2,6 +2,9 @@ package DJabberd::IQ;
 use strict;
 use base qw(DJabberd::Stanza);
 
+use DJabberd::Log;
+our $logger = DJabberd::Log->get_logger();
+
 # DO NOT OVERRIDE THIS
 sub process {
     my DJabberd::IQ $self = shift;
@@ -20,7 +23,7 @@ sub process {
                               my $sig = $self->signature;
                               my $meth = $handler->{$sig};
                               unless ($meth) {
-                                  warn "Unknown IQ packet: $sig";
+                                  $logger->warn("Unknown IQ packet: $sig");
                                   return;
                               }
                               $meth->($conn, $self);
@@ -74,7 +77,7 @@ sub process_iq_getroster {
 
     my $send_roster = sub {
         my $roster = shift;
-        warn "Sending roster $roster to conn $conn, iq = $iq, iq->conn = $iq->{connection} ... \n";
+	$logger->info("Sending roster to conn $conn->{id}");
         $iq->send_result_raw($roster->as_xml);
     };
 
@@ -82,12 +85,12 @@ sub process_iq_getroster {
                           methods => {
                               set_roster => sub {
                                   my ($self, $roster) = @_;
-                                  warn "set_roster called in process_iq_getroster.\n";
+                                  $logger->debug("set_roster called in process_iq_getroster");
                                   $send_roster->($roster);
                               },
                           },
                           fallback => sub {
-                              warn "Fallback RosterGet invoked.\n";
+                              $logger->debug("Fallback RosterGet invoked");
                               $send_roster->(DJabberd::Roster->new()),
                           });
     return 1;
