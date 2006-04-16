@@ -74,22 +74,29 @@ sub on_stream_start {
         # they can eat a dick for all we care.  they get no features.
         # what is this weird XMPP 1.0 + old-school Dialback world anyway?
         # maybe we're still confused.  FIXME: care.
-        $self->write("<stream:features></stream:features>");
-        warn " ... we sent some features\n";
+	my $features = "<stream:features></stream:features>";
+        $self->write($features);
+	$self->log->debug("$self->{id} sending '$features'");
     }
 
     my $orig_server = $self->{queue}->vhost->name;
     my $recv_server = $self->{queue}->domain;
     my $key = "djabberd_is_really_cool_(ghetto_temp)";  # FIXME: this is ghetto
     my $res = qq{<db:result to='$recv_server' from='$orig_server'>$key</db:result>};
-    warn "$self sending: $res\n";
+    $self->log->debug("$self->{id} sending '$res'");
     $self->write($res);
 }
 
 sub on_stanza_received {
     my ($self, $node) = @_;
 
-    warn "I am $self and I got a $node (" . $node->element . ")\n";
+    if ($self->log->is_debug) {
+        local $DJabberd::ASXML_NO_TEXT = 1;
+        my $as_xml = $node->as_xml;
+        $self->log->debug("$self->{id} Got XML '$as_xml'");
+    }
+    
+
 
     # we only deal with dialback verifies here.  kinda ghetto
     # don't make a Stanza::DialbackVerify, maybe we should.
