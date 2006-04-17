@@ -90,10 +90,8 @@ sub is_server { 0 }
 sub on_stanza_received {
     my ($self, $node) = @_;
 
-    if ($self->log->is_debug) {
-        local $DJabberd::ASXML_NO_TEXT = 1;
-        my $as_xml = $node->as_xml;
-	$self->log->debug("$self->{id} Got XML '$as_xml'");
+    if ($self->xmllog->is_info) {
+	$self->log_incoming_data($node);
     }
 
     my %class = (

@@ -16,6 +16,7 @@ use fields (
             'version',        # the DJabberd::StreamVersion we negotiated
             'rcvd_features',  # the features stanza we've received from the other party
             'log',            # Log::Log4perl object for this connection
+            'xmllog',         # Log::Log4perl object that controls raw xml logging
             'id',             # connection id, used for logging purposes
             );
 
@@ -44,6 +45,13 @@ sub new {
     $self->start_new_parser;
     $self->{vhost}   = $vhost;
     $self->{log}     = DJabberd::Log->get_logger($class);
+
+    # hack to inject XML after Connection:: in the logger category
+    my $xml_category = $class;
+    $xml_category =~s/Connection::/Connection::XML::/;
+    $self->{xmllog}  = DJabberd::Log->get_logger($xml_category);
+    $self->{xmllog}->debug("test");
+
     $self->{id}      = $connection_id++;
 
     Scalar::Util::weaken($self->{vhost});
@@ -54,6 +62,30 @@ sub new {
 
 sub log {
     return $_[0]->{log};
+}
+
+sub xmllog {
+    return $_[0]->{xmllog};
+}
+
+sub log_outgoing_data {
+    my ($self, $text) = @_;
+    if($self->xmllog->is_debug) {
+        $self->xmllog->debug("$self->{id} > " . $text);	    
+    } else {
+        local $DJabberd::ASXML_NO_TEXT = 1;
+        $self->xmllog->info("$self->{id} > " . $text);	    
+    }
+}
+
+sub log_incoming_data {
+    my ($self, $node) = @_;
+    if($self->xmllog->is_debug) {
+        $self->xmllog->debug("$self->{id} < " . $node->as_xml);	    
+    } else {
+        local $DJabberd::ASXML_NO_TEXT = 1;
+        $self->xmllog->info("$self->{id} < " . $node->as_xml);	    
+    }
 }
 
 sub start_new_parser {
@@ -248,10 +280,16 @@ sub write_stanza {
 
     my $xml = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
 
-    if (1) {
-        local $DJabberd::ASXML_NO_TEXT = 1;
-        my $debug = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
-        warn "sending to $self:  $debug\n";
+    if ($self->xmllog->is_info) {
+        # refactor this out
+        my $debug;
+        if($self->xmllog->is_debug) {
+            $debug = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
+        } else {
+            local $DJabberd::ASXML_NO_TEXT = 1;
+            $debug = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
+        }
+        $self->log_outgoing_data($debug);
     }
 
     $self->write(\$xml);
@@ -320,7 +358,7 @@ sub start_init_stream {
 
     # {=xml-lang}
     my $xml = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:server' xml:lang='en' $extra_attr $ver_attr>};
-    $self->log->debug("$self->{id} > $xml");
+    $self->log_outgoing_data($xml);
     $self->write($xml);
 }
 
@@ -361,8 +399,7 @@ sub start_stream_back {
     my $sname = $self->server->name;
     # {=streams-namespace}
     my $back = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream from="$sname" id="$id" $ver_attr $extra_attr xmlns:stream="http://etherx.jabber.org/streams" xmlns="$ns">$features};
-    $self->log->debug("$self->{id} > $back");
-    #warn "Sending stream back: $back\n";
+    $self->log_outgoing_data($back);
     $self->write($back);
 }
 

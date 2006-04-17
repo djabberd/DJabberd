@@ -80,12 +80,9 @@ sub on_stream_start {
 sub on_stanza_received {
     my ($self, $node) = @_;
 
-    if ($self->log->is_debug) {
-        local $DJabberd::ASXML_NO_TEXT = 0;
-        my $as_xml = $node->as_xml;
-        $self->log->debug("$self->{id} Got XML '$as_xml'");
+    if ($self->xmllog->is_info) {
+        $self->log_incoming_data($node);
     }
-
 
     # we only deal with dialback verifies here.  kinda ghetto
     # don't make a Stanza::DialbackVerify, maybe we should.
