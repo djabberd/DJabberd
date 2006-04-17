@@ -7,6 +7,7 @@ use Scalar::Util qw(weaken);
 
 my $server = DJabberd->new;
 DJabberd::HookDocs->allow_hook("Foo");
+DJabberd::HookDocs->allow_hook("Nothing");
 
 # scalar we used to hold weakrefs: if it goes undef, object was
 # destroyed as desired.
@@ -41,8 +42,6 @@ $server->register_hook("Foo", sub {
                                 print "fallback.\n";
                             });
 }
-
-# make sure that $obj above went out of scope
 is($track_obj, undef, "ref in args destroyed");
 
 # testing an object in the callbacks being destroyed
@@ -65,8 +64,6 @@ is($track_obj, undef, "ref in args destroyed");
                                 print "fallback.\n";
                             });
 }
-
-# make sure that $obj above went out of scope
 is($track_obj, undef, "ref in callbacks destroyed");
 
 # testing an object in the fallback being destroyed
@@ -86,13 +83,32 @@ is($track_obj, undef, "ref in callbacks destroyed");
                                 },
                             },
                             fallback => sub {
-                                print "fallback $obj.\n";
+                                $outside = "fallback $obj.\n";
                             });
 }
-
-# make sure that $obj above went out of scope
 is($track_obj, undef, "ref in fallback destroyed");
 
+# testing an object in the fallback being destroyed, when we execute the fallback
+{
+    my $obj = {};
+    $track_obj = \$obj;
+    weaken($track_obj);
+
+    $server->run_hook_chain(phase   => "Nothing",
+                            args    => [ "arg1", "arg2" ],
+                            methods => {
+                                bar => sub {
+                                    print "bar!\n";
+                                },
+                                baz => sub {
+                                    $outside = "baz!\n";
+                                },
+                            },
+                            fallback => sub {
+                                $outside = "fallback $obj.\n";
+                            });
+}
+is($track_obj, undef, "ref in executed fallback destroyed");
 
 Danga::Socket->SetLoopTimeout(1000);
 my $left = 2;

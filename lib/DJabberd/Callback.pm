@@ -42,12 +42,17 @@ sub AUTOLOAD {
     if (my $pre = $self->{_pre}) {
         $pre->($self, $meth, @_) or return;
     }
-    my $cb = $self->{$meth};
-    unless ($cb) {
+    my $func = $self->{$meth};
+    unless ($func) {
         my $avail = join(", ", grep { $_ !~ /^_/ } keys %$self);
         croak("unknown method ($meth) called on " . $self->desc . "; available methods: $avail");
     }
-    $cb->($self, @_);
+    $func->($self, @_);
+
+    # let our creator know we've fired
+    if (my $postfire = $self->{_post_fire}) {
+        $postfire->($meth);
+    }
 }
 
 1;
