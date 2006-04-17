@@ -214,6 +214,7 @@ sub track_destroyed_obj {
     my ($class, $obj) = @_;
     my $addr = refaddr($obj);
     my $fileline = $obj_source{$addr}->[0] or die "Where did $obj come from?";
+    delete $obj_source{$addr};
     warn "Destroyed object $obj -- $fileline\n" if $ENV{TRACKOBJ};
     $obj_living{$fileline}--;
     dump_obj_stats() if $ENV{TRACKOBJ};
