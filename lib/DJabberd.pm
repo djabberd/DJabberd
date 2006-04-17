@@ -1,12 +1,8 @@
 #!/usr/bin/perl
 
-# TODO: ignore the "     " spaces in between end/start events?  used as keep-alive
-#
-# TODO: server to server... port 5269
-
 use strict;
 use Carp;
-use Danga::Socket 1.49;
+use Danga::Socket 1.50;
 use IO::Socket::INET;
 use POSIX ();
 
