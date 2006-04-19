@@ -39,6 +39,7 @@ sub new {
         'server_name' => delete $opts{server_name},
         'daemonize'   => delete $opts{daemonize},
         's2s'         => delete $opts{s2s},
+        'c2s_port'    => delete($opts{c2s_port}) || 5222,
         'hooks'       => {},
     };
 
@@ -237,7 +238,7 @@ sub start_c2s_server {
     my $self = shift;
 
     # establish SERVER socket, bind and listen.
-    my $server = IO::Socket::INET->new(LocalPort => 5222,  # {=clientportnumber}
+    my $server = IO::Socket::INET->new(LocalPort => $self->{c2s_port},
                                        Type      => SOCK_STREAM,
                                        Proto     => IPPROTO_TCP,
                                        Blocking  => 0,
