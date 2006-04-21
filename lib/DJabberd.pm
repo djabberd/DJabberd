@@ -12,6 +12,7 @@ use DJabberd::HookDocs;
 use DJabberd::Connection;
 use DJabberd::Connection::ServerIn;
 use DJabberd::Connection::ClientIn;
+use DJabberd::Connection::OldSSLClientIn;
 
 use DJabberd::Stanza::StartTLS;
 use DJabberd::Stanza::StreamFeatures;
@@ -40,6 +41,7 @@ sub new {
         'daemonize'   => delete $opts{daemonize},
         's2s'         => delete $opts{s2s},
         'c2s_port'    => delete($opts{c2s_port}) || 5222,
+        'old_ssl'     => delete $opts{old_ssl},
         'hooks'       => {},
     };
 
@@ -238,7 +240,7 @@ sub _start_server {
     my ($self, $port, $class) = @_;
 
     # establish SERVER socket, bind and listen.
-    my $server = IO::Socket::INET->new(LocalPort => $self->{c2s_port},
+    my $server = IO::Socket::INET->new(LocalPort => $port,
                                        Type      => SOCK_STREAM,
                                        Proto     => IPPROTO_TCP,
                                        Blocking  => 0,
@@ -271,6 +273,10 @@ sub start_c2s_server {
     my $self = shift;
     $self->_start_server(5222,  # {=clientportnumber}
                          "DJabberd::Connection::ClientIn");
+
+    if ($self->{old_ssl}) {
+        $self->_start_server(5223, "DJabberd::Connection::OldSSLClientIn");
+    }
 }
 
 sub start_s2s_server {

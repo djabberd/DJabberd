@@ -32,6 +32,7 @@ my $server = DJabberd->new(
                            server_name => 'sixapart.com',
                            daemonize => $daemonize,
                            s2s       => 0,
+                           old_ssl   => 1,
                            plugins   => [
                                          DJabberd::Authen::SixApart->new,
                                          DJabberd::PresenceChecker::Local->new,
