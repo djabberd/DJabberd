@@ -71,20 +71,20 @@ sub xmllog {
 sub log_outgoing_data {
     my ($self, $text) = @_;
     if($self->xmllog->is_debug) {
-        $self->xmllog->debug("$self->{id} > " . $text);	    
+        $self->xmllog->debug("$self->{id} > " . $text);
     } else {
         local $DJabberd::ASXML_NO_TEXT = 1;
-        $self->xmllog->info("$self->{id} > " . $text);	    
+        $self->xmllog->info("$self->{id} > " . $text);
     }
 }
 
 sub log_incoming_data {
     my ($self, $node) = @_;
     if($self->xmllog->is_debug) {
-        $self->xmllog->debug("$self->{id} < " . $node->as_xml);	    
+        $self->xmllog->debug("$self->{id} < " . $node->as_xml);
     } else {
         local $DJabberd::ASXML_NO_TEXT = 1;
-        $self->xmllog->info("$self->{id} < " . $node->as_xml);	    
+        $self->xmllog->info("$self->{id} < " . $node->as_xml);
     }
 }
 
@@ -196,6 +196,7 @@ sub vhost {
     my $self = shift;
     return $self->server;
 }
+
 sub server {
     my $self = shift;
     return $self->{'vhost'};
