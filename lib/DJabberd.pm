@@ -234,8 +234,8 @@ sub run {
     Danga::Socket->EventLoop();
 }
 
-sub start_c2s_server {
-    my $self = shift;
+sub _start_server {
+    my ($self, $port, $class) = @_;
 
     # establish SERVER socket, bind and listen.
     my $server = IO::Socket::INET->new(LocalPort => $self->{c2s_port},
@@ -246,15 +246,13 @@ sub start_c2s_server {
                                        Listen    => 10 )
         or die "Error creating socket: $@\n";
 
-    $logger->debug("file of c2s = ", fileno($server));
-
     # Not sure if I'm crazy or not, but I can't see in strace where/how
     # Perl 5.6 sets blocking to 0 without this.  In Perl 5.8, IO::Socket::INET
     # obviously sets it from watching strace.
     IO::Handle::blocking($server, 0);
 
     my $accept_handler = sub {
-        my $csock = $server->accept();
+        my $csock = $server->accept;
         return unless $csock;
 
         $self->debug("Listen child making a DJabberd::Connection for %d.\n", fileno($csock));
@@ -262,76 +260,30 @@ sub start_c2s_server {
         IO::Handle::blocking($csock, 0);
         setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or die;
 
-        my $client = DJabberd::Connection::ClientIn->new($csock, $self);
+        my $client = $class->new($csock, $self);
         $client->watch_read(1);
     };
 
     Danga::Socket->AddOtherFds(fileno($server) => $accept_handler);
 }
 
+sub start_c2s_server {
+    my $self = shift;
+    $self->_start_server(5222,  # {=clientportnumber}
+                         "DJabberd::Connection::ClientIn");
+}
+
 sub start_s2s_server {
     my $self = shift;
-
-    # establish SERVER socket, bind and listen.
-    my $server = IO::Socket::INET->new(LocalPort => 5269,  # {=serverportnumber}
-                                       Type      => SOCK_STREAM,
-                                       Proto     => IPPROTO_TCP,
-                                       Blocking  => 0,
-                                       Reuse     => 1,
-                                       Listen    => 10 )
-        or die "Error creating socket: $@\n";
-
-    $logger->debug("file of s2s = ", fileno($server));
-
-    # Not sure if I'm crazy or not, but I can't see in strace where/how
-    # Perl 5.6 sets blocking to 0 without this.  In Perl 5.8, IO::Socket::INET
-    # obviously sets it from watching strace.
-    IO::Handle::blocking($server, 0);
-
-    my $accept_handler = sub {
-        my $csock = $server->accept();
-        return unless $csock;
-
-        $self->debug("Listen child making a DJabberd::Connection for %d.\n", fileno($csock));
-
-        IO::Handle::blocking($csock, 0);
-        setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or die;
-
-        my $client = DJabberd::Connection::ServerIn->new($csock, $self);
-        $client->watch_read(1);
-    };
-
-    Danga::Socket->AddOtherFds(fileno($server) => $accept_handler);
+    $self->_start_server(5269,  # {=serverportnumber}
+                         "DJabberd::Connection::ServerIn");
 }
 
 sub start_simple_server {
     my ($self, $port) = @_;
     eval "use DJabberd::Connection::SimpleIn; 1"
         or die "Failed to load DJabberd::Connection::SimpleIn: $@\n";
-
-    # establish SERVER socket, bind and listen.
-    my $server = IO::Socket::INET->new(LocalPort => $port,
-                                       Type      => SOCK_STREAM,
-                                       Proto     => IPPROTO_TCP,
-                                       Blocking  => 0,
-                                       Reuse     => 1,
-                                       Listen    => 10 )
-        or die "Error creating socket: $@\n";
-
-    IO::Handle::blocking($server, 0);
-
-    my $accept_handler = sub {
-        my $csock = $server->accept
-            or return;
-
-        IO::Handle::blocking($csock, 0);
-        setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or die;
-
-        my $client = DJabberd::Connection::SimpleIn->new($csock, $self);
-        $client->watch_read(1);
-    };
-
-    Danga::Socket->AddOtherFds(fileno($server) => $accept_handler);
+    $self->_start_server($port, "DJabberd::Connection::SimpleIn");
 }
 
 sub daemonize {
