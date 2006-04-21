@@ -126,11 +126,19 @@ sub get_roster {
     $self->SUPER::get_roster($cb2, $jid);
 }
 
+my $last_emp;
 sub _employees {
     my $opts = "cn mailLocalAddress mail displayName";
     my @lines = `ldapsearch -H ldap://ldap.sixapart.com -x -b ou=People,dc=SixApart,dc=com $opts`;
     my $line_ct = @lines;
     warn "Got employee lines from LDAP: $line_ct\n";
+    if ($line_ct == 0) {
+	warn "zero employees: error=$?\n";
+	if ($last_emp) {
+	    warn " ... returning cached copy\n";
+	    return $last_emp;
+	}
+    }
 
     my %info;  # uid -> key -> value
 
@@ -158,7 +166,7 @@ sub _employees {
     foreach my $uid (keys %info) {
         delete $info{$uid} unless $info{$uid}{mailLocalAddress} || $info{$uid}{mail};
     }
-    return \%info;
+    return $last_emp = \%info;
 }
 
 sub load_roster_item {
