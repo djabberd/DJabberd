@@ -52,8 +52,9 @@ body<=
 <p>The DJabberd core aims to be fully XMPP 1.0 compliant, as well as supporting common pre-XMPP standards.  To name the obvious ones, DJabberd supports:</p>
 
 <ul class='spaced'>
-<li>s2s (Server to Server), but may be disabled</li>
-<li>StartTLS support.  (pre-XMPP SSL on alternate port not yet done, but easy)</li>
+<li>s2s (Server to Server), but may be optionally disabled</li>
+<li>XMPP StartTLS support</li>
+<li>Pre-XMPP SSL-on-separate-port support</li>
 <li>...</li>
 </ul>
 
