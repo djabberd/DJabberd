@@ -23,6 +23,7 @@ sub process {
                               my $sig = $self->signature;
                               my $meth = $handler->{$sig};
                               unless ($meth) {
+                                  $self->send_error;
                                   $logger->warn("Unknown IQ packet: $sig");
                                   return;
                               }
@@ -77,7 +78,7 @@ sub process_iq_getroster {
 
     my $send_roster = sub {
         my $roster = shift;
-	$logger->info("Sending roster to conn $conn->{id}");
+        $logger->info("Sending roster to conn $conn->{id}");
         $iq->send_result_raw($roster->as_xml);
     };
 
