@@ -18,15 +18,36 @@ our $has_run;
 our $logger;
 unless ($has_run) {
 
-    if (-e 'etc/djabberd.log') {
-        Log::Log4perl->init_and_watch('etc/djabberd.log', 1);
+    my $used_file;
+    foreach my $conffile ("/etc/djabberd/log.conf",
+                          "etc/djabberd.log",
+                          "etc/djabberd.log.default") {
+        next unless -e $conffile;
+        Log::Log4perl->init_and_watch($conffile, 1);
         $logger = Log::Log4perl->get_logger();
-    } else {
-        Log::Log4perl->init_and_watch('etc/djabberd.log.default', 1);
-        $logger = Log::Log4perl->get_logger();
-        $logger->warn("Running with default log config file 'etc/djabberd.log.default', copy to 'etc/djabberd.log' to override");
+        $used_file = $conffile;
     }
-    $logger->info("Started logging");
+
+    unless ($used_file) {
+        my $conf = qq{
+log4perl.logger.DJabberd = DEBUG, screen
+log4perl.logger.DJabberd.Hook = WARN
+
+# This psuedo class is used to control if raw XML is to be showed or not
+# at DEBUG it shows all raw traffic
+# at INFO  it censors out the actual data
+log4perl.logger.DJabberd.Connection.XML = INFO
+
+log4perl.appender.screen = Log::Log4perl::Appender::ScreenColoredLevels
+log4perl.appender.screen.layout = Log::Log4perl::Layout::PatternLayout
+log4perl.appender.screen.layout.ConversionPattern = %-5p %-40c %m %n
+};
+        Log::Log4perl->init(\$conf);
+        $logger = Log::Log4perl->get_logger();
+        $used_file = "BUILT-IN-DEFAULTS";
+    }
+
+    $logger->info("Started logging using '$used_file'");
     $has_run++;
 }
 
