@@ -42,6 +42,7 @@ sub new {
         's2s'         => delete $opts{s2s},
         'c2s_port'    => delete($opts{c2s_port}) || 5222,
         'old_ssl'     => delete $opts{old_ssl},
+        'require_ssl' => delete $opts{require_ssl},
         'hooks'       => {},
     };
 
@@ -126,6 +127,12 @@ sub name {
 sub add_plugin {
     my ($self, $plugin) = @_;
     $plugin->register($self);
+}
+
+*requires_ssl = \&require_ssl;  # english
+sub require_ssl {
+    my $self = shift;
+    return $self->{require_ssl};
 }
 
 sub are_hooks {

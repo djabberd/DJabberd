@@ -33,6 +33,7 @@ my $server = DJabberd->new(
                            daemonize => $daemonize,
                            s2s       => 0,
                            old_ssl   => 1,
+                           require_ssl => 1,
                            plugins   => [
                                          DJabberd::Authen::SixApart->new,
                                          DJabberd::PresenceChecker::Local->new,
@@ -133,11 +134,11 @@ sub _employees {
     my $line_ct = @lines;
     warn "Got employee lines from LDAP: $line_ct\n";
     if ($line_ct == 0) {
-	warn "zero employees: error=$?\n";
-	if ($last_emp) {
-	    warn " ... returning cached copy\n";
-	    return $last_emp;
-	}
+        warn "zero employees: error=$?\n";
+        if ($last_emp) {
+            warn " ... returning cached copy\n";
+            return $last_emp;
+        }
     }
 
     my %info;  # uid -> key -> value

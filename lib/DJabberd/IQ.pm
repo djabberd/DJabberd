@@ -160,6 +160,12 @@ sub process_iq_getauth {
 
     return 0 unless $child->element eq "{jabber:iq:auth}username";
 
+    # force SSL by not letting them login
+    if ($conn->vhost->requires_ssl && ! $conn->ssl) {
+        $conn->stream_error("policy-violation", "Local policy requires use of SSL before authentication.");
+        return;
+    }
+
     my $username = $child->first_child;
     die "Element in username field?" if ref $username;
 

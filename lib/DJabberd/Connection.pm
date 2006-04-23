@@ -309,6 +309,12 @@ sub namespace {
     return "";
 }
 
+# return SSL state object.  more useful as a boolean if conn is in SSL mode.
+sub ssl {
+    my $self = shift;
+    return $self->{ssl};
+}
+
 # DJabberd::Connection
 sub event_read {
     my DJabberd::Connection $self = shift;
@@ -425,11 +431,16 @@ sub event_write {
     $self->watch_write(0) if $self->write(undef);
 }
 
+# info is optional descriptive text
 sub stream_error {
     my ($self, $err, $info) = @_;
     # {=stream-errors}
     $self->log->warn("$self->{id} stream error '$err': $info");
-    $self->write("<stream:error><$err xmlns='urn:ietf:params:xml:ns:xmpp-streams'/></stream:error>");
+    my $infoxml = "";
+    if ($info) {
+        $infoxml = "<text xmlns='urn:ietf:params:xml:ns:xmpp-streams'>" . exml($info) . "</text>";
+    }
+    $self->write("<stream:error><$err xmlns='urn:ietf:params:xml:ns:xmpp-streams'/>$infoxml</stream:error>");
     # {=error-must-close-stream}
     $self->close_stream;
 }
