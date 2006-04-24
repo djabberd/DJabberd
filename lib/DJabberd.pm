@@ -184,6 +184,13 @@ sub handles_jid {
     return $jid->domain eq $self->{server_name};
 }
 
+sub roster_push {
+    my ($self, $jid, $ritem) = @_;
+    warn "UNIMPLEMENTED: roster push $ritem to $jid\n";
+    # TODO: send $ritem as XML in IQ to all available resources for
+    # $jid->bare_jid, both on this node, and across the cluster
+}
+
 my %obj_source;   # refaddr -> file/linenumber
 my %obj_living;   # file/linenumber -> ct
 use Scalar::Util qw(refaddr weaken);

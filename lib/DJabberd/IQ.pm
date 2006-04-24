@@ -130,9 +130,10 @@ sub process_iq_setroster {
         }
     }
 
-    my $ritem = DJabberd::RosterItem->new(jid          => $jid,
-                                          name         => $name,
-                                          groups       => \@groups,
+    my $ritem = DJabberd::RosterItem->new(jid     => $jid,
+                                          name    => $name,
+                                          remove  => $removing,
+                                          groups  => \@groups,
                                           );
 
     # {=add-item-to-roster}
@@ -143,7 +144,7 @@ sub process_iq_setroster {
                               done => sub {
                                   my ($self) = @_;
                                   $iq->send_result;
-                                  # TODO: roster push
+                                  $conn->vhost->roster_push($conn->bound_jid, $ritem);
                               },
                               error => sub {
                                   $iq->send_error;
@@ -151,7 +152,6 @@ sub process_iq_setroster {
                           },
                           fallback => sub {
                               $iq->send_error;
-                              # TODO: roster push
                           });
 
     return 1;

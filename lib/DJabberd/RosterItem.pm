@@ -9,6 +9,7 @@ use fields (
             'name',
             'groups',        # arrayref of group names
             'subscription',  # DJabberd::Subscription object
+            'remove',        # bool: if client requested rosteritem be removed
             );
 
 sub new {
@@ -21,6 +22,7 @@ sub new {
         $self->{jid}          = delete $opts{'jid'} or croak "No JID";
         $self->{name}         = delete $opts{'name'};
         $self->{groups}       = delete $opts{'groups'};
+        $self->{remove}       = delete $opts{'remove'};
         $self->{subscription} = delete $opts{'subscription'};
         croak("unknown ctor fields: " . join(', ', keys %opts)) if %opts;
     }
