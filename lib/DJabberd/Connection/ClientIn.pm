@@ -3,7 +3,9 @@ use strict;
 use base 'DJabberd::Connection';
 
 use fields (
+            # {=server-needs-client-wanted-roster-state}
             'requested_roster',      # bool: if user has requested their roster,
+
             'got_initial_presence',  # bool: if user has already sent their initial presence
             'is_available',          # bool: is an "available resource"
             );
@@ -91,7 +93,7 @@ sub on_stanza_received {
     my ($self, $node) = @_;
 
     if ($self->xmllog->is_info) {
-	$self->log_incoming_data($node);
+        $self->log_incoming_data($node);
     }
 
     my %class = (

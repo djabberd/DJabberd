@@ -10,6 +10,9 @@ sub process {
     my DJabberd::IQ $self = shift;
     my $conn = shift;
 
+    # FIXME: handle 'result'/'error' IQs from when we send IQs
+    # out, like in roster pushes
+
     my $handler = {
         'get-{jabber:iq:roster}query' => \&process_iq_getroster,
         'set-{jabber:iq:roster}query' => \&process_iq_setroster,
@@ -74,6 +77,8 @@ sub send_reply {
 
 sub process_iq_getroster {
     my ($conn, $iq) = @_;
+
+    # {=getting-roster-on-login}
     $conn->set_requested_roster(1);
 
     my $send_roster = sub {
@@ -130,6 +135,7 @@ sub process_iq_setroster {
                                           groups       => \@groups,
                                           );
 
+    # {=add-item-to-roster}
     my $phase = $removing ? "RosterRemoveItem" : "RosterAddUpdateItem";
     $conn->run_hook_chain(phase   => $phase,
                           args    => [ $ritem ],

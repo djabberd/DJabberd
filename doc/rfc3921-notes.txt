@@ -1574,15 +1574,15 @@ RFC 3921                        XMPP IM                     October 2004
 
 7.2.  Business Rules
 
-   A server MUST ignore any 'to' address on a roster "set", and MUST
-   treat any roster "set" as applying to the sender.  For added safety,
+   A server MUST ignore any 'to' address on a roster "set" {=ignore-to-on-roster-set}, and MUST
+   treat any roster "set" as applying to the sender {=roster-set-applies-to-sender}.  For added safety,
    a client SHOULD check the "from" address of a "roster push" (incoming
    IQ of type "set" containing a roster item) to ensure that it is from
    a trusted source; specifically, the stanza MUST either have no 'from'
    attribute (i.e., implicitly from the server) or have a 'from'
    attribute whose value matches the user's bare JID (of the form
    <user@domain>) or full JID (of the form <user@domain/resource>);
-   otherwise, the client SHOULD ignore the "roster push".
+   otherwise, the client SHOULD ignore the "roster push". {=roster-push-is-from-nobody-or-users-bare-or-full-jid}
 
 7.3.  Retrieving One's Roster on Login
 
@@ -1594,10 +1594,10 @@ RFC 3921                        XMPP IM                     October 2004
    not request the roster during a session, the server MUST NOT send it
    presence subscriptions and associated roster updates.
    {=server-needs-client-wanted-roster-state}
-   {=dont-send-presence-without-roster-state}
-   {=dont-send-roster-updates-without-roster-state}
+   {=dont-send-presence-unless-wanted-roster}
+   {=dont-send-roster-updates-unless-wanted-roster}
 
-   Example: Client requests current roster from server:
+   Example: Client requests current roster from server: {=getting-roster-on-login}
 
    <iq from='juliet@example.com/balcony' type='get' id='roster_1'>
      <query xmlns='jabber:iq:roster'/>
@@ -1636,6 +1636,7 @@ RFC 3921                        XMPP IM                     October 2004
 7.4.  Adding a Roster Item
 
    At any time, a user MAY add an item to his or her roster.
+   {=add-item-to-roster}
 
    Example: Client adds a new item:
 
@@ -1650,10 +1651,10 @@ RFC 3921                        XMPP IM                     October 2004
 
    The server MUST update the roster information in persistent storage,
    and also push the change out to all of the user's available resources
-   that have requested the roster.  This "roster push" consists of an IQ
+   that have requested the roster.  {=roster-push-after-add} This "roster push" consists of an IQ
    stanza of type "set" from the server to the client and enables all
    available resources to remain in sync with the server-based roster
-   information.
+   information. {=roster-push-is-to-all-available-resources}
 
    Example: Server (1) pushes the updated roster information to all
    available resources that have requested the roster and (2) replies

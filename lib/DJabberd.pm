@@ -238,6 +238,8 @@ sub run {
     local $SIG{'PIPE'} = "IGNORE";  # handled manually
 
     $self->start_c2s_server();
+
+    # {=s2soptional}
     $self->start_s2s_server() if $self->{s2s};
 
     Danga::Socket->EventLoop();

@@ -8,7 +8,7 @@ my $lib = "$Bin/../lib";
 my $docs = "$Bin/../doc/";
 
 opendir(my $d, $docs) or die;
-my @docs = grep { /-notes\.txt$/ } readdir($d);
+my @docs = sort grep { /-notes\.txt$/ } readdir($d);
 close $d;
 
 my %point;    # key -> { where => , impl => $bool }

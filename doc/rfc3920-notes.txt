@@ -216,7 +216,7 @@ RFC 3920                       XMPP Core                    October 2004
    other information with <romeo@example.net>.  This pattern is familiar
    from messaging protocols (such as [SMTP]) that make use of network
    addressing standards.  Communications between any two servers are
-   OPTIONAL.  If enabled, such communications SHOULD occur over XML
+   OPTIONAL.  {=s2soptional} If enabled, such communications SHOULD occur over XML
    streams that are bound to [TCP] connections.  The RECOMMENDED port
    for connections between servers is 5269, as registered with the IANA
    (see Port Numbers (Section 15.9)). {=serverportnumber}
@@ -311,8 +311,6 @@ RFC 3920                       XMPP Core                    October 2004
 
 3.3.  Node Identifier
 
-{=jid-node}
-
    The node identifier is an optional secondary identifier placed before
    the domain identifier and separated from the latter by the '@'
    character.  It usually represents the entity requesting and using
@@ -327,7 +325,7 @@ RFC 3920                       XMPP Core                    October 2004
    A node identifier MUST be formatted such that the Nodeprep profile of
    [STRINGPREP] can be applied to it without failing.  Before comparing
    two node identifiers, a server MUST (and a client SHOULD) first apply
-   the Nodeprep profile to each identifier.
+   the Nodeprep profile to each identifier.  {=jid-node-nodeprep}
 
 3.4.  Resource Identifier
 
@@ -352,9 +350,9 @@ RFC 3920                       XMPP Core                    October 2004
    client implementation when it provides the information necessary to
    complete Resource Binding (Section 7) (although it may be generated
    by a server on behalf of a client), after which it is referred to as
-   a "connected resource".  An entity MAY maintain multiple connected
+   a "connected resource".  {=connected-resource-property} An entity MAY maintain multiple connected
    resources simultaneously, with each connected resource differentiated
-   by a distinct resource identifier.
+   by a distinct resource identifier. {=dont-allow-multiple-connections-with-same-resource}
 
    A resource identifier MUST be formatted such that the Resourceprep
    profile of [STRINGPREP] can be applied without failing.  Before
@@ -539,8 +537,8 @@ RFC 3920                       XMPP Core                    October 2004
    "response stream" (i.e., the stream from the receiving entity to the
    initiating entity) MUST be secured separately, although security in
    both directions MAY be established via mechanisms that provide mutual
-   authentication.  An entity SHOULD NOT attempt to send XML Stanzas
-   (Section 9) over the stream before the stream has been authenticated, {=no-send-stanza-pre-auth}
+   authentication.  An entity SHOULD NOT attempt to send XML Stanzas {=as-s2s-client-no-send-stanza-pre-auth}
+   (Section 9) over the stream before the stream has been authenticated,
    but if it does, then the other entity MUST NOT accept such stanzas
    and SHOULD return a <not-authorized/> stream error and then terminate
    both the XML stream and the underlying TCP connection; {=stream-error-on-pre-auth-stanza-recv} note well that
