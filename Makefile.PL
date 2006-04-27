@@ -6,7 +6,7 @@ WriteMakefile(
               'NAME'=> 'DJabberd',
               'VERSION' => '0.01',
               'PREREQ_PM'=> {
-                             Danga::Socket                => 1.50,
+                             Danga::Socket                => 1.51,
                              XML::SAX                     => 0,
                              XML::SAX::Expat::Incremental => 0,
                              Net::DNS                     => 0.57,

@@ -1,8 +1,13 @@
 package DJabberd::Connection::OldSSLClientIn;
 use strict;
 use base 'DJabberd::Connection::ClientIn';
+use DJabberd::Stanza::StartTLS;
 
 use Net::SSLeay;
+
+use constant SSL_MODE_ENABLE_PARTIAL_WRITE       => 1;
+use constant SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER => 2;
+use constant SSL_MODE_AUTO_RETRY                 => 4;
 
 sub new {
     my ($class, $sock, $vhost) = @_;
@@ -11,12 +16,14 @@ sub new {
     my $ctx = Net::SSLeay::CTX_new()
         or die("Failed to create SSL_CTX $!");
 
-    $Net::SSLeay::ssl_version = 10; # Insist on TLSv1
+    # compared to the StartTLS, we specifically do not insist on TLS here.
+    # let client do SSL 2/3/whatever.  TODO: perhaps force SSL v3?
+    # $Net::SSLeay::ssl_version = 10; # Insist on TLSv1
 
     Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL)
         and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
 
-    Net::SSLeay::CTX_set_mode($ctx, 1)  # enable partial writes
+    Net::SSLeay::CTX_set_mode($ctx, SSL_MODE_ENABLE_PARTIAL_WRITE)
         and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
 
     # Following will ask password unless private key is not encrypted
@@ -45,32 +52,10 @@ sub new {
 
     my $err = Net::SSLeay::accept($ssl) and Net::SSLeay::die_if_ssl_error('ssl accept');
     warn "SSL accept err = $err\n";
-
     warn "$self:  Cipher `" . Net::SSLeay::get_cipher($ssl) . "'\n";
 
-    $self->set_writer_func(sub {
-        my ($bref, $to_write, $offset) = @_;
-
-        # we can't write a lot or we get some SSL non-blocking error
-        $to_write = 4096 if $to_write > 4096;
-
-        my $str = substr($$bref, $offset, $to_write);
-        #warn "Writing over SSL (to_write=$to_write, off=$offset): $str\n";
-        my $written = Net::SSLeay::write($ssl, $str);
-        #warn "  returned = $written\n";
-        if ($written == -1) {
-            my $err = Net::SSLeay::get_error($ssl, $written);
-            my $errstr = Net::SSLeay::ERR_error_string($err);
-            warn " SSL write err = $err, $errstr\n";
-            Net::SSLeay::print_errs("SSL_write");
-            die "we died writing\n";
-        }
-
-        return $written;
-    });
-
+    $self->set_writer_func(DJabberd::Stanza::StartTLS->danga_socket_writerfunc($self));
     return $self;
 }
-
 
 1;

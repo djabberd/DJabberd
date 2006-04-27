@@ -7,6 +7,9 @@ Net::SSLeay::load_error_strings();
 Net::SSLeay::SSLeay_add_ssl_algorithms();
 Net::SSLeay::randomize();
 
+use constant SSL_ERROR_WANT_READ     => 2;
+use constant SSL_ERROR_WANT_WRITE    => 3;
+
 sub can_do_ssl {
     return -e 'server-key.pem' && -e 'server-cert.pem';
 }
@@ -58,18 +61,42 @@ sub process {
 
     warn "$conn:  Cipher `" . Net::SSLeay::get_cipher($ssl) . "'\n";
 
-    $conn->set_writer_func(sub {
+    $conn->set_writer_func(DJabberd::Stanza::StartTLS->danga_socket_writerfunc($conn));
+}
+
+sub danga_socket_writerfunc {
+    my ($class, $conn) = @_;
+    my $ssl = $conn->{ssl};
+    return sub {
         my ($bref, $to_write, $offset) = @_;
 
-        # we can't write a lot or we get some SSL non-blocking error
-        $to_write = 4096 if $to_write > 4096;
+        # unless our event_read has been called, we don't want to try
+        # to do any work now.  and probably we should complain.
+        if ($conn->{write_when_readable}) {
+            warn "writer func called when we're waiting for readability first.\n";
+            return 0;
+        }
+
+        # we can't write a lot or we get some SSL non-blocking error.
+        # NO LONGER RELEVANT?
+        # $to_write = 4096 if $to_write > 4096;
 
         my $str = substr($$bref, $offset, $to_write);
-        #warn "Writing over SSL (to_write=$to_write, off=$offset): $str\n";
         my $written = Net::SSLeay::write($ssl, $str);
-        #warn "  returned = $written\n";
+
         if ($written == -1) {
             my $err = Net::SSLeay::get_error($ssl, $written);
+
+            if ($err == SSL_ERROR_WANT_READ) {
+                $conn->write_when_readable;
+                return 0;
+            }
+            if ($err == SSL_ERROR_WANT_WRITE) {
+                # unclear here.  it just wants to write some more?  okay.
+                # easy enough.  do nothing?
+                return 0;
+            }
+
             my $errstr = Net::SSLeay::ERR_error_string($err);
             warn " SSL write err = $err, $errstr\n";
             Net::SSLeay::print_errs("SSL_write");
@@ -77,19 +104,7 @@ sub process {
         }
 
         return $written;
-    });
-
-    #warn "socked pre-SSL is: $conn->{sock}\n";
-    #my $rv = IO::Socket::SSL->start_SSL($conn->{sock}); #, { SSL_verify_mode => 0x00 });
-    #my $fileno = fileno $conn->{sock};
-    #warn "was fileno = $fileno\n";
-    #my $sym = gensym();
-    #my $ssl = IO::Socket::SSL->new_from_fd($fileno);
-    #warn " got ssl = $ssl, error = $@ / $!\n";
-    #warn " fileno = ", fileno($ssl), "\n";
-    #  my $tied = tie($sym, "DJabberd::SSL");
-    # warn "Started SSL with $conn->{sock}, tied = $tied\n";
-
+    };
 }
 
 1;

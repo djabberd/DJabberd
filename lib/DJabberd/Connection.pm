@@ -18,6 +18,8 @@ use fields (
             'log',            # Log::Log4perl object for this connection
             'xmllog',         # Log::Log4perl object that controls raw xml logging
             'id',             # connection id, used for logging purposes
+            'write_when_readable',  # arrayref/bool, for SSL:  as boolean, we're only readable so we can write again.
+                                    # but bool true is actually an arrayref of previous watch_read state
             );
 
 our $connection_id = 1;
@@ -37,6 +39,9 @@ use Carp qw(croak);
 
 use DJabberd::Log;
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
+
+use constant POLLIN        => 1;
+use constant POLLOUT       => 4;
 
 sub new {
     my ($class, $sock, $vhost) = @_;
@@ -315,9 +320,43 @@ sub ssl {
     return $self->{ssl};
 }
 
+# called by Danga::Socket when a write doesn't fully go through.  by default it
+# enables writability.  but we want to do nothing if we're waiting for a read for SSL
+sub on_incomplete_write {
+    my $self = shift;
+    return if $self->{write_when_readable};
+    $self->SUPER::on_incomplete_write;
+}
+
+# called by SSL machinery to let us know a write is stalled on readability.
+# so we need to (at least temporarily) go readable and then process writes.
+sub write_when_readable {
+    my $self = shift;
+
+    # enable readability, but remember old value so we can pop it back
+    my $prev_readable = ($self->{event_watch} & POLLIN)  ? 1 : 0;
+    $self->watch_read(1);
+    $self->{write_when_readable} = [ $prev_readable ];
+
+    # don't need to push/pop its state because Danga::Socket->write, called later,
+    # will do the one final write, or if not all written, will turn on watch_write
+    $self->watch_write(0);
+}
+
 # DJabberd::Connection
 sub event_read {
     my DJabberd::Connection $self = shift;
+
+    # for async SSL:  if a session renegotation is in progress,
+    # our previous write wants us to become readable first.
+    # we then go back into the write path (by flushing the write
+    # buffer) and it then does a read on this socket.
+    if (my $ar = $self->{write_when_readable}) {
+        $self->{write_when_readable} = 0;
+        $self->watch_read($ar->[0]);  # restore previous readability state
+        $self->watch_write(1);
+        return;
+    }
 
     my $bref;
     if (my $ssl = $self->{ssl}) {
