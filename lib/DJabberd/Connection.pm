@@ -363,7 +363,11 @@ sub event_read {
         my $data = Net::SSLeay::read($ssl);
 
         my $errs = Net::SSLeay::print_errs('SSL_read');
-        die "SSL Read error: $errs\n" if $errs;
+        if ($errs) {
+            warn "SSL Read error: $errs\n";
+            $self->close;
+            return;
+        }
 
         # Net::SSLeays buffers internally, so if we didn't read anything, it's
         # in its buffer
