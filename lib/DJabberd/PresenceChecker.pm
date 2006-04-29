@@ -9,8 +9,12 @@ sub new {
     return bless {}, $class;
 }
 
+sub vhost { $_[0]->{vhost} }
+
 sub register {
     my ($self, $vhost) = @_;
+
+    $self->{vhost} = $vhost;
 
     # this is an odd hook, in that it wants to be called a lot, but the
     # normal hook chain system doesn't support that, so instead

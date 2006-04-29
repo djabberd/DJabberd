@@ -124,6 +124,7 @@ sub name {
     # FIXME: try to determine it
 }
 
+# vhost method
 sub add_plugin {
     my ($self, $plugin) = @_;
     $plugin->register($self);

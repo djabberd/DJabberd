@@ -60,6 +60,12 @@ sub fail {
 # this same out-vs-in processing.  it should be generic.
 sub procdeliver {
     my ($self, $conn) = @_;
+    # FIXME: the $conn here is kinda useless.  it can means lots
+    # of things.  generally we only need it to find the vhost
+    # or to run hook chains.  it has nothing to do with the
+    # sender/recipient of the packet, lame as it is.  all that
+    # info is in the attributes of the element.
+
     my $contact_jid = $self->to_jid or die;
     if ($conn->vhost->handles_jid($contact_jid)) {
         my $clone = $self->clone;
