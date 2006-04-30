@@ -4,3 +4,12 @@ cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...
 -- $stanza->process and $stanza->deliver take a $conn, but
    now that stanzas always know their connection, that
    parameter is kinda useless.  remove them all?
+
+-- Jingle/Asterisk stuff:
+
+   This Jabber client supports Jingle:
+     http://www.kismith.co.uk/wordpress/index.php/2005/12/16/i-say-i-say-i-say-did-you-hear-the-one-about/
+     http://psi-im.org/wiki/Jingle_branch
+   So think we could do the Jingle stuff Jabber-server-side and get the Psi
+   client connecting to Asterisk over SIP or something? 
+
