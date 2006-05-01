@@ -71,7 +71,7 @@ sub send_reply {
     my $bj = $conn->bound_jid;
     my $to = $bj ? (" to='" . $bj->as_string . "'") : "";
     my $xml = qq{<iq $to type='$type' id='$id'>$raw</iq>};
-    #warn "About to send IQ reply: $xml\n";
+    $conn->xmllog->info($xml);
     $conn->write(\$xml);
 }
 
@@ -151,7 +151,10 @@ sub process_iq_setroster {
                               },
                           },
                           fallback => sub {
-                              $iq->send_error;
+                              # NOTE: we used to send an error here, but clients get
+                              # out of sync and we need to let them think a delete
+                              # happened even if it didn't.
+                              $iq->send_result;
                           });
 
     return 1;

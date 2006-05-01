@@ -150,12 +150,13 @@ sub register_hook {
 # local connections
 my %jid2sock;  # bob@207.7.148.210/rez -> DJabberd::Connection
                # bob@207.7.148.210     -> DJabberd::Connection
+my %bare2fulls; # barejids -> { fulljid -> 1 }
 
 sub find_jid {
-    my ($class, $jid) = @_;
+    my ($self, $jid) = @_;
     if (ref $jid) {
-        return $class->find_jid($jid->as_string) ||
-               $class->find_jid($jid->as_bare_string);
+        return $self->find_jid($jid->as_string) ||
+               $self->find_jid($jid->as_bare_string);
     }
     my $sock = $jid2sock{$jid} or return undef;
     return undef if $sock->{closed};
@@ -163,10 +164,28 @@ sub find_jid {
 }
 
 sub register_jid {
-    my ($class, $jid, $sock) = @_;
+    my ($self, $jid, $sock) = @_;
     $logger->info("Registering '$jid' to connection '$sock->{id}'");
-    $jid2sock{$jid->as_string}      = $sock;
-    $jid2sock{$jid->as_bare_string} = $sock;
+
+    my $barestr = $jid->as_bare_string;
+    my $fullstr = $jid->as_string;
+    $jid2sock{$fullstr} = $sock;
+    $jid2sock{$barestr} = $sock;
+    ($bare2fulls{$barestr} ||= {})->{$fullstr} = 1;
+}
+
+# given a bare jid, find all local connections
+sub find_conns_of_bare {
+    my ($self, $jid) = @_;
+    my $barestr = $jid->as_bare_string;
+    my @conns;
+    foreach my $fullstr (keys %{ $bare2fulls{$barestr} || {} }) {
+        my $conn = $self->find_jid($fullstr)
+            or next;
+        push @conns, $conn;
+    }
+
+    return @conns;
 }
 
 # returns true if given jid is recognized as "for the server"
@@ -187,9 +206,22 @@ sub handles_jid {
 
 sub roster_push {
     my ($self, $jid, $ritem) = @_;
-    warn "UNIMPLEMENTED: roster push $ritem to $jid\n";
-    # TODO: send $ritem as XML in IQ to all available resources for
-    # $jid->bare_jid, both on this node, and across the cluster
+
+    # FIXME: single-server roster push only.   need to use a hook
+    # to go across the cluster
+
+    my $xml = "<query xmlns='jabber:iq:roster'>";
+    $xml .= $ritem->as_xml;
+    $xml .= "</query>";
+
+    my @conns = $self->find_conns_of_bare($jid);
+    foreach my $c (@conns) {
+        #TODO:  next unless $c->is_available;
+        my $id = $c->new_iq_id;
+        my $iq = "<iq to='" . $c->bound_jid->as_string . "' type='set' id='$id'>$xml</iq>";
+        $c->xmllog->info($iq);
+        $c->write(\$iq);
+    }
 }
 
 my %obj_source;   # refaddr -> file/linenumber

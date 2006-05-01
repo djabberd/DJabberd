@@ -20,6 +20,7 @@ use fields (
             'id',             # connection id, used for logging purposes
             'write_when_readable',  # arrayref/bool, for SSL:  as boolean, we're only readable so we can write again.
                                     # but bool true is actually an arrayref of previous watch_read state
+            'iqctr',          # iq counter.  incremented whenever we SEND an iq to the party (roster pushes, etc)
             );
 
 our $connection_id = 1;
@@ -71,6 +72,12 @@ sub log {
 
 sub xmllog {
     return $_[0]->{xmllog};
+}
+
+sub new_iq_id {
+    my $self = shift;
+    $self->{iqctr}++;
+    return "iq$self->{iqctr}";
 }
 
 sub log_outgoing_data {

@@ -196,7 +196,7 @@ sub _process_inbound_subscribed {
                           args  => [ $to_jid, $ritem ],
                           methods => {
                               done => sub {
-                                  # TODO: roster push.
+                                  $conn->vhost->roster_push($to_jid, $ritem);
                               },
                               error => sub { my $reason = $_[1]; },
                           },
