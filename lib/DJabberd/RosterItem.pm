@@ -62,6 +62,10 @@ sub subscription {
     return $self->{subscription};
 }
 
+sub set_subscription {
+    my ($self, $sb) = @_;
+    $self->{subscription} = $sb;
+}
 
 sub add_group {
     my ($self, $group) = @_;

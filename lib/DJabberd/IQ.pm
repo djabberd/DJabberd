@@ -142,19 +142,23 @@ sub process_iq_setroster {
                           args    => [ $ritem ],
                           methods => {
                               done => sub {
-                                  my ($self) = @_;
+                                  my ($self, $ritem_final) = @_;
                                   $iq->send_result;
-                                  $conn->vhost->roster_push($conn->bound_jid, $ritem);
+                                  $conn->vhost->roster_push($conn->bound_jid, $ritem_final);
                               },
                               error => sub {
                                   $iq->send_error;
                               },
                           },
                           fallback => sub {
-                              # NOTE: we used to send an error here, but clients get
-                              # out of sync and we need to let them think a delete
-                              # happened even if it didn't.
-                              $iq->send_result;
+                              if ($removing) {
+                                  # NOTE: we used to send an error here, but clients get
+                                  # out of sync and we need to let them think a delete
+                                  # happened even if it didn't.
+                                  $iq->send_result;
+                              } else {
+                                  $iq->send_error;
+                              }
                           });
 
     return 1;

@@ -57,7 +57,7 @@ sub check_install_schema {
 
     };
     if ($@ && $@ !~ /table \w+ already exists/) {
-	$logger->logdie("SQL error $@");
+        $logger->logdie("SQL error $@");
         die "SQL error: $@\n";
     }
 
@@ -179,7 +179,6 @@ sub set_roster_item {
 
 sub addupdate_roster_item {
     my ($self, $cb, $jid, $ritem) = @_;
-    warn "addupdate roster item!\n";
     my $dbh  = $self->{dbh};
 
     my $userid    = $self->_jidid_alloc($jid);
@@ -201,13 +200,13 @@ sub addupdate_roster_item {
         return;
     };
 
-    my $exists = $dbh->selectrow_array("SELECT COUNT(*) FROM roster WHERE userid=? AND contactid=?",
-                                       undef, $userid, $contactid);
+    my $exist_row = $dbh->selectrow_hashref("SELECT * FROM roster WHERE userid=? AND contactid=?",
+                                            undef, $userid, $contactid);
 
 
     my %in_group;  # groupname -> 1
 
-    if ($exists) {
+    if ($exist_row) {
         my @groups = $self->_groups_of_contactid($userid, $contactid);
         my %to_del; # groupname -> groupid
         foreach my $g (@groups) {
@@ -230,6 +229,11 @@ sub addupdate_roster_item {
             $logger->debug(" sub_value = $sub_value");
         }
 
+        # but let's set our subscription in $ritem (since it comes to
+        # us as 'none') because we have to pass it back with the real
+        # value.
+        $ritem->set_subscription(DJabberd::Subscription->from_bitmask($exist_row->{subscription}));
+
         my $sql  = "UPDATE roster SET name=?, subscription=$sub_value WHERE userid=? AND contactid=?";
         my @args = ($ritem->name, $userid, $contactid);
         $dbh->do($sql, undef, @args);
@@ -250,7 +254,7 @@ sub addupdate_roster_item {
     $dbh->commit
         or return $fail->();
 
-    $cb->done;
+    $cb->done($ritem);
 }
 
 # returns ([groupid, groupname], ...)

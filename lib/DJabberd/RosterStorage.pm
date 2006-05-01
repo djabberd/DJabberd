@@ -23,6 +23,7 @@ sub register {
     $vhost->register_hook("RosterAddUpdateItem", sub {
         my ($conn, $cb, $ritem) = @_;
         my $jid = $conn->bound_jid;
+        # $cb takes ->done($ritem_final) or error
         $self->addupdate_roster_item($cb, $jid, $ritem);
     });
     $vhost->register_hook("RosterRemoveItem", sub {
