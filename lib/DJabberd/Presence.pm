@@ -209,7 +209,6 @@ sub _process_inbound_probe {
     return unless $ritem && $ritem->subscription->sub_from;
 
     my $jid = $self->to_jid;
-    #warn " probe is checking on jid=$jid\n";
 
     my %map;  # fullstrres -> stanza
     my $add_presence = sub {

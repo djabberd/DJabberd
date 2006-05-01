@@ -227,12 +227,12 @@ sub addupdate_roster_item {
         if ($_respect_subscription) {
             $sub_value = $ritem->subscription->as_bitmask;
             $logger->debug(" sub_value = $sub_value");
+        } else {
+            # but let's set our subscription in $ritem (since it comes to
+            # us as 'none') because we have to pass it back with the real
+            # value.
+            $ritem->set_subscription(DJabberd::Subscription->from_bitmask($exist_row->{subscription}));
         }
-
-        # but let's set our subscription in $ritem (since it comes to
-        # us as 'none') because we have to pass it back with the real
-        # value.
-        $ritem->set_subscription(DJabberd::Subscription->from_bitmask($exist_row->{subscription}));
 
         my $sql  = "UPDATE roster SET name=?, subscription=$sub_value WHERE userid=? AND contactid=?";
         my @args = ($ritem->name, $userid, $contactid);
