@@ -143,8 +143,16 @@ sub process_iq_setroster {
                           methods => {
                               done => sub {
                                   my ($self, $ritem_final) = @_;
+
+                                  # the RosterRemoveItem isn't required to return the final item
+                                  $ritem_final = $ritem if $removing;
+
                                   $iq->send_result;
                                   $conn->vhost->roster_push($conn->bound_jid, $ritem_final);
+
+                                  # TODO: section 8.6: must send a
+                                  # bunch of presence
+                                  # unsubscribe/unsubscribed messages
                               },
                               error => sub {
                                   $iq->send_error;

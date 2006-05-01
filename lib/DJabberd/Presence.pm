@@ -197,6 +197,10 @@ sub _process_inbound_subscribed {
                           methods => {
                               done => sub {
                                   $conn->vhost->roster_push($to_jid, $ritem);
+
+                                  my $probe = DJabberd::Presence->probe(from => $to_jid,
+                                                                        to   => $ritem->jid);
+                                  $probe->procdeliver($conn);  # FIXME: lame that we need to pass $conn;
                               },
                               error => sub { my $reason = $_[1]; },
                           },

@@ -206,6 +206,7 @@ sub handles_jid {
 
 sub roster_push {
     my ($self, $jid, $ritem) = @_;
+    croak("no ritem") unless $ritem;
 
     # FIXME: single-server roster push only.   need to use a hook
     # to go across the cluster
