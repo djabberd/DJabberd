@@ -13,3 +13,8 @@ cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...
    So think we could do the Jingle stuff Jabber-server-side and get the Psi
    client connecting to Asterisk over SIP or something? 
 
+-- invites on next connect
+-- and don't send rosteritems with that incoming bit on
+
+-- iChat "wants to add you as a buddy!" forever bug.  do we not say subscribed back?  state is both/both when this happens.
+
