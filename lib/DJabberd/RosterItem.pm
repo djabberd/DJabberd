@@ -70,7 +70,9 @@ sub add_group {
 
 sub as_xml {
     my $self = shift;
-    my $xml = "<item jid='" . exml($self->{jid}->as_bare_string) . "' " . $self->{subscription}->as_attributes;
+    my $xml = "<item jid='" . exml($self->{jid}->as_bare_string) . "' " . ($self->{remove} ?
+                                                                           "subscription='remove' " :
+                                                                           $self->{subscription}->as_attributes);
     if (defined $self->{name}) {
         $xml .= " name='" . exml($self->{name}) . "'";
     }
