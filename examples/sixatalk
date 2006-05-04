@@ -1,32 +1,24 @@
 #!/usr/bin/perl
+#
+# SixApart's Jabber Server
+#
 
 use strict;
 use lib 'lib';
-use DJabberd;
-
-use DJabberd::Delivery::Local;
-use DJabberd::Delivery::S2S;
-
-use DJabberd::PresenceChecker::Local;
-
-use DJabberd::RosterStorage::SQLite;
-use DJabberd::RosterStorage::Dummy;
-use DJabberd::RosterStorage::LiveJournal;
-
-
+use FindBin qw($Bin);
 use Getopt::Long;
 
-use vars qw($DEBUG);
-$DEBUG = 0;
+use DJabberd;
+use DJabberd::Delivery::Local;
+use DJabberd::Delivery::S2S;
+use DJabberd::PresenceChecker::Local;
+use DJabberd::RosterStorage::SQLite;
 
-my ($daemonize);
-
+my $daemonize;
 Getopt::Long::GetOptions(
-    'd|daemon'       => \$daemonize,
-    'debug=i'        => \$DEBUG,
-   );
+                         'd|daemon'       => \$daemonize,
+                         );
 
-use FindBin qw($Bin);
 my $vhost = DJabberd::VHost->new(
                                  server_name => 'sixapart.com',
                                  require_ssl => 1,
@@ -43,9 +35,8 @@ my $server = DJabberd->new(
                            daemonize => $daemonize,
                            s2s       => 0,
                            old_ssl   => 1,
-
-
                            );
+
 $server->add_vhost($vhost);
 $server->run;
 
@@ -147,8 +138,6 @@ sub _employees {
     }
 
     my %info;  # uid -> key -> value
-
-#print "@lines\n";
     my $curuid = undef;
     foreach my $line (@lines) {
         $line =~ s/^\#.*//;
