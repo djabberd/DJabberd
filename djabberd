@@ -46,6 +46,20 @@ my $vhost = DJabberd::VHost->new(
                                                ],
                                  );
 
+my $vhost2 = DJabberd::VHost->new(
+                                  server_name => 'v2.bradfitz.com',
+                                  require_ssl => 0,
+                                  plugins   => [
+                                                DJabberd::Authen::AllowedUsers->new(policy => "deny",
+                                                                                    allowed => [qw(brad crucially bradfitz)]),
+                                                DJabberd::Authen::StaticPassword->new(password => "password2"),
+                                                DJabberd::PresenceChecker::Local->new(),
+                                                DJabberd::Delivery::Local->new(),
+                                                DJabberd::Delivery::S2S->new(),
+                                                DJabberd::RosterStorage::SQLite->new("$Bin/roster.sqlite"),
+                                                ],
+                                  );
+
 my $server = DJabberd->new(
                            #server_name => '207.7.148.210',
                            daemonize => $daemonize,
@@ -53,5 +67,6 @@ my $server = DJabberd->new(
                            old_ssl   => 1,
                            );
 $server->add_vhost($vhost);
+$server->add_vhost($vhost2);
 
 $server->run;

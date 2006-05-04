@@ -15,6 +15,11 @@ sub new {
         'require_ssl' => delete $opts{require_ssl},
         'hooks'       => {},
         'server'      => undef,  # set when added to a server
+
+        # local connections
+        'jid2sock'    => {},  # bob@207.7.148.210/rez -> DJabberd::Connection
+                              # bob@207.7.148.210     -> DJabberd::Connection
+        'bare2fulls'  => {},  # barejids -> { fulljid -> 1 }
     };
 
     my $plugins = delete $opts{plugins};
@@ -128,18 +133,13 @@ sub register_hook {
     push @{ $self->{hooks}{$phase} ||= [] }, $subref;
 }
 
-# local connections
-my %jid2sock;  # bob@207.7.148.210/rez -> DJabberd::Connection
-               # bob@207.7.148.210     -> DJabberd::Connection
-my %bare2fulls; # barejids -> { fulljid -> 1 }
-
 sub find_jid {
     my ($self, $jid) = @_;
     if (ref $jid) {
         return $self->find_jid($jid->as_string) ||
                $self->find_jid($jid->as_bare_string);
     }
-    my $sock = $jid2sock{$jid} or return undef;
+    my $sock = $self->{jid2sock}{$jid} or return undef;
     return undef if $sock->{closed};
     return $sock;
 }
@@ -150,9 +150,9 @@ sub register_jid {
 
     my $barestr = $jid->as_bare_string;
     my $fullstr = $jid->as_string;
-    $jid2sock{$fullstr} = $sock;
-    $jid2sock{$barestr} = $sock;
-    ($bare2fulls{$barestr} ||= {})->{$fullstr} = 1;
+    $self->{jid2sock}{$fullstr} = $sock;
+    $self->{jid2sock}{$barestr} = $sock;
+    ($self->{bare2fulls}{$barestr} ||= {})->{$fullstr} = 1;
 }
 
 # given a bare jid, find all local connections
@@ -160,7 +160,7 @@ sub find_conns_of_bare {
     my ($self, $jid) = @_;
     my $barestr = $jid->as_bare_string;
     my @conns;
-    foreach my $fullstr (keys %{ $bare2fulls{$barestr} || {} }) {
+    foreach my $fullstr (keys %{ $self->{bare2fulls}{$barestr} || {} }) {
         my $conn = $self->find_jid($fullstr)
             or next;
         push @conns, $conn;
