@@ -222,6 +222,11 @@ sub get_secret_key_by_handle {
 }
 
 # FIXME: need to hmac not just stream_id, but (stream_id,origsever,recvserver)
+#   actually, it's most important that the recvserver is included, otherwise
+#   could act like us by connecting to recv server and issuing a result
+#   that we'd previously given to our attackers.  origserver is useless to
+#   include because it's a constant.
+#
 sub generate_dialback_result {
     my ($self, $stream_id, $cb) = @_;
     warn "generate_dialback_result($stream_id, $cb) ...\n";
