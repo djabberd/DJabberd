@@ -27,21 +27,26 @@ Getopt::Long::GetOptions(
    );
 
 use FindBin qw($Bin);
+my $vhost = DJabberd::VHost->new(
+                                 server_name => 'sixapart.com',
+                                 require_ssl => 1,
+                                 plugins   => [
+                                               DJabberd::Authen::SixApart->new,
+                                               DJabberd::PresenceChecker::Local->new,
+                                               DJabberd::Delivery::Local->new,
+                                               #DJabberd::Delivery::S2S->new,
+                                               DJabberd::RosterStorage::SixApart->new("$Bin/roster.sqlite"),
+                                               ],
+                                 );
 
 my $server = DJabberd->new(
-                           server_name => 'sixapart.com',
                            daemonize => $daemonize,
                            s2s       => 0,
                            old_ssl   => 1,
-                           require_ssl => 1,
-                           plugins   => [
-                                         DJabberd::Authen::SixApart->new,
-                                         DJabberd::PresenceChecker::Local->new,
-                                         DJabberd::Delivery::Local->new,
-                                         #DJabberd::Delivery::S2S->new,
-                                         DJabberd::RosterStorage::SixApart->new("$Bin/roster.sqlite"),
-                                         ],
+
+
                            );
+$server->add_vhost($vhost);
 $server->run;
 
 
