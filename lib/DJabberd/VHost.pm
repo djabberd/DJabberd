@@ -3,6 +3,7 @@ use strict;
 use Carp qw(croak);
 use DJabberd::Util qw(tsub);
 use DJabberd::Log;
+use Digest::HMAC_SHA1 qw(hmac_sha1_hex);
 
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::VHost");
@@ -20,6 +21,9 @@ sub new {
         'jid2sock'    => {},  # bob@207.7.148.210/rez -> DJabberd::Connection
                               # bob@207.7.148.210     -> DJabberd::Connection
         'bare2fulls'  => {},  # barejids -> { fulljid -> 1 }
+
+        'server_secret' => undef,  # server secret we use for dialback HMAC keys.  trumped
+                                   # if a plugin implements a cluster-wide keyed shared secret
     };
 
     my $plugins = delete $opts{plugins};
@@ -204,6 +208,61 @@ sub roster_push {
         $c->xmllog->info($iq);
         $c->write(\$iq);
     }
+}
+
+sub get_secret_key {
+    my ($self, $cb) = @_;
+    $cb->("i", $self->{server_secret} ||= join('', map { rand() } (1..20)));
+}
+
+sub get_secret_key_by_handle {
+    my ($self, $handle, $cb) = @_;
+    $cb->($self->{server_secret}) if $handle eq "i";  # internal
+    $cb->(undef);  # bogus handle
+}
+
+# FIXME: need to hmac not just stream_id, but (stream_id,origsever,recvserver)
+sub generate_dialback_result {
+    my ($self, $stream_id, $cb) = @_;
+    warn "generate_dialback_result($stream_id, $cb) ...\n";
+    $self->get_secret_key(sub {
+        my ($shandle, $secret) = @_;
+        my $res = join("-", $shandle, hmac_sha1_hex($stream_id, $secret));
+        warn "res = $res, from handle=$shandle, stream_id=$stream_id, secret=$secret\n";
+        $cb->($res);
+    });
+}
+
+sub verify_callback {
+    my ($self, %args) = @_;
+    my $stream_id  = delete $args{'stream_id'};
+    my $restext    = delete $args{'result_text'};
+    my $on_success = delete $args{'on_success'};
+    my $on_failure = delete $args{'on_failure'};
+    Carp::croak("args") if %args;
+
+    my ($handle, $digest) = split(/-/, $restext);
+    warn "verify callback, restext=[$restext], stream_id = $stream_id\n";
+
+    $self->get_secret_key_by_handle($handle, sub {
+        my $secret = shift;
+        warn "secret by handle is = $secret\n";
+
+        # bogus handle if no secret
+        unless ($secret) {
+            $on_failure->();
+            return;
+        }
+
+        my $proper_digest = hmac_sha1_hex($stream_id, $secret);
+        if ($digest eq $proper_digest) {
+            warn "proper digest!\n";
+            $on_success->();
+        } else {
+            warn "bad digest!\n";
+            $on_failure->();
+        }
+    });
 }
 
 sub debug {

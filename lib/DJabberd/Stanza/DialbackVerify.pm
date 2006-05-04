@@ -9,19 +9,29 @@ sub process {
     my ($self, $conn) = @_;
 
     warn "Processing dialback verify for $self\n";
-    if ($self->result_text =~ /ghetto/) { # FIXME: ghetto, literally
-        warn " ... and it's ghetto.  match!\n";
-        $conn->dialback_verify_valid(recv_server => $self->recv_server,
-                                     orig_server => $self->orig_server,
-				     id          => $self->attrs->{"{jabber:server:dialback}id"});
-    } else {
-        warn " ... no ghetto, invalid.\n";
-        $conn->dialback_verify_invalid;
-    }
+    my $vhost = $conn->vhost;
+
+    $vhost->verify_callback(result_text => $self->result_text,
+                            stream_id   => $self->verify_stream_id,
+                            on_success  => sub {
+                                warn " ... dialback verify valid.\n";
+                                $conn->dialback_verify_valid(recv_server => $self->recv_server,
+                                                             orig_server => $self->orig_server,
+                                                             id          => $self->attrs->{"{jabber:server:dialback}id"});
+                            },
+                            on_failure => sub {
+                                warn " ... dialback verify failure.\n";
+                                $conn->dialback_verify_invalid;
+                            });
 }
 
 # always acceptable
 sub acceptable_from_server { 1 }
+
+sub verify_stream_id {
+    my $self = shift;
+    return $self->attr("{jabber:server:dialback}id");
+}
 
 sub dialback_to {
     my $self = shift;

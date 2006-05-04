@@ -77,12 +77,15 @@ sub on_stream_start {
         $self->log->debug("$self->{id} sending '$features'");
     }
 
-    my $orig_server = $self->{queue}->vhost->name;
+    my $vhost       = $self->{queue}->vhost;
+    my $orig_server = $vhost->name;
     my $recv_server = $self->{queue}->domain;
-    my $key = "djabberd_is_really_cool_(ghetto_temp)";  # FIXME: this is ghetto
-    my $res = qq{<db:result to='$recv_server' from='$orig_server'>$key</db:result>};
-    $self->log->debug("$self->{id} sending '$res'");
-    $self->write($res);
+
+    $vhost->generate_dialback_result($ss->id, sub {
+        my $res = shift;
+        $self->log->debug("$self->{id} sending res '$res'");
+        $self->write(qq{<db:result to='$recv_server' from='$orig_server'>$res</db:result>});
+    });
 }
 
 sub on_stanza_received {

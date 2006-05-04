@@ -50,7 +50,6 @@ sub new {
 sub event_write {
     my $self = shift;
 
-
     if ($self->{state} eq "connecting") {
         $self->{state} = "connected";
         $self->log->debug("$self->{id} connected for DialbackResult " . $self->{db_result}->orig_server);
