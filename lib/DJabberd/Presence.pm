@@ -27,6 +27,18 @@ sub probe {
 }
 
 # constructor
+sub make_subscribed {
+    my ($class, %opts) = @_;
+    my ($from, $to) = map { delete $opts{$_} } qw(from to);
+    croak "Invalid options" if %opts;
+
+    my $xml = DJabberd::XMLElement->new("", "presence", { '{}type' => 'subscribed',
+                                                          '{}from' => $from->as_string,
+                                                          '{}to'   => $to->as_bare_string }, []);
+    return $class->downbless($xml);
+}
+
+# constructor
 sub available_stanza {
     my ($class) = @_;
     my $xml = DJabberd::XMLElement->new("", "presence", {}, []);
@@ -143,18 +155,24 @@ sub _process_inbound_subscribe {
     my ($self, $conn, $ritem, $from_jid) = @_;
 
     my $subs = $ritem ? $ritem->subscription : "";
-    #warn "inbound subscribe!  from=$from_jid, curr_subs=$subs\n";
+    my $to_jid = $self->to_jid;
 
     # XMPP: server SHOULD auto-reply if contact already subscribed from
     if ($ritem && $ritem->subscription->sub_from) {
-        # TODO: auto-reply with 'subscribed'
+        my $subd = DJabberd::Presence->make_subscribed(to   => $from_jid,
+                                                       from => $to_jid);
+        $subd->procdeliver($conn);
+
+        # let's ack like they probed us too, so we send them our presence.
+        my $probe = DJabberd::Presence->probe(from => $from_jid,
+                                              to   => $to_jid);
+        $probe->procdeliver($conn);
         return;
     }
 
     #warn "   ... not already subscribed from, didn't shortcut.\n";
 
     $ritem ||= DJabberd::RosterItem->new($from_jid);
-    my $to_jid = $self->to_jid;
 
     # ignore duplicate pending-in subscriptions
     if ($ritem->subscription->pending_in) {
