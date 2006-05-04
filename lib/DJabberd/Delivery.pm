@@ -20,6 +20,7 @@ sub register {
 
 sub set_vhost {
     my ($self, $vhost) = @_;
+    Carp::croak("Not a vhost: '$vhost'") unless UNIVERSAL::isa($vhost, "DJabberd::VHost");
     $self->{vhost} = $vhost;
     Scalar::Util::weaken($self->{vhost});
 }

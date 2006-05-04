@@ -15,7 +15,7 @@ sub process {
 
     $conn->log->debug("Got a dailback result, oring: $orig_server, recv: $recv_server");
 
-    unless ($conn->server->name eq $recv_server) {
+    unless ($conn->vhost->name eq $recv_server) {
         # TODO: make this a hook, whether a name is recognized.
 
         # If the value of the 'to' address does not match a hostname

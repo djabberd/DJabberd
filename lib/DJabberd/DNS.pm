@@ -84,6 +84,9 @@ sub event_read_a {
             $self->close;
             1;
         };
+        if ($@) {
+            die "ERROR in DNS world: [$@]\n";
+        }
         return if $rv;
     }
 

@@ -16,7 +16,6 @@ sub new {
 sub deliver {
     my ($self, $conn, $cb, $stanza) = @_;
 
-    
     $logger->debug("s2s delivery attempt\n");
     my $to = $stanza->to_jid                or return $cb->declined;
     warn "  to = $to (" . $to->as_string . ")!\n";

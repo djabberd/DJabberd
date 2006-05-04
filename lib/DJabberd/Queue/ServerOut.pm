@@ -7,6 +7,9 @@ use constant NO_CONN    => \ "no connection";
 use constant RESOLVING  => \ "resolving";
 use constant CONNECTING => \ "connecting";
 use constant CONNECTED  => \ "connected";
+use DJabberd::Log;
+
+our $logger = DJabberd::Log->get_logger;
 
 sub new {
     my ($class, %opts) = @_;
@@ -14,12 +17,15 @@ sub new {
     $self->{del_source} = delete $opts{source} or die "delivery 'source' required";
     $self->{domain}     = delete $opts{domain} or die "domain required";
     $self->{vhost}      = delete $opts{vhost}  or die "vhost required";
+    Carp::croak("Not a vhost: $self->{vhost}") unless $self->vhost->isa("DJabberd::VHost");
     die "too many opts" if %opts;
 
     $self->{to_deliver} = [];  # DJabberd::QueueItem?
     $self->{last_connect_fail} = 0;  # unixtime of last connection failure
 
     $self->{state} = NO_CONN;   # see states above
+
+    $logger->debug("Creating new server out queue for vhost '" . $self->{vhost}->name . "' to domain '$self->{domain}'.");
 
     return $self;
 }
@@ -116,6 +122,7 @@ sub on_final_error {
 
 sub start_connecting {
     my $self = shift;
+    $logger->debug("Starting connection to domain '$self->{domain}'");
     die unless $self->{state} == NO_CONN;
 
     # TODO: moratorium/exponential backoff on attempting to deliver to
@@ -129,12 +136,14 @@ sub start_connecting {
                        domain   => $self->{domain},
                        callback => sub {
                            my @ips = @_;
+                           $logger->debug("Resolver callback for '$self->{domain}': [@ips]");
                            unless (@ips) {
                                $self->failed_to_connect;
                                return;
                            }
 
                            my $ip = shift @ips;
+
                            # FIXME: include port numbers
                            $self->{state} = CONNECTING;
 

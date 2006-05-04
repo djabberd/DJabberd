@@ -232,10 +232,10 @@ sub process_iq_setauth {
         $conn->{resource} = $resource;
 
         # register
-        my $sname = $conn->server->name;
+        my $sname = $conn->vhost->name;
         my $jid = DJabberd::JID->new("$username\@$sname/$resource");
 
-        $conn->server->register_jid($jid, $conn);
+        $conn->vhost->register_jid($jid, $conn);
         $conn->set_bound_jid($jid);
 
         $iq->send_result;

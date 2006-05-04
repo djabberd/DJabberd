@@ -24,13 +24,14 @@ sub new {
         $queue->on_connection_failed("Cannot alloc socket");
         return;
     }
-
     IO::Handle::blocking($sock, 0);
     connect $sock, Socket::sockaddr_in(5269, Socket::inet_aton($ip));
 
-    my $self = $class->SUPER::new($sock, $queue->vhost);
+    my $self = $class->SUPER::new($sock, $queue->vhost->server);
+    $self->log->debug("Connecting to '$ip' for '$queue->{domain}'");
     $self->{state}     = "connecting";
-    $self->{queue}      = $queue;
+    $self->{queue}     = $queue;
+    $self->{vhost}     = $queue->vhost;
 
     Scalar::Util::weaken($self->{queue});
 
@@ -49,9 +50,6 @@ sub event_write {
         $self->{state} = "connected";
 
         $self->start_init_stream(extra_attr => "xmlns:db='jabber:server:dialback'");
-
-# no, we do this after dialback is successful
-#        $self->{queue}->on_connection_connected($self);
         $self->watch_read(1);
     } else {
         return $self->SUPER::event_write;
@@ -74,9 +72,9 @@ sub on_stream_start {
         # they can eat a dick for all we care.  they get no features.
         # what is this weird XMPP 1.0 + old-school Dialback world anyway?
         # maybe we're still confused.  FIXME: care.
-	my $features = "<stream:features></stream:features>";
+        my $features = "<stream:features></stream:features>";
         $self->write($features);
-	$self->log->debug("$self->{id} sending '$features'");
+        $self->log->debug("$self->{id} sending '$features'");
     }
 
     my $orig_server = $self->{queue}->vhost->name;
@@ -91,7 +89,7 @@ sub on_stanza_received {
     my ($self, $node) = @_;
 
     if ($self->xmllog->is_info) {
-	$self->log_incoming_data($node);
+        $self->log_incoming_data($node);
     }
 
 

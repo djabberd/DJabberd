@@ -10,7 +10,8 @@ use fields (
             'username',       # username of user, once authenticated
             'resource',       # resource of user, once authenticated
             'bound_jid',      # undef until resource binding - then DJabberd::JID object
-            'vhost',          # DJabberd vhost instance (FIXME: for now just a server)
+            'vhost',          # DJabberd::VHost instance (undef until they send a stream start element)
+            'server',         # our DJabberd server object, which we used to find the VHost
             'ssl',            # undef when not in ssl mode, else the $ssl object from Net::SSLeay
             'stream_id',      # undef until set first time
             'version',        # the DJabberd::StreamVersion we negotiated
@@ -45,11 +46,15 @@ use constant POLLIN        => 1;
 use constant POLLOUT       => 4;
 
 sub new {
-    my ($class, $sock, $vhost) = @_;
+    my ($class, $sock, $server) = @_;
     my $self = $class->SUPER::new($sock);
 
+    croak("Server param not a DJabberd (server) object, actually a '$server'")
+        unless ref $server eq "DJabberd";
+
     $self->start_new_parser;
-    $self->{vhost}   = $vhost;
+    $self->{vhost}   = undef;  # set once we get a stream start header from them.
+    $self->{server}  = $server;
     $self->{log}     = DJabberd::Log->get_logger($class);
 
     # hack to inject XML after Connection:: in the logger category
@@ -203,15 +208,18 @@ sub run_hook_chain {
 }
 
 sub vhost {
-    # FIXME: for now, server <-> vhost, but later servers will have multiple
-    # vhosts
     my $self = shift;
-    return $self->server;
+    return $self->{vhost};
+}
+
+sub set_vhost {
+    my ($self, $vhost) = @_;
+    $self->{vhost} = $vhost;
 }
 
 sub server {
     my $self = shift;
-    return $self->{'vhost'};
+    return $self->{server};
 }
 
 # called by DJabberd::SAXHandler
@@ -246,7 +254,7 @@ sub process_stanza_builtin {
 sub jid {
     my $self = shift;
     # FIXME: this should probably bound_jid (resource binding)
-    my $jid = $self->{username} . '@' . $self->server->name;
+    my $jid = $self->{username} . '@' . $self->vhost->name;
     $jid .= "/$self->{resource}" if $self->{resource};
     return $jid;
 }
@@ -412,6 +420,7 @@ sub on_stream_start {
     die "on_stream_start not defined for $self";
 }
 
+# when we're the client of a stream (we're talking first)
 sub start_init_stream {
     my DJabberd::Connection  $self = shift;
     my %opts = @_;
@@ -428,9 +437,47 @@ sub start_init_stream {
     $self->write($xml);
 }
 
+# sending a stream when we're the server (replier) of the stream. a client already
+# started one with us (the $ss object)
 sub start_stream_back {
     my DJabberd::Connection  $self = shift;
     my DJabberd::StreamStart $ss   = shift;
+
+    # bind us to a vhost now.
+    my $to_host     = $ss->to;
+    my $exist_vhost = $self->vhost;
+    my $vhost       = $self->server->lookup_vhost($to_host);
+
+    unless ($vhost) {
+        # FIXME: send proper "vhost not found message"
+        # spec says:
+        #   -- we have to start stream back to them,
+        #   -- then send stream error
+        #   -- stream should have proper 'from' address (but what if we have 2+)
+        #
+        # If the error occurs while the stream is being set up, the
+        # receiving entity MUST still send the opening <stream> tag,
+        # include the <error/> element as a child of the stream
+        # element, send the closing </stream> tag, and terminate the
+        # underlying TCP connection. In this case, if the initiating
+        # entity provides an unknown host in the 'to' attribute (or
+        # provides no 'to' attribute at all), the server SHOULD
+        # provide the server's authoritative hostname in the 'from'
+        # attribute of the stream header sent before termination
+        $self->log->info("No vhost found for host '$to_host', disconnecting");
+        $self->close;
+        return;
+    }
+
+    # if they previously had a stream open, it shouldn't change (after SASL/SSL)
+    if ($exist_vhost && $exist_vhost != $vhost) {
+        $self->log->info("Vhost changed for connection, disconnecting.");
+        $self->close;
+        return;
+    }
+
+    $self->set_vhost($vhost);
+
     my %opts = @_;
     my $ns         = delete $opts{'namespace'} or
         die "No default namespace"; # {=stream-def-namespace}
@@ -462,7 +509,7 @@ sub start_stream_back {
     my $ver_attr    = $min_version->as_attr_string;
 
     my $id = $self->stream_id;
-    my $sname = $self->server->name;
+    my $sname = $self->vhost->name;
     # {=streams-namespace}
     my $back = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream from="$sname" id="$id" $ver_attr $extra_attr xmlns:stream="http://etherx.jabber.org/streams" xmlns="$ns">$features};
     $self->log_outgoing_data($back);
