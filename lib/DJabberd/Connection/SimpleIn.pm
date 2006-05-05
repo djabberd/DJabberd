@@ -9,14 +9,11 @@ use fields (
             );
 
 sub new {
-    my ($class, $sock, $vhost) = @_;
-    my $self = $class->SUPER::new($sock);
+    my ($class, $sock, $server) = @_;
+    my $self = $class->SUPER::new($sock, $server);
 
-    warn "Vhost = $vhost\n";
-
-    $self->{vhost}   = $vhost;
-    Scalar::Util::weaken($self->{vhost});
-
+    # set this later
+    $self->{vhost}   = undef;
     $self->{read_buf} = '';
 
     warn "CONNECTION from " . $self->peer_ip_string . " == $self\n";
@@ -46,8 +43,22 @@ sub event_read {
 sub process_line {
     my DJabberd::Connection::SimpleIn $self = shift;
     my $line = shift;
-    return $self->close unless $line =~ /^(\w+)\s*(.*)/;
+    return $self->close unless $line =~ /^(\w+)\s*([^\n\r]*)/;
     my ($cmd, $rest) = ($1, $2);
+
+    if ($cmd eq "set_vhost") {
+        my $vhostname = $rest;
+        my $vhost = $self->server->lookup_vhost($vhostname);
+        unless ($vhost) {
+            $self->write("ERROR no vhost '$vhostname'\n");
+            return;
+        }
+        $self->{vhost} = $vhost;
+        Scalar::Util::weaken($self->{vhost});
+        $self->write("OK\n");
+        return;
+    }
+
     if ($cmd eq "send_xml") {
         my ($to, $enc_xml) = split(/\s+/, $rest);
         my $xml = durl($enc_xml);
@@ -63,9 +74,10 @@ sub process_line {
         warn "all good. dconn = $dconn\n";
         $dconn->write($xml);
         $self->write("OK\n");
+        return;
     }
 
-    return $self->close;
+    $self->write("ERROR UNKNOWN_COMMAND\n");
 }
 
 # DJabberd::Connection::SimpleIn

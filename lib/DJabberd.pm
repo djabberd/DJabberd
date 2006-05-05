@@ -68,7 +68,7 @@ sub add_vhost {
 
 sub lookup_vhost {
     my ($self, $hostname) = @_;
-    return $self->{vhosts}{$hostname};
+    return $self->{vhosts}{lc $hostname};
 }
 
 # return the version of the spec we implement
