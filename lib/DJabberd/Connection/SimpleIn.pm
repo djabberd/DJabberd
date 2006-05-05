@@ -64,7 +64,13 @@ sub process_line {
         my $xml = durl($enc_xml);
         warn "SIMPLE: sending to '$to', the XML '$xml'\n";
 
-        my $dconn = $self->vhost->find_jid($to);
+        my $vhost = $self->vhost;
+        unless ($vhost) {
+            $self->write("ERROR must first 'set_vhost'\n");
+            return;
+        }
+
+        my $dconn = $vhost->find_jid($to);
         unless ($dconn) {
             warn "error.\n";
             $self->write("ERROR\n");
