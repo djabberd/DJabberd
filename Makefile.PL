@@ -8,6 +8,7 @@ WriteMakefile(
               'PREREQ_PM'=> {
                              Danga::Socket                => 1.51,
                              XML::SAX                     => 0,
+                             XML::SAX::Expat              => 0,
                              XML::SAX::Expat::Incremental => 0,
                              Net::DNS                     => 0.57,
                              Net::SSLeay                  => 0,
