@@ -59,9 +59,8 @@ sub new {
 
     # hack to inject XML after Connection:: in the logger category
     my $xml_category = $class;
-    $xml_category =~s/Connection::/Connection::XML::/;
+    $xml_category =~ s/Connection::/Connection::XML::/;
     $self->{xmllog}  = DJabberd::Log->get_logger($xml_category);
-    $self->{xmllog}->debug("test");
 
     $self->{id}      = $connection_id++;
 
