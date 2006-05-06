@@ -32,6 +32,7 @@ use FindBin qw($Bin);
 
 my $vhost = DJabberd::VHost->new(
                                  server_name => 'jabber.bradfitz.com',
+                                 s2s         => 1,
                                  require_ssl => 0,
                                  plugins   => [
                                                DJabberd::Authen::AllowedUsers->new(policy => "deny",
@@ -48,6 +49,7 @@ my $vhost = DJabberd::VHost->new(
 
 my $vhost2 = DJabberd::VHost->new(
                                   server_name => 'v2.bradfitz.com',
+                                  s2s         => 1,
                                   require_ssl => 0,
                                   plugins   => [
                                                 DJabberd::Authen::AllowedUsers->new(policy => "deny",
@@ -61,9 +63,7 @@ my $vhost2 = DJabberd::VHost->new(
                                   );
 
 my $server = DJabberd->new(
-                           #server_name => '207.7.148.210',
                            daemonize => $daemonize,
-                           s2s       => 1,
                            old_ssl   => 1,
                            );
 $server->add_vhost($vhost);

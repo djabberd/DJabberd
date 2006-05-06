@@ -14,6 +14,7 @@ sub new {
     my $self = {
         'server_name' => lc(delete $opts{server_name} || ""),
         'require_ssl' => delete $opts{require_ssl},
+        's2s'         => delete $opts{s2s},
         'hooks'       => {},
         'server'      => undef,  # set when added to a server
 
@@ -38,6 +39,12 @@ sub new {
     }
 
     return $self;
+}
+
+# true if vhost has s2s enabled
+sub s2s {
+    my $self = shift;
+    return $self->{s2s};
 }
 
 sub server {

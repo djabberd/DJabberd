@@ -212,9 +212,14 @@ sub vhost {
     return $self->{vhost};
 }
 
+# this can fail to signal that this connection can't work on this
+# vhost for instance, this vhost doesn't support s2s, so a serverin or
+# dialback subclass can override this to return 0 when s2s isn't
+# enabled for the vhost
 sub set_vhost {
     my ($self, $vhost) = @_;
     $self->{vhost} = $vhost;
+    return 1;
 }
 
 sub server {
@@ -446,38 +451,47 @@ sub start_stream_back {
 
     # bind us to a vhost now.
     my $to_host     = $ss->to;
-    my $exist_vhost = $self->vhost;
-    my $vhost       = $self->server->lookup_vhost($to_host);
 
-    unless ($vhost) {
-        # FIXME: send proper "vhost not found message"
-        # spec says:
-        #   -- we have to start stream back to them,
-        #   -- then send stream error
-        #   -- stream should have proper 'from' address (but what if we have 2+)
-        #
-        # If the error occurs while the stream is being set up, the
-        # receiving entity MUST still send the opening <stream> tag,
-        # include the <error/> element as a child of the stream
-        # element, send the closing </stream> tag, and terminate the
-        # underlying TCP connection. In this case, if the initiating
-        # entity provides an unknown host in the 'to' attribute (or
-        # provides no 'to' attribute at all), the server SHOULD
-        # provide the server's authoritative hostname in the 'from'
-        # attribute of the stream header sent before termination
-        $self->log->info("No vhost found for host '$to_host', disconnecting");
-        $self->close;
-        return;
+    # Spec rfc3920 (dialback section) says: Note: The 'to' and 'from'
+    # attributes are OPTIONAL on the root stream element.  (during
+    # dialback)
+    if ($to_host || ! $ss->announced_dialback) {
+        my $exist_vhost = $self->vhost;
+        my $vhost       = $self->server->lookup_vhost($to_host);
+
+        unless ($vhost) {
+            # FIXME: send proper "vhost not found message"
+            # spec says:
+            #   -- we have to start stream back to them,
+            #   -- then send stream error
+            #   -- stream should have proper 'from' address (but what if we have 2+)
+            #
+            # If the error occurs while the stream is being set up, the
+            # receiving entity MUST still send the opening <stream> tag,
+            # include the <error/> element as a child of the stream
+            # element, send the closing </stream> tag, and terminate the
+            # underlying TCP connection. In this case, if the initiating
+            # entity provides an unknown host in the 'to' attribute (or
+            # provides no 'to' attribute at all), the server SHOULD
+            # provide the server's authoritative hostname in the 'from'
+            # attribute of the stream header sent before termination
+            $self->log->info("No vhost found for host '$to_host', disconnecting");
+            $self->close;
+            return;
+        }
+
+        # if they previously had a stream open, it shouldn't change (after SASL/SSL)
+        if ($exist_vhost && $exist_vhost != $vhost) {
+            $self->log->info("Vhost changed for connection, disconnecting.");
+            $self->close;
+            return;
+        }
+
+        # set_vhost returns 0 to signal that this connection won't
+        # accept this vhost.  and by then it probably closed the stream
+        # with an error, so we just stop processing if we can't set it.
+        return unless $self->set_vhost($vhost);
     }
-
-    # if they previously had a stream open, it shouldn't change (after SASL/SSL)
-    if ($exist_vhost && $exist_vhost != $vhost) {
-        $self->log->info("Vhost changed for connection, disconnecting.");
-        $self->close;
-        return;
-    }
-
-    $self->set_vhost($vhost);
 
     my %opts = @_;
     my $ns         = delete $opts{'namespace'} or
@@ -510,9 +524,16 @@ sub start_stream_back {
     my $ver_attr    = $min_version->as_attr_string;
 
     my $id = $self->stream_id;
-    my $sname = $self->vhost->name;
+
+    # only include a from='hostname' attribute if we know our vhost.
+    # if they didn't send one to set us, it's probably dialback
+    # and they can cope without knowing ours yet.
+    my $vhost = $self->vhost;
+    my $sname = $vhost ? $vhost->name : "";
+    my $from_attr = $sname ? "from='$sname'" : "";
+
     # {=streams-namespace}
-    my $back = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream from="$sname" id="$id" $ver_attr $extra_attr xmlns:stream="http://etherx.jabber.org/streams" xmlns="$ns">$features};
+    my $back = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream $from_attr id="$id" $ver_attr $extra_attr xmlns:stream="http://etherx.jabber.org/streams" xmlns="$ns">$features};
     $self->log_outgoing_data($back);
     $self->write($back);
 }

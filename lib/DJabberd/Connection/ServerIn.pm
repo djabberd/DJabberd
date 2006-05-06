@@ -8,6 +8,12 @@ use fields
 
 use DJabberd::Stanza::DialbackResult;
 
+sub set_vhost {
+    my ($self, $vhost) = @_;
+    return 0 unless $vhost->{s2s};
+    return $self->SUPER::set_vhost($vhost);
+}
+
 sub peer_domain {
     my $self = shift;
     return $self->{verified_remote_domain};
@@ -31,7 +37,7 @@ sub on_stanza_received {
     my ($self, $node) = @_;
 
     if ($self->xmllog->is_info) {
-	$self->log_incoming_data($node);
+        $self->log_incoming_data($node);
     }
 
     my %class = (
@@ -105,7 +111,7 @@ sub namespace {
 sub dialback_verify_valid {
     my $self = shift;
     my %opts = @_;
-    
+
     # according to page 45 of the spec we have to send the ID back
     my $res = qq{<db:verify from='$opts{recv_server}' to='$opts{orig_server}' id='$opts{id}' type='valid'/>};
 

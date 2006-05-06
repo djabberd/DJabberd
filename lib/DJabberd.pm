@@ -26,6 +26,12 @@ use DJabberd::Message;
 use DJabberd::Presence;
 use DJabberd::StreamVersion;
 use DJabberd::Log;
+
+use DJabberd::Delivery::Local;
+use DJabberd::Delivery::S2S;
+use DJabberd::PresenceChecker::Local;
+
+
 package DJabberd;
 use strict;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
@@ -40,11 +46,17 @@ sub new {
 
     my $self = {
         'daemonize'   => delete $opts{daemonize},
-        's2s'         => delete $opts{s2s},
-        'c2s_port'    => delete($opts{c2s_port}) || 5222,
+        's2s_port'    => delete $opts{s2s_port},
+        'c2s_port'    => delete($opts{c2s_port}) || 5222, # {=clientportnumber}
         'old_ssl'     => delete $opts{old_ssl},
         'vhosts'      => {},
     };
+
+    # if they set s2s_port to explicitly 0, it's disabled for all vhosts
+    # but not setting it means 5269 still listens, if vhosts are configured
+    # for s2s.
+    # {=serverportnumber}
+    $self->{s2s_port} = 5269 unless defined $self->{s2s_port};
 
     die "unknown opts" if %opts; #FIXME: better
 
@@ -135,7 +147,7 @@ sub run {
     $self->start_c2s_server();
 
     # {=s2soptional}
-    $self->start_s2s_server() if $self->{s2s};
+    $self->start_s2s_server() if $self->{s2s_port};
 
     Danga::Socket->EventLoop();
 }
@@ -175,7 +187,7 @@ sub _start_server {
 
 sub start_c2s_server {
     my $self = shift;
-    $self->_start_server(5222,  # {=clientportnumber}
+    $self->_start_server($self->{c2s_port},
                          "DJabberd::Connection::ClientIn");
 
     if ($self->{old_ssl}) {
@@ -185,7 +197,7 @@ sub start_c2s_server {
 
 sub start_s2s_server {
     my $self = shift;
-    $self->_start_server(5269,  # {=serverportnumber}
+    $self->_start_server($self->{s2s_port},
                          "DJabberd::Connection::ServerIn");
 }
 

@@ -16,17 +16,26 @@ sub new {
 sub deliver {
     my ($self, $conn, $cb, $stanza) = @_;
 
-    $logger->debug("s2s delivery attempt\n");
-    my $to = $stanza->to_jid                or return $cb->declined;
-    warn "  to = $to (" . $to->as_string . ")!\n";
+    my $to = $stanza->to_jid
+        or return $cb->declined;
 
-    my $domain = $to->domain;
+    $logger->debug("s2s delivery attempt for $to");
 
     # don't initiate outgoing connections back to ourself
-    if ($self->{vhost}->name eq $domain) {
-        warn "Not doing s2s to ourself\n";
+    my $vhost  = $self->{vhost};
+    my $domain = $to->domain;
+    if ($vhost->name eq $domain) {
+        $logger->debug("Not doing s2s to ourself");
         return $cb->declined;
     }
+
+    # don't do s2s if the vhost doesn't have it enabled
+    unless ($vhost->s2s) {
+        $logger->debug("s2s delivery disabled.");
+        $cb->declined;
+        return;
+    }
+
 
     # FIXME: let get_conn_for_domain return an error code or something
     # which we can then pass along smarter to the callback, so client gets
