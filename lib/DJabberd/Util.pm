@@ -6,8 +6,8 @@ our @EXPORT_OK = qw(exml tsub as_bool as_num);
 
 sub as_bool {
     my $val = shift;
-    return 1 if $val =~ /^1|yes|true|t|on|enabled?$/;
-    return 0 if $val =~ /^0|no|false|f|off|disabled?$/;
+    return 1 if $val =~ /^1|y|yes|true|t|on|enabled?$/i;
+    return 0 if $val =~ /^0|n|no|false|f|off|disabled?$/i;
     die "Can't determine booleanness of '$val'\n";
 }
 
