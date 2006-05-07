@@ -40,6 +40,17 @@ sub new {
     return $self;
 }
 
+sub setup_default_plugins {
+    my $self = shift;
+    unless ($self->are_hooks("deliver")) {
+        $self->add_plugin(DJabberd::Delivery::Local->new);
+        $self->add_plugin(DJabberd::Delivery::S2S->new);
+    }
+    unless ($self->are_hooks("PresenceCheck")) {
+        $self->add_plugin(DJabberd::PresenceChecker::Local->new);
+    }
+}
+
 sub set_config_s2s {
     my ($self, $val) = @_;
     $self->{s2s} = as_bool($val);

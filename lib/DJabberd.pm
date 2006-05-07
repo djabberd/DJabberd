@@ -95,6 +95,8 @@ sub add_vhost {
         croak("Vhost already has a server.");
     }
 
+    $vhost->setup_default_plugins;
+
     $self->{vhosts}{$sname} = $vhost;
     $vhost->set_server($self);
 }
