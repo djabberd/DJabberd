@@ -12,18 +12,20 @@ sub set_config_policy {
 
 sub set_config_allowedusers {
     my ($self, $val) = @_;
-    $self->{allowed} = split(/\s+/, $val);
+    $self->{allowed} = [ split(/\s+/, $val) ];
 }
 
 sub set_config_deniedusers {
     my ($self, $val) = @_;
-    $self->{denied} = split(/\s+/, $val);
+    $self->{denied} = [ split(/\s+/, $val) ];
 }
 
 sub finalize {
     my $self = shift;
     # just for error checking:
     $self->set_config_policy($self->{policy});
+    $self->{allowed} ||= [];
+    $self->{denied}  ||= [];
 }
 
 sub check_cleartext {
