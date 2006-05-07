@@ -17,7 +17,7 @@ use IO::Handle;
 use Socket qw(PF_INET IPPROTO_TCP SOCK_STREAM);
 
 sub new {
-    my ($class, $fromip, $conn, $db_result, $final_cb) = @_;
+    my ($class, $endpt, $conn, $db_result, $final_cb) = @_;
 
     my $server = $conn->server;
 
@@ -31,9 +31,12 @@ sub new {
 
     # TODO: look up SRV record and connect to the right port (not to mention the right IP)
 
+    my $fromip = $endpt->addr;
+    my $port   = $endpt->port;
+
     $logger->debug("Attempting to connect to '$fromip'");
     IO::Handle::blocking($sock, 0);
-    connect $sock, Socket::sockaddr_in(5269, Socket::inet_aton($fromip));
+    connect $sock, Socket::sockaddr_in($port, Socket::inet_aton($fromip));
 
     my $self = $class->SUPER::new($sock, $server);
     $self->{db_result} = $db_result;

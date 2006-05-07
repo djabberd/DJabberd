@@ -46,14 +46,14 @@ sub process {
     DJabberd::DNS->srv(service  => "_xmpp-server._tcp",
                        domain   => $orig_server,
                        callback => sub {
-                           my @ips = @_;
-                           unless (@ips) {
+                           my @endpts = @_;
+                           unless (@endpts) {
                                # FIXME: send something better
                                die "No resolved IP";
                            }
 
-                           my $ip = shift @ips;
-                           DJabberd::Connection::DialbackVerify->new($ip, $conn, $self, $final_cb);
+                           my $endpt = shift @endpts;
+                           DJabberd::Connection::DialbackVerify->new($endpt, $conn, $self, $final_cb);
                        });
 }
 

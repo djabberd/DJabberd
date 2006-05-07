@@ -5,7 +5,9 @@ use fields (
             'hostname',
             'callback',
             'srv',
+            'port',
             );
+use Carp qw(croak);
 
 use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger();
@@ -16,9 +18,19 @@ my $resolver    = Net::DNS::Resolver->new;
 sub srv {
     my ($class, %opts) = @_;
 
+    foreach (qw(callback domain service)) {
+        croak("No '$_' field") unless $opts{$_};
+    }
+
     my $hostname = delete $opts{'domain'};
     my $callback = delete $opts{'callback'};
     my $service  = delete $opts{'service'};
+    my $port     = delete $opts{'port'};
+    croak "unknown opts" if %opts;
+
+    # default port for s2s
+    $port ||= 5269 if $service eq "_xmpp-server._tcp";
+    croak("No specified 'port'") unless $port;
 
     my $pkt = Net::DNS::Packet->new("$service.$hostname", "SRV", "IN");
 
@@ -30,10 +42,10 @@ sub srv {
     $self->{hostname} = $hostname;
     $self->{callback} = $callback;
     $self->{srv}      = $service;
+    $self->{port}     = $port;
 
     # TODO: set a timer to fire with lookup error in, say, 5 seconds
     # or whatever caller wants
-
     $self->watch_read(1);
 
 }
@@ -41,18 +53,24 @@ sub srv {
 sub new {
     my ($class, %opts) = @_;
 
+    foreach (qw(hostname callback port)) {
+        croak("No '$_' field") unless $opts{$_};
+    }
+
     my $hostname = delete $opts{'hostname'};
     my $callback = delete $opts{'callback'};
+    my $port     = delete $opts{'port'};
+    croak "unknown opts" if %opts;
 
     my $sock = $resolver->bgsend($hostname);
     my $self = $class->SUPER::new($sock);
 
     $self->{hostname} = $hostname;
     $self->{callback} = $callback;
+    $self->{port}     = $port;
 
     # TODO: set a timer to fire with lookup error in, say, 5 seconds
     # or whatever caller wants
-
     $self->watch_read(1);
 }
 
@@ -80,7 +98,7 @@ sub event_read_a {
 
     for my $ans (@ans) {
         my $rv = eval {
-            $cb->($ans->address);
+            $cb->(DJabberd::IPEndPoint->new($ans->address, $self->{port}));
             $self->close;
             1;
         };
@@ -110,20 +128,32 @@ sub event_read_srv {
         $a->weight   <=> $b->weight
     } grep { ref $_ eq "Net::DNS::RR::SRV"} @ans;
 
+    use Data::Dumper;
+    warn Dumper(\@targets);
+
     unless (@targets) {
         # no result, fallback to an A lookup
         $self->close;
         DJabberd::DNS->new(hostname => $self->{hostname},
+                           port     => $self->{port},
                            callback => $cb);
         return;
     }
 
     # FIXME:  we only do the first target now.  should do a chain.
-    # FIXME:  we lose the port information from the srv request with this.  need to change
-    #         the interface.  for now assume port 5269 in the caller, which is wrong.
     DJabberd::DNS->new(hostname => $targets[0]->target,
+                       port     => $targets[0]->port,
                        callback => $cb);
     $self->close;
 }
+
+package DJabberd::IPEndPoint;
+sub new {
+    my ($class, $addr, $port) = @_;
+    return bless { addr => $addr, port => $port };
+}
+
+sub addr { $_[0]{addr} }
+sub port { $_[0]{port} }
 
 1;

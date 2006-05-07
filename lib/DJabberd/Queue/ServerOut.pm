@@ -135,24 +135,18 @@ sub start_connecting {
     DJabberd::DNS->srv(service  => "_xmpp-server._tcp",
                        domain   => $self->{domain},
                        callback => sub {
-                           my @ips = @_;
-                           $logger->debug("Resolver callback for '$self->{domain}': [@ips]");
-                           unless (@ips) {
+                           my @endpoints = @_;
+                           $logger->debug("Resolver callback for '$self->{domain}': [@endpoints]");
+                           unless (@endpoints) {
                                $self->failed_to_connect;
                                return;
                            }
 
-                           my $ip = shift @ips;
+                           my $endpt = shift @endpoints;
 
-                           # FIXME: include port numbers
                            $self->{state} = CONNECTING;
 
-                           unless ($ip) {
-                               $self->on_final_error;
-                               return;
-                           }
-
-                           my $conn = DJabberd::Connection::ServerOut->new(ip => $ip, queue => $self);
+                           my $conn = DJabberd::Connection::ServerOut->new(endpoint => $endpt, queue => $self);
                            $self->set_connection($conn);
                            $conn->start_connecting;
                        });

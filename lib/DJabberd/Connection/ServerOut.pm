@@ -14,9 +14,13 @@ use Carp qw(croak);
 sub new {
     my ($class, %opts) = @_;
 
-    my $ip    = delete $opts{ip}    or croak "no ip";
+    my $ip    = delete $opts{ip};
+    my $endpt = delete $opts{endpoint};
     my $queue = delete $opts{queue} or croak "no queue";
     die "unknown options" if %opts;
+
+    croak "No 'ip' or 'endpoint'\n" unless $ip || $endpt;
+    $endpt ||= DJabberd::IPEndpoint->new($ip, 5269);
 
     my $sock;
     socket $sock, PF_INET, SOCK_STREAM, IPPROTO_TCP;
@@ -25,7 +29,8 @@ sub new {
         return;
     }
     IO::Handle::blocking($sock, 0);
-    connect $sock, Socket::sockaddr_in(5269, Socket::inet_aton($ip));
+    my $ip = $endpt->addr;
+    connect $sock, Socket::sockaddr_in($endpt->port, Socket::inet_aton($ip));
 
     my $self = $class->SUPER::new($sock, $queue->vhost->server);
     $self->log->debug("Connecting to '$ip' for '$queue->{domain}'");
