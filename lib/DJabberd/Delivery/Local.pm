@@ -3,6 +3,8 @@ use strict;
 use warnings;
 use base 'DJabberd::Delivery';
 
+sub run_before { ("DJabberd::Delivery::S2S") }
+
 sub deliver {
     my ($self, $conn, $cb, $stanza) = @_;
     #warn "local delivery!\n";

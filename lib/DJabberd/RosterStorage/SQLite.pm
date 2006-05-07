@@ -10,13 +10,17 @@ our $logger = DJabberd::Log->get_logger();
 
 use vars qw($_respect_subscription);
 
-sub new {
-    my $class = shift;
-    my $self = $class->SUPER::new();
+sub set_config_database {
+    my ($self, $dbfile) = @_;
+    $self->{dbfile} = $dbfile;
+    $logger->info("Loaded SQLite RosterStorage using file '$dbfile'");
+}
 
-    my $file = shift;
-    $logger->info("Loaded SQLite RosterStorage using file '$file'");
-    my $dbh = DBI->connect("dbi:SQLite:dbname=$file","","", { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
+sub finalize {
+    my $self = shift;
+    die "No 'Database' configured'" unless $self->{dbfile};
+
+    my $dbh = DBI->connect("dbi:SQLite:dbname=$self->{dbfile}","","", { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
     $self->{dbh} = $dbh;
     $self->check_install_schema;
     return $self;

@@ -35,7 +35,7 @@ package DJabberd;
 use strict;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
 use Carp qw(croak);
-use DJabberd::Util qw(tsub);
+use DJabberd::Util qw(tsub as_bool as_num);
 
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
@@ -62,6 +62,21 @@ sub new {
 
     bless $self, $class;
     return $self;
+}
+
+sub set_config_oldssl {
+    my ($self, $val) = @_;
+    $self->{old_ssl} = as_bool($val);
+}
+
+sub set_config_clientport {
+    my ($self, $val) = @_;
+    $self->{c2s_port} = as_num($val);
+}
+
+sub set_config_serverport {
+    my ($self, $val) = @_;
+    $self->{s2s_port} = as_num($val);
 }
 
 sub set_fake_s2s_peer {
@@ -211,6 +226,93 @@ sub start_simple_server {
     eval "use DJabberd::Connection::SimpleIn; 1"
         or die "Failed to load DJabberd::Connection::SimpleIn: $@\n";
     $self->_start_server($port, "DJabberd::Connection::SimpleIn");
+}
+
+sub load_config {
+    my ($self, $arg) = @_;
+    if (ref $arg eq "SCALAR") {
+        $self->_load_config_ref($arg);
+    } else {
+        open (my $fh, $arg) or die "Couldn't open config file '$arg': $!\n";
+        my $slurp = do { local $/; <$fh>; };
+        $self->_load_config_ref(\$slurp);
+    }
+}
+
+sub _load_config_ref {
+    my ($self, $configref) = @_;
+    my $linenum = 0;
+    my $vhost;  # current vhost in scope
+    my $plugin; # current plugin in scope
+    foreach my $line (split(/\n/, $$configref)) {
+        $linenum++;
+
+        next if $line =~ /^\#/;
+        $line =~ s/^\s+//;
+        $line =~ s/\s+$//;
+        next unless $line =~ /\S/;
+
+        eval {
+            if ($line =~ /^(\w+)\s+(.+)/) {
+                my $pkey = $1;
+                my $key = lc $1;
+                my $val = $2;
+                my $inv = $plugin || $vhost || $self;
+                my $meth = "set_config_$key";
+                if ($inv->can($meth)) {
+                    $inv->$meth($val);
+                    next;
+                }
+                $meth = "set_config__option";
+                if ($inv->can($meth)) {
+                    $inv->$meth($key, $val);
+                    next;
+                }
+
+                die "Unknown option '$pkey'\n";
+            }
+            if ($line =~ /<VHost\s+(\S+?)>/i) {
+                die "Can't configure a vhost in a vhost\n" if $vhost;
+                $vhost = DJabberd::VHost->new(server_name => $1);
+                next;
+            }
+            if ($line =~ m!</VHost>!) {
+                die "Can't end a not-open vhost\n" unless $vhost;
+                die "Can't end a vhost with an open plugin\n" if $plugin;
+                $self->add_vhost($vhost);
+                $vhost = undef;
+                next;
+            }
+            my $close_plugin = sub {
+                die "Can't end a not-open plugin\n" unless $plugin;
+                $plugin->finalize;
+                $vhost->add_plugin($plugin);
+                $plugin = undef;
+            };
+
+            if ($line =~ /<Plugin\s+([\w:]+?)(\s*\/)?>/i) {
+                my $class = $1;
+                my $immediate_close = $2;
+                die "Can't configure a plugin outside of a vhost config vhost\n" unless $vhost;
+                die "Can't configure a plugin inside of a plugin\n" if $plugin;
+
+                my $loaded = eval "use $class; 1;";
+                die "Failed to load plugin $class: $@" if $@;
+                $plugin = $class->new;
+                $close_plugin->() if $immediate_close;
+                next;
+            }
+            if ($line =~ m!</Plugin>!) {
+                $close_plugin->();
+                next;
+            }
+
+            die "Syntax error: '$line'\n";
+        };
+        if ($@) {
+            die "Configuration error on line $linenum: $@\n";
+        }
+    }
 }
 
 sub daemonize {

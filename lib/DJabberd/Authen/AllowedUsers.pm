@@ -3,20 +3,27 @@ use strict;
 use base 'DJabberd::Authen';
 use Carp qw(croak);
 
-sub new {
-    my ($class, %opts) = @_;
-    my $policy = delete $opts{'policy'};
-    croak("policy must be 'deny' or 'accept'") unless $policy =~ /^deny|accept$/;
+sub set_config_policy {
+    my ($self, $policy) = @_;
+    $policy = lc $policy;
+    croak("Policy must be 'deny' or 'accept'") unless $policy =~ /^deny|accept$/;
+    $self->{policy} = $policy;
+}
 
-    my $allowed = delete $opts{'allowed'};
-    my $denied  = delete $opts{'denied'};
-    croak("unknown options") if %opts;
+sub set_config_allowedusers {
+    my ($self, $val) = @_;
+    $self->{allowed} = split(/\s+/, $val);
+}
 
-    return bless {
-        policy  => $policy,
-        allowed => $allowed,
-        denied  => $allowed,
-    }, $class;
+sub set_config_deniedusers {
+    my ($self, $val) = @_;
+    $self->{denied} = split(/\s+/, $val);
+}
+
+sub finalize {
+    my $self = shift;
+    # just for error checking:
+    $self->set_config_policy($self->{policy});
 }
 
 sub check_cleartext {

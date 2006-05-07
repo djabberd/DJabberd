@@ -1,7 +1,7 @@
 package DJabberd::VHost;
 use strict;
 use Carp qw(croak);
-use DJabberd::Util qw(tsub);
+use DJabberd::Util qw(tsub as_bool);
 use DJabberd::Log;
 use Digest::HMAC_SHA1 qw(hmac_sha1_hex);
 
@@ -34,11 +34,20 @@ sub new {
 
     $logger->info("Addding plugins...");
     foreach my $pl (@{ $plugins || [] }) {
-        $logger->info("  ... adding plugin: $pl");
         $self->add_plugin($pl);
     }
 
     return $self;
+}
+
+sub set_config_s2s {
+    my ($self, $val) = @_;
+    $self->{s2s} = as_bool($val);
+}
+
+sub set_config_requiressl {
+    my ($self, $val) = @_;
+    $self->{require_ssl} = as_bool($val);
 }
 
 # true if vhost has s2s enabled
@@ -124,6 +133,7 @@ sub name {
 # vhost method
 sub add_plugin {
     my ($self, $plugin) = @_;
+    $logger->info("Adding plugin: $plugin");
     $plugin->register($self);
 }
 

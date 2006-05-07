@@ -2,7 +2,20 @@ package DJabberd::Util;
 use strict;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(exml tsub);
+our @EXPORT_OK = qw(exml tsub as_bool as_num);
+
+sub as_bool {
+    my $val = shift;
+    return 1 if $val =~ /^1|yes|true|t|on|enabled?$/;
+    return 0 if $val =~ /^0|no|false|f|off|disabled?$/;
+    die "Can't determine booleanness of '$val'\n";
+}
+
+sub as_num {
+    my $val = shift;
+    return $val if $val =~ /^\d+$/;
+    die "Not a number\n";
+}
 
 sub exml
 {

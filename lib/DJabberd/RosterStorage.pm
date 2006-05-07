@@ -6,11 +6,6 @@ use base 'DJabberd::Plugin';
 use DJabberd::Roster;
 use DJabberd::RosterItem;
 
-sub new {
-    my ($class) = @_;
-    return bless {}, $class;
-}
-
 # don't override, or at least call SUPER to this if you do.
 sub register {
     my ($self, $vhost) = @_;

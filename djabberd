@@ -3,70 +3,26 @@
 use strict;
 use lib 'lib';
 use DJabberd;
-use DJabberd::Authen::AllowedUsers;
-use DJabberd::Authen::StaticPassword;
-
-use DJabberd::Delivery::Local;
-use DJabberd::Delivery::S2S;
-
-use DJabberd::PresenceChecker::Local;
-
-use DJabberd::RosterStorage::SQLite;
-use DJabberd::RosterStorage::Dummy;
-use DJabberd::RosterStorage::LiveJournal;
-
-
 use Getopt::Long;
-
+use FindBin qw($Bin);
 use vars qw($DEBUG);
 $DEBUG = 0;
 
 my ($daemonize);
 
+my $conffile = "/etc/djabberd/djabberd.conf";
+
 Getopt::Long::GetOptions(
-    'd|daemon'       => \$daemonize,
-    'debug=i'        => \$DEBUG,
-   );
+                         'd|daemon'     => \$daemonize,
+                         'debug=i'      => \$DEBUG,
+                         'conffile=s'   => \$conffile,
+                         );
 
-use FindBin qw($Bin);
-
-my $vhost = DJabberd::VHost->new(
-                                 server_name => 'jabber.bradfitz.com',
-                                 s2s         => 1,
-                                 require_ssl => 0,
-                                 plugins   => [
-                                               DJabberd::Authen::AllowedUsers->new(policy => "deny",
-                                                                                   allowed => [qw(brad daveman692 crucially bradfitz bob test revmischa)]),
-                                               DJabberd::Authen::StaticPassword->new(password => "password"),
-                                               DJabberd::PresenceChecker::Local->new(),
-                                               DJabberd::Delivery::Local->new(),
-                                               DJabberd::Delivery::S2S->new(),
-                                               DJabberd::RosterStorage::SQLite->new("$Bin/roster.sqlite"),
-                                               #DJabberd::RosterStorage::Dummy->new,
-                                               #DJabberd::RosterStorage::LiveJournal->new,
-                                               ],
-                                 );
-
-my $vhost2 = DJabberd::VHost->new(
-                                  server_name => 'v2.bradfitz.com',
-                                  s2s         => 1,
-                                  require_ssl => 0,
-                                  plugins   => [
-                                                DJabberd::Authen::AllowedUsers->new(policy => "deny",
-                                                                                    allowed => [qw(brad crucially bradfitz)]),
-                                                DJabberd::Authen::StaticPassword->new(password => "password2"),
-                                                DJabberd::PresenceChecker::Local->new(),
-                                                DJabberd::Delivery::Local->new(),
-                                                DJabberd::Delivery::S2S->new(),
-                                                DJabberd::RosterStorage::SQLite->new("$Bin/roster.sqlite"),
-                                                ],
-                                  );
 
 my $server = DJabberd->new(
-                           daemonize => $daemonize,
-                           old_ssl   => 1,
+                           daemonize => $daemonize
                            );
-$server->add_vhost($vhost);
-$server->add_vhost($vhost2);
+
+$server->load_config($conffile);
 
 $server->run;

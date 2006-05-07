@@ -2,12 +2,9 @@ package DJabberd::Authen::StaticPassword;
 use strict;
 use base 'DJabberd::Authen';
 
-sub new {
-    my ($class, %opts) = @_;
-    my $pass = delete $opts{'password'};
-    return bless {
-        password  => $pass,
-    }, $class;
+sub set_config_password {
+    my ($self, $pass) = @_;
+    $self->{password} = $pass;
 }
 
 sub can_retrieve_cleartext { 1 }

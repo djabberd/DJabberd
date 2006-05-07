@@ -6,6 +6,9 @@ use base 'DJabberd::Delivery';
 use DJabberd::Queue::ServerOut;
 use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger;
+
+sub run_after { ("DJabberd::Delivery::Local") }
+
 sub new {
     my $class = shift;
     my $self = $class->SUPER::new(@_);
