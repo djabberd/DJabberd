@@ -160,10 +160,12 @@ sub run_hook_chain {
     $phase = [ $phase ] unless ref $phase;
 
     my @hooks;
-    foreach my $ph (@$phase) {
-        croak("Undocumented hook phase: '$ph'") unless
-            $DJabberd::HookDocs::hook{$ph};
-        push @hooks, @{ $self->{vhost}->{hooks}->{$ph} || [] };
+    if ($self->{vhost}) {
+        foreach my $ph (@$phase) {
+            croak("Undocumented hook phase: '$ph'") unless
+                $DJabberd::HookDocs::hook{$ph};
+            push @hooks, @{ $self->{vhost}->{hooks}->{$ph} || [] };
+        }
     }
     push @hooks, $fallback if $fallback;
 
@@ -217,6 +219,7 @@ sub vhost {
 # enabled for the vhost
 sub set_vhost {
     my ($self, $vhost) = @_;
+    Carp::croak("Not a DJabberd::VHost: $vhost") unless UNIVERSAL::isa($vhost, "DJabberd::VHost");
     $self->{vhost} = $vhost;
     return 1;
 }
@@ -552,6 +555,8 @@ sub event_write {
 # info is optional descriptive text
 sub stream_error {
     my ($self, $err, $info) = @_;
+    $info ||= "";
+
     # {=stream-errors}
     $self->log->warn("$self->{id} stream error '$err': $info");
     my $infoxml = "";

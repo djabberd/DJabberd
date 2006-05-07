@@ -8,16 +8,21 @@ use DJabberd::Connection::DialbackVerify;
 sub process {
     my ($self, $conn) = @_;
 
-
     my $recv_server = $self->recv_server;
     my $orig_server = $self->orig_server;
 
+    $conn->log->debug("Got a dialback result, orig: $orig_server, recv: $recv_server");
 
-    $conn->log->debug("Got a dailback result, oring: $orig_server, recv: $recv_server");
+    my $vhost = $conn->vhost;
+    unless ($vhost) {
+        $vhost = $conn->server->lookup_vhost($recv_server);
+        warn "found vhost = $vhost for '$recv_server'\n";
+        if ($vhost) {
+            return unless $conn->set_vhost($vhost);
+        }
+    }
 
-    unless ($conn->vhost->name eq $recv_server) {
-        # TODO: make this a hook, whether a name is recognized.
-
+    if (!$vhost || $vhost->name ne $recv_server) {
         # If the value of the 'to' address does not match a hostname
         # recognized by the Receiving Server, then the Receiving
         # Server MUST generate a <host-unknown/> stream error

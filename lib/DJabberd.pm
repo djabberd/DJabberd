@@ -31,7 +31,6 @@ use DJabberd::Delivery::Local;
 use DJabberd::Delivery::S2S;
 use DJabberd::PresenceChecker::Local;
 
-
 package DJabberd;
 use strict;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
@@ -50,6 +49,7 @@ sub new {
         'c2s_port'    => delete($opts{c2s_port}) || 5222, # {=clientportnumber}
         'old_ssl'     => delete $opts{old_ssl},
         'vhosts'      => {},
+        'fake_peers'  => {}, # for s2s testing.  $hostname => "ip:port"
     };
 
     # if they set s2s_port to explicitly 0, it's disabled for all vhosts
@@ -64,9 +64,14 @@ sub new {
     return $self;
 }
 
+sub set_fake_s2s_peer {
+    my ($self, $host, $ipport) = @_;
+    $self->{fake_peers}{$host} = $ipport;
+}
+
 sub add_vhost {
     my ($self, $vhost) = @_;
-    my $sname = $vhost->name;
+    my $sname = lc $vhost->name;
     if (my $existing = $self->{vhosts}{$sname}) {
         croak("Can't set vhost with name '$sname'.  Already exists in this server.")
             if $existing != $vhost;

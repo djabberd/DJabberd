@@ -2,6 +2,7 @@
 
 use strict;
 use lib 'lib';
+use Test::More 'no_plan';
 use DJabberd;
 use DJabberd::Authen::AllowedUsers;
 use DJabberd::Authen::StaticPassword;
@@ -16,7 +17,7 @@ my $roster = "$Bin/test-roster.dat";
 unlink($roster);
 
 my $vhost = DJabberd::VHost->new(
-                                 server_name => 'jabber.bradfitz.com',
+                                 server_name => 'jabber.example.com',
                                  s2s         => 1,
                                  plugins   => [
                                                DJabberd::Authen::AllowedUsers->new(policy => "deny",
@@ -30,6 +31,8 @@ my $vhost = DJabberd::VHost->new(
                                  );
 
 my $server = DJabberd->new;
+$server->add_vhost($vhost);
+$server->set_fake_s2s_peer("bar.com" => "127.0.0.1:10000");  # our fake server
 
 my $childpid = fork;
 if (!$childpid) {
@@ -79,6 +82,8 @@ my $get_stream_start = sub {
 # TODO: test opening stream with bogus crap
 # TODO: test capturing going out of control, sending crap forever, filling memory
 
+
+# test us being a s2s originating server w/ dialback
 print $conn "
    <stream:stream
        xmlns:stream='http://etherx.jabber.org/streams'
@@ -89,10 +94,18 @@ print $conn "
 my $ss = $get_stream_start->();
 print "got a streamstart: $ss\n";
 
-use Data::Dumper;
-warn Dumper($ss);
+ok($ss, "got a stream back");
+ok($ss->id, "got a stream id back");
+
+print $conn "   <db:result
+       to='jabber.example.com'
+       from='bar.com'>
+     I_am_a_test
+   </db:result>";
 
 while (my $ev = $get_event->()) {
     print "GOT event: $ev\n";
+    use Data::Dumper;
+    warn Dumper($ev);
 }
 

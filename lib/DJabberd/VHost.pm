@@ -140,6 +140,7 @@ sub are_hooks {
 
 sub register_hook {
     my ($self, $phase, $subref) = @_;
+    Carp::croak("Can't register hook on a non-VHost") unless UNIVERSAL::isa($self, "DJabberd::VHost");
     # TODO: die if bogus phase
     push @{ $self->{hooks}{$phase} ||= [] }, $subref;
 }
