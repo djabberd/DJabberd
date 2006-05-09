@@ -3,11 +3,14 @@ use strict;
 use base qw(XML::SAX::Base);
 use DJabberd::XMLElement;
 use DJabberd::StreamStart;
+use Scalar::Util qw(weaken);
 
 sub new {
     my ($class, $client) = @_;
     my $self = $class->SUPER::new;
     $self->{"ds_client"} = $client;
+    weaken($self->{ds_client});
+
     $self->{"capture_depth"} = 0;  # on transition from 1 to 0, stop capturing
     $self->{"on_end_capture"} = undef;  # undef or $subref->($doc)
     $self->{"events"} = [];  # capturing events
@@ -24,7 +27,10 @@ sub start_element {
         return;
     }
 
-    my $ds = $self->{ds_client};
+    # if we don't have a ds_client (Connection object), then connection
+    # is dead and events don't matter.
+    my $ds = $self->{ds_client} or
+        return;
 
     # {=xml-stream}
     if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
@@ -70,7 +76,7 @@ sub end_element {
 
     if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
         $data->{LocalName} eq "stream") {
-        $self->{ds_client}->end_stream;
+        $self->{ds_client}->end_stream if $self->{ds_client};
         return;
     }
 

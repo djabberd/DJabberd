@@ -107,7 +107,6 @@ sub log_incoming_data {
 sub start_new_parser {
     my $self = shift;
 
-    # FIXME: circular reference from self to jabberhandler to self, use weakrefs
     my $jabberhandler = $self->{'jabberhandler'} = DJabberd::SAXHandler->new($self);
     my $p = XML::SAX::Expat::Incremental->new( Handler => $jabberhandler );
     $self->{parser} = $p;
@@ -581,6 +580,21 @@ sub close {
     if (my $ssl = $self->{ssl}) {
         Net::SSLeay::free($ssl);
     }
+
+    my $p       = $self->{parser};
+    my $handler = $self->{jabberhandler};
+
+    # this is beautiful.  fuck xml.  <3 Devel::Cycle.
+    $p->_expat_obj->release if $p->_expat_obj;
+    delete $p->{Methods};
+    delete $p->{Handler};
+    delete $handler->{Methods};
+    delete $p->{_xml_parser_obj}{Handlers};
+    delete $p->{_xml_parser_obj}{_HNDL_TYPES};
+    delete $p->{_xml_parser_obj};
+    delete $p->{_expat_nb_obj}{_Setters};
+    delete $p->{_expat_nb_obj}{FinalHandler};
+    delete $p->{_expat_nb_obj}{__XSE};
 
     $self->SUPER::close;
 }

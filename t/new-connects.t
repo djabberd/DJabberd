@@ -3,6 +3,7 @@
 use strict;
 use lib 'lib';
 use Test::More 'no_plan';
+use Devel::Cycle;
 use DJabberd;
 use DJabberd::Authen::AllowedUsers;
 use DJabberd::Authen::StaticPassword;
@@ -10,7 +11,7 @@ use DJabberd::TestSAXHandler;
 use DJabberd::RosterStorage::SQLite;
 use DJabberd::RosterStorage::Dummy;
 use DJabberd::RosterStorage::LiveJournal;
-
+#use XML::LibXML::SAX;
 use FindBin qw($Bin);
 
 my $roster = "$Bin/test-roster.dat";
@@ -59,37 +60,34 @@ my $err = sub {
 
 $err->("Can't connect to server") unless $conn;
 
-my @events;
-my ($handler, $p);
-my $new_parser = sub {
-    @events = ();
-    $handler = DJabberd::TestSAXHandler->new(\@events);
-    $p = XML::SAX::Expat::Incremental->new( Handler => $handler );
-};
-$new_parser->();
-
-my $get_event = sub {
-    while (! @events) {
-        my $byte;
-        my $rv = sysread($conn, $byte, 1);
-        $p->parse_more($byte);
-    }
-
-    return shift @events;
-};
-
-my $get_stream_start = sub {
-    my $ev = $get_event->();
-    die unless $ev && $ev->isa("DJabberd::StreamStart");
-    return $ev;
-};
-
+use Devel::Peek;
 
 $conn->close;
 for (1..2500) {
+
+    my @events;
+    my ($handler, $p);
+    $handler = DJabberd::TestSAXHandler->new(\@events);
+    $p = XML::SAX::Expat::Incremental->new( Handler => $handler );
+
+    my $get_event = sub {
+        while (! @events) {
+            my $byte;
+            my $rv = sysread($conn, $byte, 1);
+            $p->parse_more($byte);
+        }
+        return shift @events;
+    };
+
+    my $get_stream_start = sub {
+        my $ev = $get_event->();
+        die unless $ev && $ev->isa("DJabberd::StreamStart");
+        return $ev;
+    };
+
     print "connect $_/500\n";
     $conn = IO::Socket::INET->new(PeerAddr => "127.0.0.1:5222", Timeout => 1);
-    $new_parser->();
+
     print $conn qq{
         <stream:stream
           xmlns:stream='http://etherx.jabber.org/streams' to='jabber.example.com'
@@ -102,7 +100,28 @@ for (1..2500) {
     ok($ss, "got a stream back");
     ok($ss->id, "got a stream id back");
 
+    delete $p->{Methods};
+    delete $p->{Handler};
+    delete $handler->{Methods};
+    delete $p->{_xml_parser_obj}{Handlers};
+    delete $p->{_xml_parser_obj}{_HNDL_TYPES};
+    delete $p->{_xml_parser_obj};
+    delete $p->{_expat_nb_obj}{_Setters};
+    delete $p->{_expat_nb_obj}{FinalHandler};
+    delete $p->{_expat_nb_obj}{__XSE};
+
+    $p->_expat_obj->release();
+
+#    find_cycle($p);
+
+#    exit 0;
+
+    #$p->parse_done;
     $conn->close;
+
+
+#    use Data::Dumper;
+#    print Dumper($p, $handler);
 }
 
 print "Sleeping for 50....\n";
