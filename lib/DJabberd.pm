@@ -58,7 +58,7 @@ sub new {
     # {=serverportnumber}
     $self->{s2s_port} = 5269 unless defined $self->{s2s_port};
 
-    die "unknown opts" if %opts; #FIXME: better
+    die "unknown opts: " . join(", ", keys %opts) if %opts; #FIXME: better
 
     bless $self, $class;
     return $self;
