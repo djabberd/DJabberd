@@ -21,6 +21,7 @@ Getopt::Long::GetOptions(
 
 my $rs = DJabberd::RosterStorage::SixApart->new;
 $rs->set_config_database("Bin/roster.sqlite");
+$rs->finalize;
 
 my $vhost = DJabberd::VHost->new(
                                  server_name => 'sixapart.com',
