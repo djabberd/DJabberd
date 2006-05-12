@@ -10,7 +10,9 @@ use warnings;
 use XML::SAX;
 use XML::SAX::ParserFactory;
 use Scalar::Util qw(weaken);
-use Test::More tests => 5;
+use Test::More tests => 11;
+use Data::Dumper;
+$Data::Dumper::Sortkeys = 1;
 
 my $mode = shift;
 
@@ -22,6 +24,9 @@ if ($mode eq "") {
     # automatic, let SAX do it.
 } elsif ($mode eq "libxml") {
     $wanted = "XML::LibXML::SAX";
+    $iter_method = "parse_chunk";
+} elsif ($mode eq "libxml-better") {
+    $wanted = "XML::LibXML::SAX::Better";
     $iter_method = "parse_chunk";
 } elsif ($mode eq "expat") {
     $wanted = "XML::SAX::Expat::Incremental";
@@ -71,11 +76,8 @@ my $streamed_events;
 {
     my $handler = EventRecorder->new(\$streamed_events);
     my $p       = $factory->parser(Handler => $handler);
-    # XXX FIXME: what do we put in here?
-    eval {
-        $p->$iter_method($first_chunk);
-        $p->$iter_method($second_chunk);
-    };
+    $p->$iter_method($first_chunk);
+    $p->$iter_method($second_chunk);
     $weakcheck = \$p;
     weaken($weakcheck);
 
@@ -83,8 +85,23 @@ my $streamed_events;
 is($weakcheck, undef, "parser was destroyed");
 
 use Text::Diff;
-my $diff = diff(\$streamed_events, \$full_events);
+my $diff = diff(\$full_events, \$streamed_events);
+#$diff = substr($diff, 0, 200);
 is($diff, "", "events match either way");
+
+# byte at a time
+my $byte_events;
+{
+    my $handler = EventRecorder->new(\$byte_events);
+    my $p       = $factory->parser(Handler => $handler);
+    foreach my $byte (split(//, $fulldoc)) {
+        $p->$iter_method($byte);
+    }
+}
+$diff = diff(\$full_events, \$byte_events);
+is($diff, "", "events match doing it byte-at-a-time");
+
+print $byte_events;
 
 #$p->parse_done;
 ok(1);
@@ -105,3 +122,79 @@ sub start_element {
     my ($self, $data) = @_;
     ${ $self->{outref} } .= Dumper($data);
 }
+
+package XML::LibXML::SAX::Better;
+use strict;
+use vars qw($VERSION @ISA);
+$VERSION = '1.00';
+use XML::LibXML;
+use XML::SAX::Base;
+use base qw(XML::SAX::Base);
+use Carp;
+use Data::Dumper;
+
+sub new {
+    my ($class, @params) = @_;
+#    warn Dumper("new = ", \@params);
+    my $inst = $class->SUPER::new(@params);
+#    warn Dumper("parent made = ", $inst);
+
+    my $libxml = XML::LibXML->new;
+    $libxml->set_handler( $inst );
+    $inst->{LibParser} = $libxml;
+
+    # setup SAX.  1 means "with SAX"
+    $libxml->_start_push(1);
+    $libxml->init_push;
+
+    return $inst;
+}
+
+sub parse_chunk {
+    my ( $self, $chunk ) = @_;
+    my $libxml = $self->{LibParser};
+    my $rv = $libxml->push($chunk);
+}
+
+
+sub _parse_characterstream {
+    my ( $self, $fh ) = @_;
+    die;
+}
+
+sub _parse_bytestream {
+    my ( $self, $fh ) = @_;
+    die;
+}
+
+sub _parse_string {
+    my ( $self, $string ) = @_;
+#    $self->{ParserOptions}{LibParser}      = XML::LibXML->new;
+    $self->{ParserOptions}{LibParser}      = XML::LibXML->new()     unless defined $self->{ParserOptions}{LibParser};
+    $self->{ParserOptions}{ParseFunc}      = \&XML::LibXML::parse_string;
+    $self->{ParserOptions}{ParseFuncParam} = $string;
+    return $self->_parse;
+}
+
+sub _parse_systemid {
+    my $self = shift;
+    die;
+}
+
+sub _parse {
+    my $self = shift;
+    my $args = bless $self->{ParserOptions}, ref($self);
+
+    $args->{LibParser}->set_handler( $self );
+    $args->{ParseFunc}->($args->{LibParser}, $args->{ParseFuncParam});
+
+    if ( $args->{LibParser}->{SAX}->{State} == 1 ) {
+        croak( "SAX Exception not implemented, yet; Data ended before document ended\n" );
+    }
+
+    return $self->end_document({});
+}
+
+
+1;
+
