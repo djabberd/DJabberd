@@ -12,7 +12,6 @@ use XML::SAX::ParserFactory;
 use Scalar::Util qw(weaken);
 use Test::More tests => 11;
 use Data::Dumper;
-$Data::Dumper::Sortkeys = 1;
 
 my $mode = shift;
 
@@ -120,7 +119,16 @@ sub new {
 
 sub start_element {
     my ($self, $data) = @_;
-    ${ $self->{outref} } .= Dumper($data);
+    $Data::Dumper::Sortkeys = 1;
+    $Data::Dumper::Indent = 1;
+    ${ $self->{outref} } .= "START: " . Dumper($data);
+}
+
+sub end_element {
+    my ($self, $data) = @_;
+    $Data::Dumper::Sortkeys = 1;
+    $Data::Dumper::Indent = 1;
+    ${ $self->{outref} } .= "END: " . Dumper($data);
 }
 
 package XML::LibXML::SAX::Better;
@@ -135,9 +143,7 @@ use Data::Dumper;
 
 sub new {
     my ($class, @params) = @_;
-#    warn Dumper("new = ", \@params);
     my $inst = $class->SUPER::new(@params);
-#    warn Dumper("parent made = ", $inst);
 
     my $libxml = XML::LibXML->new;
     $libxml->set_handler( $inst );
@@ -157,15 +163,7 @@ sub parse_chunk {
 }
 
 
-sub _parse_characterstream {
-    my ( $self, $fh ) = @_;
-    die;
-}
-
-sub _parse_bytestream {
-    my ( $self, $fh ) = @_;
-    die;
-}
+# compat for test:
 
 sub _parse_string {
     my ( $self, $string ) = @_;
@@ -174,11 +172,6 @@ sub _parse_string {
     $self->{ParserOptions}{ParseFunc}      = \&XML::LibXML::parse_string;
     $self->{ParserOptions}{ParseFuncParam} = $string;
     return $self->_parse;
-}
-
-sub _parse_systemid {
-    my $self = shift;
-    die;
 }
 
 sub _parse {
