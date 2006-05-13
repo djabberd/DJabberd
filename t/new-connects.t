@@ -68,7 +68,7 @@ for (1..2500) {
     my @events;
     my ($handler, $p);
     $handler = DJabberd::TestSAXHandler->new(\@events);
-    $p = XML::SAX::Expat::Incremental->new( Handler => $handler );
+    $p = DJabberd::XMLParser->new( Handler => $handler );
 
     my $get_event = sub {
         while (! @events) {
@@ -100,17 +100,7 @@ for (1..2500) {
     ok($ss, "got a stream back");
     ok($ss->id, "got a stream id back");
 
-    delete $p->{Methods};
-    delete $p->{Handler};
-    delete $handler->{Methods};
-    delete $p->{_xml_parser_obj}{Handlers};
-    delete $p->{_xml_parser_obj}{_HNDL_TYPES};
-    delete $p->{_xml_parser_obj};
-    delete $p->{_expat_nb_obj}{_Setters};
-    delete $p->{_expat_nb_obj}{FinalHandler};
-    delete $p->{_expat_nb_obj}{__XSE};
-
-    $p->_expat_obj->release();
+    $p->finish_push;
 
 #    find_cycle($p);
 
