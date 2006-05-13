@@ -18,6 +18,8 @@ sub process {
         'set-{jabber:iq:roster}query' => \&process_iq_setroster,
         'get-{jabber:iq:auth}query' => \&process_iq_getauth,
         'set-{jabber:iq:auth}query' => \&process_iq_setauth,
+        'get-{http://jabber.org/protocol/disco#info}query'  => \&process_iq_disco_info_query,
+        'get-{http://jabber.org/protocol/disco#items}query' => \&process_iq_disco_items_query,
     };
 
     $conn->vhost->run_hook_chain(phase    => "c2s-iq",
@@ -73,6 +75,32 @@ sub send_reply {
     my $xml = qq{<iq $to type='$type' id='$id'>$raw</iq>};
     $conn->xmllog->info($xml);
     $conn->write(\$xml);
+}
+
+
+
+
+sub process_iq_disco_info_query {
+    my ($conn, $iq) = @_;
+
+
+    # TODO: Here we need to figure out what identities we have and
+    # capabilities we have
+    my $xml = qq{<query xmlns='http://jabber.org/protocol/disco#info'>
+<identity category='server' type='im' name='djabberd'/>
+</query>};
+
+    $iq->send_reply('result', $xml);
+}
+
+sub process_iq_disco_items_query {
+    my ($conn, $iq) = @_;
+
+    # TODO: here we need to find out all the available items that we can show to the requestor
+    # and send them back
+    my $xml = qq{<query xmlns='http://jabber.org/protocol/disco#items'></query>};
+
+    $iq->send_reply('result', $xml);
 }
 
 sub process_iq_getroster {
