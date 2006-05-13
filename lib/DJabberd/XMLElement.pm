@@ -105,8 +105,10 @@ sub as_xml {
         $attr_str .= " $k='" . DJabberd::Util::exml($value) . "'";
     }
 
-    my $xmlns = ($ns eq $def_ns || !$ns ||
-                 $ns eq "jabber:server" || $ns eq "jabber:client") ?
+    my $xmlns = (!$ns ||
+                 ($def_ns && $ns eq $def_ns) ||
+                 $ns eq "jabber:server" ||
+                 $ns eq "jabber:client") ?
                  "" : " xmlns='$ns'";
     my $innards = $self->innards_as_xml($nsmap, $ns, $def_ns);
     $innards = "..." if $DJabberd::ASXML_NO_INNARDS && $innards;
