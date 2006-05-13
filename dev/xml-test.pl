@@ -89,14 +89,23 @@ my $diff = diff(\$full_events, \$streamed_events);
 is($diff, "", "events match either way");
 
 # byte at a time
+my $n = 0;
 my $byte_events;
-{
-    my $handler = EventRecorder->new(\$byte_events);
-    my $p       = $factory->parser(Handler => $handler);
-    foreach my $byte (split(//, $fulldoc)) {
-        $p->$iter_method($byte);
+while (1) {
+    $n++;
+    if ($n % 1000 == 0) {
+        print "$n\n";
+    }
+
+    {
+        my $handler = EventRecorder->new(\$byte_events);
+        my $p       = $factory->parser(Handler => $handler);
+        foreach my $byte (split(//, $fulldoc)) {
+            $p->$iter_method($byte);
+        }
     }
 }
+
 $diff = diff(\$full_events, \$byte_events);
 is($diff, "", "events match doing it byte-at-a-time");
 
