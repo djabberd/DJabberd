@@ -246,8 +246,13 @@ sub get_secret_key {
 
 sub get_secret_key_by_handle {
     my ($self, $handle, $cb) = @_;
-    $cb->($self->{server_secret}) if $handle eq "i";  # internal
-    $cb->(undef);  # bogus handle
+    if ($handle eq "i") {
+        # internal
+        $cb->($self->{server_secret});
+    } else {
+        # bogus handle.  currently only handle "i" is supported.
+        $cb->(undef);
+    }
 }
 
 # FIXME: need to hmac not just stream_id, but (stream_id,origsever,recvserver)
