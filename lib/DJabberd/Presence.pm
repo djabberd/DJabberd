@@ -54,10 +54,7 @@ sub unavailable_stanza {
 
 sub type {
     my $self = shift;
-    return
-        $self->attr("{jabber:client}type") ||
-        $self->attr("{jabber:server}type") ||
-        $self->attr("{}type");
+    return $self->attr("{}type");
 }
 
 sub fail {

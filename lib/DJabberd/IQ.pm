@@ -112,13 +112,13 @@ sub process_iq_setroster {
     }
 
     # {=xmpp-ip-7.6-must-ignore-subscription-values}
-    my $subattr  = $item->attr('{jabber:iq:roster}subscription') || "";
+    my $subattr  = $item->attr('{}subscription') || "";
     my $removing = $subattr eq "remove" ? 1 : 0;
 
-    my $jid = $item->attr("{jabber:iq:roster}jid")
+    my $jid = $item->attr("{}jid")
         or return $iq->send_error;
 
-    my $name = $item->attr("{jabber:iq:roster}name");
+    my $name = $item->attr("{}name");
 
     # find list of group names to add/update.  can ignore
     # if we're just removing.
@@ -285,11 +285,11 @@ sub process_iq_setauth {
 
 
 sub id {
-    return $_[0]->attr("{jabber:client}id");
+    return $_[0]->attr("{}id");
 }
 
 sub type {
-    return $_[0]->attr("{jabber:client}type");
+    return $_[0]->attr("{}type");
 }
 
 sub query {

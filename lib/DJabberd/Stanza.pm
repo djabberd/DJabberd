@@ -83,18 +83,12 @@ sub delivery_failure {
 
 sub to {
     my $self = shift;
-    return
-        $self->attr("{jabber:client}to") ||
-        $self->attr("{jabber:server}to") ||
-        $self->attr("{}to");
+    return $self->attr("{}to");
 }
 
 sub from {
     my $self = shift;
-    return
-        $self->attr("{jabber:client}from") ||
-        $self->attr("{jabber:server}from") ||
-        $self->attr("{}from");
+    return $self->attr("{}from");
 }
 
 sub to_jid {
@@ -109,14 +103,12 @@ sub from_jid {
 
 sub set_from {
     my ($self, $from) = @_;
-    my $ns = $self->namespace;
-    return $self->set_attr("{$ns}from", ref $from ? $from->as_string : $from);
+    return $self->set_attr("{}from", ref $from ? $from->as_string : $from);
 }
 
 sub set_to {
     my ($self, $to) = @_;
-    my $ns = $self->namespace;
-    return $self->set_attr("{$ns}to", ref $to ? $to->as_string : $to);
+    return $self->set_attr("{}to", ref $to ? $to->as_string : $to);
 }
 
 1;

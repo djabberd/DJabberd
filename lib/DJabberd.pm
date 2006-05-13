@@ -5,7 +5,6 @@ use Carp;
 use Danga::Socket 1.51;
 use IO::Socket::INET;
 use POSIX ();
-use XML::SAX::Expat;
 
 use DJabberd::VHost;
 use DJabberd::Callback;

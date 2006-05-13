@@ -107,7 +107,7 @@ sub on_stanza_received {
         return $self->SUPER::process_stanza_builtin($node);
     }
 
-    unless ($node->attr("{jabber:server:dialback}type") eq "valid") {
+    unless ($node->attr("{}type") eq "valid") {
         # FIXME: also verify other attributes
         warn "Not valid?\n";
         return;

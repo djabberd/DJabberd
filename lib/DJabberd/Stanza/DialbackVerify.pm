@@ -30,18 +30,18 @@ sub acceptable_from_server { 1 }
 
 sub verify_stream_id {
     my $self = shift;
-    return $self->attr("{jabber:server:dialback}id");
+    return $self->attr("{}id");
 }
 
 sub dialback_to {
     my $self = shift;
-    return $self->attr("{jabber:server:dialback}to");
+    return $self->attr("{}to");
 }
 *recv_server = \&dialback_to;
 
 sub dialback_from {
     my $self = shift;
-    return $self->attr("{jabber:server:dialback}from");
+    return $self->attr("{}from");
 }
 *orig_server = \&dialback_from;
 

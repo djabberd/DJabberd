@@ -27,7 +27,7 @@ use fields (
 our $connection_id = 1;
 
 use XML::SAX ();
-use XML::SAX::Expat::Incremental 0.04;
+use DJabberd::XMLParser;
 use Digest::SHA1 qw(sha1_hex);
 
 use DJabberd::SAXHandler;
@@ -107,8 +107,15 @@ sub log_incoming_data {
 sub start_new_parser {
     my $self = shift;
 
+    if (my $oldp = $self->{parser}) {
+        # libxml reentrancy issue again.  see Connection close method comments.
+        Danga::Socket->AddTimer(1, sub {
+            $oldp->finish_push;
+        });;
+    }
+
     my $jabberhandler = $self->{'jabberhandler'} = DJabberd::SAXHandler->new($self);
-    my $p = XML::SAX::Expat::Incremental->new( Handler => $jabberhandler );
+    my $p = DJabberd::XMLParser->new( Handler => $jabberhandler );
     $self->{parser} = $p;
 }
 
@@ -407,7 +414,7 @@ sub event_read {
     $self->log->debug("$self->{id} parsing $len bytes...") unless $len == 1;
 
     eval {
-        $p->parse_more($$bref);
+        $p->parse_chunk_scalarref($bref);
     };
     if ($@) {
         # FIXME: give them stream error before closing them,
@@ -584,21 +591,15 @@ sub close {
     my $p       = $self->{parser};
     my $handler = $self->{jabberhandler};
 
-    # this is beautiful.  fuck xml.  <3 Devel::Cycle.
-    $p->_expat_obj->release if $p->_expat_obj;
-    delete $p->{Methods};
-    delete $p->{Handler};
-    delete $handler->{Methods};
-    delete $p->{_xml_parser_obj}{Handlers};
-    delete $p->{_xml_parser_obj}{_HNDL_TYPES};
-    delete $p->{_xml_parser_obj};
-    delete $p->{_expat_nb_obj}{_Setters};
-    delete $p->{_expat_nb_obj}{FinalHandler};
-    delete $p->{_expat_nb_obj}{__XSE};
+    # libxml isn't reentrant apparently, so we can't finish_push
+    # from inside an existint callback.  so schedule for a bit later.
+    # this probably could be 0 seconds later, but who cares.
+    Danga::Socket->AddTimer(1, sub {
+        $p->finish_push;
+    });
 
     $self->SUPER::close;
 }
-
 
 # DJabberd::Connection
 sub event_err { my $self = shift; $self->close; }

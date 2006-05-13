@@ -90,8 +90,6 @@ sub end_element {
         }
         return;
     }
-
-    #print Dumper("END", $data);
 }
 
 sub _nodes_from_events {
@@ -137,12 +135,7 @@ sub _nodes_from_events {
         my $attr = {};
         foreach my $key (keys %$attr_sax) {
             my $val = $attr_sax->{$key}{Value};
-            my $fkey = $key;
-            if ($fkey =~ s!^\{\}!!) {
-                next if $fkey eq "xmlns";
-                $fkey = "{$ns}$fkey";
-            }
-            $attr->{$fkey} = $val;
+            $attr->{$key} = $val;
         }
 
         my $localname = $ev->[1]{LocalName};

@@ -91,10 +91,10 @@ is($diff, "", "events match either way");
 # byte at a time
 my $n = 0;
 my $byte_events;
-while (1) {
+while ($n < ($ENV{BYTE_RUNS} || 1)) {
     $n++;
-    if ($n % 1000 == 0) {
-        print "$n\n";
+    if ($n % 10 == 0) {
+        warn "$n\n";
     }
 
     {
@@ -103,16 +103,39 @@ while (1) {
         foreach my $byte (split(//, $fulldoc)) {
             $p->$iter_method($byte);
         }
+        my $rv = $p->finish_push;  # cleanup
+        #    use Devel::Cycle;
+        #   find_cycle($p);
     }
 }
+
+#print `top -p $$ -b -n 1`;
 
 $diff = diff(\$full_events, \$byte_events);
 is($diff, "", "events match doing it byte-at-a-time");
 
 print $byte_events;
 
+# check leaks
+{
+    my $nothing = XML::SAX::Base->new;
+    my $p       = $factory->parser(Handler => $nothing);
+    $p->$iter_method("<open>");
+    my $n = 0;
+    while ($n < ($ENV{MEMORY_RUNS} || 500)) {
+        $n++;
+        warn "MB = $n\n";
+        $p->$iter_method("<data>" . ("X" x (2 ** 20)) . "</data>");
+    }
+    $p->finish_push;
+
+}
+sleep 30;
+
 #$p->parse_done;
 ok(1);
+
+
 
 package EventRecorder;
 use strict;
@@ -121,6 +144,7 @@ use Data::Dumper;
 
 sub new {
     my ($class, $outref) = @_;
+    $$outref = "";
     return bless {
         outref => $outref,
     };
@@ -149,6 +173,7 @@ use XML::SAX::Base;
 use base qw(XML::SAX::Base);
 use Carp;
 use Data::Dumper;
+use Scalar::Util qw(weaken);
 
 sub new {
     my ($class, @params) = @_;
@@ -169,6 +194,13 @@ sub parse_chunk {
     my ( $self, $chunk ) = @_;
     my $libxml = $self->{LibParser};
     my $rv = $libxml->push($chunk);
+}
+
+sub finish_push {
+    my $self = shift;
+    return 1 unless $self->{LibParser};
+    my $parser = delete $self->{LibParser};
+    return eval { $parser->finish_push };
 }
 
 

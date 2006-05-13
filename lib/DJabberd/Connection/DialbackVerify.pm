@@ -94,7 +94,7 @@ sub on_stanza_received {
         return $self->SUPER::process_stanza_builtin($node);
     }
 
-    my $id = $node->attr("{jabber:server:dialback}id");
+    my $id = $node->attr("{}id");
     my $cb = $self->{final_cb};
 
     # currently we only do one at a time per connection, so that's why it must match.
@@ -105,7 +105,7 @@ sub on_stanza_received {
         return;
     }
 
-    if ($node->attr("{jabber:server:dialback}type") ne "valid") {
+    if ($node->attr("{}type") ne "valid") {
         $cb->fail("invalid");
         $self->close;
         return;
