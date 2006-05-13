@@ -242,7 +242,6 @@ sub process_iq_setauth {
     };
 
     my $reject = sub {
-        # FIXME: more info?
         $iq->send_reply("error", qq{<error code='401' type='auth'><not-authorized xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/></error>});
         return 1;
     };

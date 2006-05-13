@@ -87,6 +87,7 @@ sub run_hook_chain {
     my $methods  = delete $opts{'methods'} || {};
     my $args     = delete $opts{'args'}    || [];
     my $fallback = delete $opts{'fallback'};
+    my $hook_inv = delete $opts{'hook_invocant'} || $self;
     die if %opts;
 
     # make phase into an arrayref;
@@ -109,7 +110,7 @@ sub run_hook_chain {
         my $hk = shift @hooks
             or return;
 
-        $hk->($self,
+        $hk->($hook_inv,
               DJabberd::Callback->new(
                                       decline    => $try_another,
                                       declined   => $try_another,
@@ -126,6 +127,12 @@ sub run_hook_chain {
                                       %$methods,
                                       ),
               @$args);
+
+        # experiment in stopping the common case of leaks
+        unless (@hooks) {
+            $hook_logger->debug("Destroying hooks for phase $phase->[0]");
+            $try_another = undef;
+        }
     };
 
     $try_another->();

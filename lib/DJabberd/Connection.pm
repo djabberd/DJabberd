@@ -152,66 +152,13 @@ sub stream_id {
     return $self->{stream_id} ||= Digest::SHA1::sha1_hex(rand() . rand() . rand());
 }
 
+# DEPRECATED:
 sub run_hook_chain {
     my $self = shift;
     my %opts = @_;
-
-    my $phase    = delete $opts{'phase'};
-    my $methods  = delete $opts{'methods'} || {};
-    my $args     = delete $opts{'args'}    || [];
-    my $fallback = delete $opts{'fallback'};
-    die if %opts;
-
-    # make phase into an arrayref;
-    $phase = [ $phase ] unless ref $phase;
-
-    my @hooks;
-    if ($self->{vhost}) {
-        foreach my $ph (@$phase) {
-            croak("Undocumented hook phase: '$ph'") unless
-                $DJabberd::HookDocs::hook{$ph};
-            push @hooks, @{ $self->{vhost}->{hooks}->{$ph} || [] };
-        }
-    }
-    push @hooks, $fallback if $fallback;
-
-    my $try_another;
-    my $stopper = tsub {
-        $try_another = undef;
-    };
-    $try_another = tsub {
-
-        my $hk = shift @hooks
-            or return;
-
-        # TODO: look into circular references on closures
-        $hk->($self,
-              DJabberd::Callback->new(
-                                      decline    => $try_another,
-                                      declined   => $try_another,
-                                      stop_chain => $stopper,
-                                      _post_fire => sub {
-                                          # when somebody fires this callback, we know
-                                          # we're done (unless it was decline/declined)
-                                          # and we need to clean up circular references
-                                          my $fired = shift;
-                                          unless ($fired =~ /^decline/) {
-                                              $try_another = undef;
-                                          }
-                                      },
-                                      %$methods,
-                                      ),
-              @$args);
-
-        # experiment in stopping the common case of leaks
-        unless (@hooks) {
-            $hook_logger->debug("Destroying hooks for phase $phase->[0]");
-            $try_another = undef;
-        }
-
-    };
-
-    $try_another->();
+    $opts{hook_invocant} = $self;
+    Carp::carp("deprecated caller of run_hook_chain on a connection");
+    return $self->vhost->run_hook_chain(%opts);
 }
 
 sub vhost {
