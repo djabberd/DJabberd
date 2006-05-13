@@ -3,7 +3,6 @@
 use strict;
 use lib 'lib';
 use Test::More 'no_plan';
-use Devel::Cycle;
 
 BEGIN {
     $ENV{LOGLEVEL} = "WARN";
