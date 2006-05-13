@@ -32,6 +32,15 @@ sub srv {
     $port ||= 5269 if $service eq "_xmpp-server._tcp";
     croak("No specified 'port'") unless $port;
 
+    # testing support
+    if ($service eq "_xmpp-server._tcp") {
+        my $endpt = DJabberd->fake_s2s_peer($hostname);
+        if ($endpt) {
+            $callback->($endpt);
+            return;
+        }
+    }
+
     my $pkt = Net::DNS::Packet->new("$service.$hostname", "SRV", "IN");
 
     $logger->debug("pkt = $pkt");
@@ -127,9 +136,6 @@ sub event_read_srv {
         $a->priority <=> $b->priority ||
         $a->weight   <=> $b->weight
     } grep { ref $_ eq "Net::DNS::RR::SRV"} @ans;
-
-    use Data::Dumper;
-    warn Dumper(\@targets);
 
     unless (@targets) {
         # no result, fallback to an A lookup

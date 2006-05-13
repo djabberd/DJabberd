@@ -78,9 +78,15 @@ sub set_config_serverport {
     $self->{s2s_port} = as_num($val);
 }
 
+our %fake_peers;
 sub set_fake_s2s_peer {
     my ($self, $host, $ipendpt) = @_;
-    $self->{fake_peers}{$host} = $ipendpt;
+    $fake_peers{$host} = $ipendpt;
+}
+
+sub fake_s2s_peer {
+    my ($self, $host) = @_;
+    return $fake_peers{$host};
 }
 
 sub add_vhost {

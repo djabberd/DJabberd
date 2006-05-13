@@ -10,22 +10,20 @@ sub two_parties {
     my $cb = shift;
 
     two_parties_one_server($cb);
-#    two_parties_s2s($cb);
+    sleep 1;
+    two_parties_s2s($cb);
+    sleep 1;
 }
 
 sub two_parties_one_server {
     my $cb = shift;
 
     my $server = Test::DJabberd::Server->new(id => 1);
-    print "pre start...\n";
     $server->start;
-    print "post start...\n";
 
     my $pa = Test::DJabberd::Client->new(server => $server, name => "partya");
     my $pb = Test::DJabberd::Client->new(server => $server, name => "partyb");
-    print "pre callback...\n";
     $cb->($pa, $pb);
-    print "post callback...\n";
 
     $server->kill;
 }
@@ -40,8 +38,8 @@ sub two_parties_s2s {
     $server1->start;
     $server2->start;
 
-    my $pa = start_client($server1);
-    my $pb = start_client($server2);
+    my $pa = Test::DJabberd::Client->new(server => $server1, name => "partya");
+    my $pb = Test::DJabberd::Client->new(server => $server2, name => "partyb");
     $cb->($pa, $pb);
 
     $server1->kill;
@@ -224,7 +222,6 @@ sub login {
         $response = "<password>password</password>";
     } elsif ($authreply =~ /\bdigest\b/) {
         use Digest::SHA1 qw(sha1_hex);
-        print "streamstart id = " . $ss->id . "\n";
         my $dig = lc(sha1_hex($ss->id . "password"));
         $response = "<digest>$dig</digest>";
     } else {
