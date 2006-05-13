@@ -2,6 +2,7 @@
 
 use strict;
 use Test::More tests => 4;
+use lib 't/lib';
 
 require 'djabberd-test.pl';
 
