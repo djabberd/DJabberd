@@ -94,10 +94,10 @@ sub as_xml {
 
     my ($ns, $el) = $self->element;
 
-    # FIXME: escaping
     my $attr_str = "";
     my $attr = $self->attrs;
     foreach my $k (keys %$attr) {
+        next if $k eq "{}xmlns";
         my $value = $attr->{$k};
         # FIXME: ignoring all namespaces on attributes
         $k =~ s!^\{(.*)\}!!;
