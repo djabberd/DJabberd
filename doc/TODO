@@ -24,3 +24,8 @@ cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...
 
     print Dumper("eobj = " . eval { $self->{parser}->_expat_obj->current_byte });
     $VAR1 = 'eobj = 22';
+
+
+-- when a server goes away, we still have a queue for it and don't reestablish connections with it
+   send message from server a to server b, kill server a, start it again
+   now messages can from a to b but not from b to a
