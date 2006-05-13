@@ -5,22 +5,28 @@ package DJabberd::Stanza::DialbackVerify;
 use strict;
 use base qw(DJabberd::Stanza);
 
+use DJabberd::Log;
+our $logger = DJabberd::Log->get_logger();
+
 sub process {
     my ($self, $conn) = @_;
 
-    warn "Processing dialback verify for $self\n";
+
+    $logger->debug("Procesing dialback verify for connection $conn->{id}");
+
+
     my $vhost = $conn->vhost;
 
     $vhost->verify_callback(result_text => $self->result_text,
                             stream_id   => $self->verify_stream_id,
                             on_success  => sub {
-                                warn " ... dialback verify valid.\n";
+                                $logger->debug("Dialback verify success for connection $conn->{id}");
                                 $conn->dialback_verify_valid(recv_server => $self->recv_server,
                                                              orig_server => $self->orig_server,
                                                              id          => $self->verify_stream_id);
                             },
                             on_failure => sub {
-                                warn " ... dialback verify failure.\n";
+                                $logger->warn("Dialback verify success for connection $conn->{id}");
                                 $conn->dialback_verify_invalid;
                             });
 }

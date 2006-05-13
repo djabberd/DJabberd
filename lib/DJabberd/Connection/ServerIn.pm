@@ -115,7 +115,7 @@ sub dialback_verify_valid {
     # according to page 45 of the spec we have to send the ID back
     my $res = qq{<db:verify from='$opts{recv_server}' to='$opts{orig_server}' id='$opts{id}' type='valid'/>};
 
-    warn "Dialback verify valid for $self.  from=$opts{recv_server}, to=$opts{orig_server}: $res\n";
+    $self->log->debug("Dialback verify valid for connection $self->{id}.  from=$opts{recv_server}, to=$opts{orig_server}: $res\n");
     $self->write($res);
 }
 
@@ -132,7 +132,7 @@ sub dialback_result_valid {
     my $res = qq{<db:result from='$opts{recv_server}' to='$opts{orig_server}' type='valid'/>};
     $self->{verified_remote_domain} = $opts{orig_server};
 
-    warn "Dialback result valid for $self.  from=$opts{recv_server}, to=$opts{orig_server}: $res\n";
+    $self->log->debug("Dialback result valid for connection $self->{id}.  from=$opts{recv_server}, to=$opts{orig_server}: $res\n");
     $self->write($res);
 }
 

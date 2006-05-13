@@ -33,7 +33,7 @@ sub new {
 # called by Connection::ServerOut constructor
 sub set_connection {
     my ($self, $conn) = @_;
-    warn "$self connection set to $conn ...\n";
+    $logger->debug("Set connection for queue to '$self->{domain}' to connection '$conn->{id}'");
     $self->{connection} = $conn;
 }
 
@@ -75,9 +75,10 @@ sub failed_to_connect {
 # called by our connection when it's connected
 sub on_connection_connected {
     my ($self, $conn) = @_;
-    warn "connection connected!  from ($self)1  conn=$conn, selfcon=$self->{connection}\n";
+    $logger->debug("connection $conn->{id} connected!  from ($self->{domain})  conn=$conn->{id}, selfcon=$self->{connection}->{id}");
+
+    # TODO why are we this checking here?
     return unless $conn == $self->{connection};
-    warn "connection connected!  from ($self)2\n";
 
     $self->{state} = CONNECTED;
     while (my $qi = shift @{ $self->{to_deliver} }) {

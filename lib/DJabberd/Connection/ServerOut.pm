@@ -65,14 +65,14 @@ sub event_write {
 sub on_stream_start {
     my ($self, $ss) = @_;
 
-    warn "We got a stream back from $self!\n";
+    $self->log->debug("We got a stream back from connection $self->{id}!\n");
     unless ($ss->announced_dialback) {
-        warn "  .. they don't support dialback.  fail for now.\n";
+        $self->log->warn("Connection $self->{id} doesn't support dialbacl, failing");
         $self->{queue}->on_connection_failed($self, "no dialback");
         return;
     }
 
-    warn " ... they support dialback.\n";
+    $self->log->debug("Connection $self->{id} supports dialback");
 
     if ($ss->version->supports_features) {
         # they can eat a dick for all we care.  they get no features.
@@ -114,7 +114,7 @@ sub on_stanza_received {
         return;
     }
 
-    warn "connection connected!  from ($self)\n";
+    $self->log->debug("Connection $self->{id} established");
     $self->{queue}->on_connection_connected($self);
 }
 

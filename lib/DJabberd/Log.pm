@@ -1,7 +1,7 @@
 
 package DJabberd::Log::Junk;
 
-use Log::Log4perl qw();
+use Log::Log4perl qw(:resurrect);
 
 package DJabberd::Log;
 use strict;

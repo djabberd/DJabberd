@@ -5,6 +5,8 @@ use DJabberd::Util qw(tsub as_bool);
 use DJabberd::Log;
 use Digest::HMAC_SHA1 qw(hmac_sha1_hex);
 
+
+
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::VHost");
 
@@ -263,11 +265,11 @@ sub get_secret_key_by_handle {
 #
 sub generate_dialback_result {
     my ($self, $stream_id, $cb) = @_;
-    warn "generate_dialback_result($stream_id, $cb) ...\n";
+    $logger->info("Generating diablack result for vhost $self->{server_name} for stream $stream_id");
     $self->get_secret_key(sub {
         my ($shandle, $secret) = @_;
         my $res = join("-", $shandle, hmac_sha1_hex($stream_id, $secret));
-        warn "res = $res, from handle=$shandle, stream_id=$stream_id, secret=$secret\n";
+        $logger->debug("Generated dialback result '$res' using secret '$secret, handle '$shandle' and stream '$stream_id'");
         $cb->($res);
     });
 }
@@ -281,11 +283,11 @@ sub verify_callback {
     Carp::croak("args") if %args;
 
     my ($handle, $digest) = split(/-/, $restext);
-    warn "verify callback, restext=[$restext], stream_id = $stream_id\n";
+    $logger->debug("verify callback, restext=[$restext], stream_id = $stream_id");
 
     $self->get_secret_key_by_handle($handle, sub {
         my $secret = shift;
-        warn "secret by handle is = $secret\n";
+        $logger->debug("Secret handle is '$secret'");
 
         # bogus handle if no secret
         unless ($secret) {
@@ -295,10 +297,8 @@ sub verify_callback {
 
         my $proper_digest = hmac_sha1_hex($stream_id, $secret);
         if ($digest eq $proper_digest) {
-            warn "proper digest!\n";
             $on_success->();
         } else {
-            warn "bad digest!\n";
             $on_failure->();
         }
     });
