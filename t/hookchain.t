@@ -2,6 +2,9 @@
 
 use strict;
 use Test::More tests => 4;
+BEGIN {
+    $ENV{LOGLEVEL} = "WARN";
+}
 use DJabberd;
 use Scalar::Util qw(weaken);
 

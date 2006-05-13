@@ -90,7 +90,7 @@ for my $n (1..500) {
         return $ev;
     };
 
-    warn "connect $n/500\n" if $n % 50 == 0;
+    diag("connect $n/500\n") if $n % 50 == 0;
     $conn = IO::Socket::INET->new(PeerAddr => "127.0.0.1:5222", Timeout => 1);
 
     print $conn qq{
