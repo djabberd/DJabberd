@@ -4,6 +4,11 @@ use strict;
 use lib 'lib';
 use Test::More 'no_plan';
 use Devel::Cycle;
+
+BEGIN {
+    $ENV{LOGLEVEL} = "WARN";
+}
+
 use DJabberd;
 use DJabberd::Authen::AllowedUsers;
 use DJabberd::Authen::StaticPassword;
@@ -11,7 +16,6 @@ use DJabberd::TestSAXHandler;
 use DJabberd::RosterStorage::SQLite;
 use DJabberd::RosterStorage::Dummy;
 use DJabberd::RosterStorage::LiveJournal;
-#use XML::LibXML::SAX;
 use FindBin qw($Bin);
 
 my $roster = "$Bin/test-roster.dat";
@@ -22,12 +26,12 @@ my $vhost = DJabberd::VHost->new(
                                  s2s         => 0,
                                  plugins   => [
                                                DJabberd::Authen::AllowedUsers->new(policy => "deny",
-                                                                                   allowed => [qw(tester)]),
+                                                                                   allowedusers => [qw(tester)]),
                                                DJabberd::Authen::StaticPassword->new(password => "password"),
                                                DJabberd::PresenceChecker::Local->new(),
                                                DJabberd::Delivery::Local->new(),
                                                DJabberd::Delivery::S2S->new(),
-                                               DJabberd::RosterStorage::SQLite->new($roster),
+                                               DJabberd::RosterStorage::SQLite->new(database => $roster),
                                                ],
                                  );
 
@@ -40,8 +44,6 @@ if (!$childpid) {
     $server->run;
     exit 0;
 }
-
-$SIG{INT} = sub { kill 9, $childpid; exit 0; };
 
 use IO::Socket::INET;
 my $conn;
@@ -58,12 +60,16 @@ my $err = sub {
     die $_[0];
 };
 
+END {
+    kill 9, $childpid;
+}
+
 $err->("Can't connect to server") unless $conn;
 
 use Devel::Peek;
 
 $conn->close;
-for (1..2500) {
+for my $n (1..500) {
 
     my @events;
     my ($handler, $p);
@@ -85,7 +91,7 @@ for (1..2500) {
         return $ev;
     };
 
-    print "connect $_/500\n";
+    warn "connect $n/500\n" if $n % 50 == 0;
     $conn = IO::Socket::INET->new(PeerAddr => "127.0.0.1:5222", Timeout => 1);
 
     print $conn qq{
@@ -95,24 +101,14 @@ for (1..2500) {
     };
 
     my $ss = $get_stream_start->();
-    print "got a streamstart: $ss\n";
+    die unless $ss && $ss->id;
 
-    ok($ss, "got a stream back");
-    ok($ss->id, "got a stream id back");
+    if ($n == 1) {
+        ok($ss, "got a stream back");
+        ok($ss->id, "got a stream id back");
+    }
 
     $p->finish_push;
-
-#    find_cycle($p);
-
-#    exit 0;
-
-    #$p->parse_done;
     $conn->close;
-
-
-#    use Data::Dumper;
-#    print Dumper($p, $handler);
 }
 
-print "Sleeping for 50....\n";
-sleep 50;

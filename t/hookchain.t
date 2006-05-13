@@ -1,7 +1,7 @@
 # -*-perl-*-
 
 use strict;
-use Test::More 'no_plan';
+use Test::More tests => 4;
 use DJabberd;
 use Scalar::Util qw(weaken);
 

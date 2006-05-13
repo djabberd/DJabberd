@@ -582,7 +582,7 @@ sub close_stream {
 
 sub close {
     my DJabberd::Connection $self = shift;
-    warn "DISCONNECT: $self\n";
+    $self->log->debug("DISCONNECT: $self->{id}\n");
 
     if (my $ssl = $self->{ssl}) {
         Net::SSLeay::free($ssl);

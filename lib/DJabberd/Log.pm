@@ -19,24 +19,28 @@ our $logger;
 unless ($has_run) {
 
     my $used_file;
-    foreach my $conffile ("/etc/djabberd/log.conf",
-                          "etc/djabberd.log",
-                          "etc/djabberd.log.default") {
+    my @locations = ("/etc/djabberd/log.conf",
+                     "etc/djabberd.log",
+                     "etc/djabberd.log.default");
+    @locations = () if $ENV{LOGLEVEL};
+    foreach my $conffile (@locations) {
         next unless -e $conffile;
         Log::Log4perl->init_and_watch($conffile, 1);
         $logger = Log::Log4perl->get_logger();
         $used_file = $conffile;
     }
 
+    my $loglevel = $ENV{LOGLEVEL} || "WARN";
+
     unless ($used_file) {
         my $conf = qq{
-log4perl.logger.DJabberd = DEBUG, screen
-log4perl.logger.DJabberd.Hook = WARN
+log4perl.logger.DJabberd = $loglevel, screen
+log4perl.logger.DJabberd.Hook = $loglevel
 
 # This psuedo class is used to control if raw XML is to be showed or not
 # at DEBUG it shows all raw traffic
 # at INFO  it censors out the actual data
-log4perl.logger.DJabberd.Connection.XML = INFO
+log4perl.logger.DJabberd.Connection.XML = $loglevel
 
 log4perl.appender.screen = Log::Log4perl::Appender::ScreenColoredLevels
 log4perl.appender.screen.layout = Log::Log4perl::Layout::PatternLayout
