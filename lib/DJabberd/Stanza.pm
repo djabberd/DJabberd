@@ -48,23 +48,34 @@ sub set_connection {
 # at this point, it's assumed the stanza has passed filtering checks,
 # and should be delivered.
 sub deliver {
-    my ($stanza, $conn) = @_;
+    my ($stanza, $arg) = @_;
 
-    $conn->vhost->run_hook_chain(phase => "deliver",
-                                 args  => [ $stanza ],
-                                 methods => {
-                                     delivered => sub { },
-                                     # FIXME: in future, this should note deliver was
-                                     # complete and the next message to this jid should be dequeued and
-                                     # subsequently delivered.  (in order deliver)
-                                     error => sub {
-                                         my $reason = $_[1];
-                                         $stanza->delivery_failure($conn, $reason);
-                                     },
-                                 },
-                                 fallback => sub {
-                                     $stanza->delivery_failure($conn);
-                                 });
+    # arg can be a connection, vhost, or nothing.  TODO: kinda ghetto.  fix callers?
+    my $vhost;
+    if (UNIVERSAL::isa($arg, "DJabberd::VHost")) {
+        $vhost = $arg;
+    } elsif (UNIVERSAL::isa($arg, "DJabberd::Connection")) {
+        $vhost = $arg->vhost;
+    } elsif ($stanza->{connection}) {
+        $vhost = $stanza->{connection}->vhost;
+    }
+    Carp::croak("Can't determine vhost") unless $vhost;
+
+    $vhost->run_hook_chain(phase => "deliver",
+                           args  => [ $stanza ],
+                           methods => {
+                               delivered => sub { },
+                               # FIXME: in future, this should note deliver was
+                               # complete and the next message to this jid should be dequeued and
+                               # subsequently delivered.  (in order deliver)
+                               error => sub {
+                                   my $reason = $_[1];
+                                   $stanza->delivery_failure($vhost, $reason);
+                               },
+                           },
+                           fallback => sub {
+                               $stanza->delivery_failure($vhost);
+                           });
 }
 
 # by default, stanzas need to and from coming from a server
@@ -78,7 +89,7 @@ sub acceptable_from_server {
 }
 
 sub delivery_failure {
-    my ($self, $conn, $reason) = @_;
+    my ($self, $vh, $reason) = @_;
     #warn "$self has no ->delivery_failure method implemented\n";
 }
 

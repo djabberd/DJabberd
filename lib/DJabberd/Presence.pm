@@ -58,7 +58,7 @@ sub type {
 }
 
 sub fail {
-    my ($self, $conn, $reason) = @_;
+    my ($self, $vhost, $reason) = @_;
     # TODO: figure this out (presence type='error' stuff, when?)
     warn "PRESENCE FAILURE: $reason\n";
     return;
@@ -68,19 +68,19 @@ sub fail {
 # is somebody on our domain.  TODO: IQs are going to need
 # this same out-vs-in processing.  it should be generic.
 sub procdeliver {
-    my ($self, $conn) = @_;
-    # FIXME: the $conn here is kinda useless.  it can means lots
-    # of things.  generally we only need it to find the vhost
-    # or to run hook chains.  it has nothing to do with the
-    # sender/recipient of the packet, lame as it is.  all that
-    # info is in the attributes of the element.
+    my ($self, $vhost) = @_;
+
+    if ($vhost->isa("DJabberd::Connection")) {
+        warn "Deprecated arg of connection to procdeliver at " . join(", ", caller);
+        $vhost = $vhost->vhost;
+    }
 
     my $contact_jid = $self->to_jid or die;
-    if ($conn->vhost->handles_jid($contact_jid)) {
+    if ($vhost->handles_jid($contact_jid)) {
         my $clone = $self->clone;
-        $clone->process_inbound($conn);
+        $clone->process_inbound($vhost);
     } else {
-        $self->deliver($conn);
+        $self->deliver($vhost);
     }
 }
 
@@ -96,7 +96,7 @@ sub process_outbound {
     my $bjid = $conn->bound_jid;
     return 0 unless $bjid;
 
-    return $self->fail($conn, "bogus type") unless $type =~ /^\w+$/;
+    return $self->fail($conn->vhost, "bogus type") unless $type =~ /^\w+$/;
 
     my $meth = "_process_outbound_$type";
     eval { $self->$meth($conn) };
@@ -107,49 +107,49 @@ sub process_outbound {
 }
 
 sub process_inbound {
-    my ($self, $conn) = @_;
+    my ($self, $vhost) = @_;
     my $type      = $self->type || "available";
-    #warn "INBOUND presence from $conn, type = '$type'\n";
-    return $self->fail($conn, "bogus type") unless $type =~ /^\w+$/;
+
+    return $self->fail($vhost, "bogus type") unless $type =~ /^\w+$/;
 
     my $to_jid    = $self->to_jid
-        or return $self->fail($conn, "no/invalid 'to' attribute");
+        or return $self->fail($vhost, "no/invalid 'to' attribute");
     my $from_jid  = $self->from_jid
-        or return $self->fail($conn, "no/invalid 'from' attribute");
+        or return $self->fail($vhost, "no/invalid 'from' attribute");
 
     # find the RosterItem corresponding to this sender, and only once we have
     # it, invoke the next handler
-    $conn->vhost->run_hook_chain(phase => "RosterLoadItem",
-                          args  => [ $to_jid, $from_jid ],
-                          methods => {
-                              error   => sub {
-                                  my ($cb, $reason) = @_;
-                                  return $self->fail($conn, "RosterLoadItem hook failed: $reason");
-                              },
-                              set => sub {
-                                  my ($cb, $ritem) = @_;
+    $vhost->run_hook_chain(phase => "RosterLoadItem",
+                           args  => [ $to_jid, $from_jid ],
+                           methods => {
+                               error   => sub {
+                                   my ($cb, $reason) = @_;
+                                   return $self->fail($vhost, "RosterLoadItem hook failed: $reason");
+                               },
+                               set => sub {
+                                   my ($cb, $ritem) = @_;
 
-                                  my $meth = "_process_inbound_$type";
-                                  eval { $self->$meth($conn, $ritem, $from_jid) };
-                                  if ($@) {
-                                      warn "  ... ERROR: [$@].\n";
-                                  }
-                              },
-                          });
+                                   my $meth = "_process_inbound_$type";
+                                   eval { $self->$meth($vhost, $ritem, $from_jid) };
+                                   if ($@) {
+                                       warn "  ... ERROR: [$@].\n";
+                                   }
+                               },
+                           });
 }
 
 sub _process_inbound_available {
-    my ($self, $conn, $ritem) = @_;
-    $self->deliver($conn);
+    my ($self, $vhost, $ritem) = @_;
+    $self->deliver($vhost);
 }
 
 sub _process_inbound_unavailable {
-    my ($self, $conn, $ritem) = @_;
-    $self->deliver($conn);
+    my ($self, $vhost, $ritem) = @_;
+    $self->deliver($vhost);
 }
 
 sub _process_inbound_subscribe {
-    my ($self, $conn, $ritem, $from_jid) = @_;
+    my ($self, $vhost, $ritem, $from_jid) = @_;
 
     my $subs = $ritem ? $ritem->subscription : "";
     my $to_jid = $self->to_jid;
@@ -158,12 +158,12 @@ sub _process_inbound_subscribe {
     if ($ritem && $ritem->subscription->sub_from) {
         my $subd = DJabberd::Presence->make_subscribed(to   => $from_jid,
                                                        from => $to_jid);
-        $subd->procdeliver($conn);
+        $subd->procdeliver($vhost);
 
         # let's ack like they probed us too, so we send them our presence.
         my $probe = DJabberd::Presence->probe(from => $from_jid,
                                               to   => $to_jid);
-        $probe->procdeliver($conn);
+        $probe->procdeliver($vhost);
         return;
     }
 
@@ -183,20 +183,20 @@ sub _process_inbound_subscribe {
     # mark the roster item as pending-in, and save it:
     $ritem->subscription->set_pending_in;
 
-    $conn->vhost->run_hook_chain(phase => "RosterSetItem",
-                          args  => [ $to_jid, $ritem ],
-                          methods => {
-                              done => sub {
-                                  # no roster push, i don't think.  (TODO: re-read spec)
-                                  $self->deliver($conn);
-                              },
-                              error => sub { my $reason = $_[1]; },
-                          },
-                          );
+    $vhost->run_hook_chain(phase => "RosterSetItem",
+                           args  => [ $to_jid, $ritem ],
+                           methods => {
+                               done => sub {
+                                   # no roster push, i don't think.  (TODO: re-read spec)
+                                   $self->deliver($vhost);
+                               },
+                               error => sub { my $reason = $_[1]; },
+                           },
+                           );
 }
 
 sub _process_inbound_subscribed {
-    my ($self, $conn, $ritem) = @_;
+    my ($self, $vhost, $ritem) = @_;
 
     # MUST ignore inbound subscribed if we weren't awaiting
     # its arrival
@@ -207,26 +207,26 @@ sub _process_inbound_subscribed {
     #warn "processing inbound subscribed...\n";
     $ritem->subscription->got_inbound_subscribed;
 
-    $conn->vhost->run_hook_chain(phase => "RosterSetItem",
-                          args  => [ $to_jid, $ritem ],
-                          methods => {
-                              done => sub {
-                                  $conn->vhost->roster_push($to_jid, $ritem);
+    $vhost->run_hook_chain(phase => "RosterSetItem",
+                           args  => [ $to_jid, $ritem ],
+                           methods => {
+                               done => sub {
+                                   $vhost->roster_push($to_jid, $ritem);
 
-                                  my $probe = DJabberd::Presence->probe(from => $to_jid,
-                                                                        to   => $ritem->jid);
-                                  $probe->procdeliver($conn);  # FIXME: lame that we need to pass $conn;
+                                   my $probe = DJabberd::Presence->probe(from => $to_jid,
+                                                                         to   => $ritem->jid);
+                                   $probe->procdeliver($vhost);
 
-                                  # TODO: pass along the subscribed packet from its source: (XMPP-IM 9.3)
-                              },
-                              error => sub { my $reason = $_[1]; },
-                          },
-                          );
+                                   # TODO: pass along the subscribed packet from its source: (XMPP-IM 9.3)
+                               },
+                               error => sub { my $reason = $_[1]; },
+                           },
+                           );
 
 }
 
 sub _process_inbound_probe {
-    my ($self, $conn, $ritem, $from_jid) = @_;
+    my ($self, $vhost, $ritem, $from_jid) = @_;
     return unless $ritem && $ritem->subscription->sub_from;
 
     my $jid = $self->to_jid;
@@ -239,25 +239,25 @@ sub _process_inbound_probe {
 
     # this hook chain is a little different, it's expected
     # to always fall through to the end.
-    $conn->vhost->run_hook_chain(phase => "PresenceCheck",
-                          args  => [ $jid, $add_presence ],
-                          fallback => sub {
-                              # send them
-                              foreach my $fullstr (keys %map) {
-                                  my $stanza = $map{$fullstr};
-                                  my $to_send = $stanza->clone;
-                                  $to_send->set_to($from_jid);
-                                  $to_send->deliver($conn);
-                              }
-                          },
-                          );
+    $vhost->run_hook_chain(phase => "PresenceCheck",
+                           args  => [ $jid, $add_presence ],
+                           fallback => sub {
+                               # send them
+                               foreach my $fullstr (keys %map) {
+                                   my $stanza = $map{$fullstr};
+                                   my $to_send = $stanza->clone;
+                                   $to_send->set_to($from_jid);
+                                   $to_send->deliver($vhost);
+                               }
+                           },
+                           );
 }
 
-# TODO: make this broadcast_from a JID, not a connection, just for
-# cleanliness, once we can run hook chains on vhosts, not conns
 sub broadcast_from {
     my ($self, $conn) = @_;
+
     my $from_jid = $conn->bound_jid;
+    my $vhost    = $conn->vhost;
 
     my $broadcast = sub {
         my $roster = shift;
@@ -266,18 +266,18 @@ sub broadcast_from {
             my $dpres = $self->clone;
             $dpres->set_to($it->jid);
             $dpres->set_from($from_jid);
-            $dpres->procdeliver($conn);
+            $dpres->procdeliver($vhost);
         }
     };
 
-    $conn->vhost->run_hook_chain(phase => "RosterGet",
-                                 args  => [ $conn->bound_jid ],
-                                 methods => {
-                                     set_roster => sub {
-                                         my (undef, $roster) = @_;
-                                         $broadcast->($roster);
-                                     },
-                                 });
+    $vhost->run_hook_chain(phase => "RosterGet",
+                           args  => [ $from_jid ],
+                           methods => {
+                               set_roster => sub {
+                                   my (undef, $roster) = @_;
+                                   $broadcast->($roster);
+                               },
+                           });
 }
 
 sub _process_outbound_available {
@@ -323,7 +323,7 @@ sub _process_outbound_subscribe {
     # between parties
 
     my $deliver = sub {
-        $self->procdeliver($conn);
+        $self->procdeliver($conn->vhost);
     };
 
     my $save = sub {
@@ -411,7 +411,7 @@ sub _process_outbound_subscribed_with_ritem {
                                  methods => {
                                      done => sub {
                                          # TODO: roster push
-                                         $self->procdeliver($conn);
+                                         $self->procdeliver($conn->vhost);
                                      },
                                      error => sub { my $reason = $_[1]; },
                                  },

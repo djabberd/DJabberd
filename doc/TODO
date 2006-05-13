@@ -4,6 +4,10 @@ cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...
 -- $stanza->process and $stanza->deliver take a $conn, but
    now that stanzas always know their connection, that
    parameter is kinda useless.  remove them all?
+     -- actually, we should also store a non-weak vhost ref
+        in stanzas, then use that for delivery/etc, since
+        conn as a weakref can go away if client disconnects
+        and we may still want to process/deliver.
 
 -- Jingle/Asterisk stuff:
 

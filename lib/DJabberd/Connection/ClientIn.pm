@@ -188,7 +188,7 @@ sub switch_incoming_client_builtin {
         return;
     }
 
-    $stanza->deliver($self);
+    $stanza->deliver;
 }
 
 1;
