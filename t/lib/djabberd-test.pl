@@ -1,3 +1,7 @@
+BEGIN {
+    $ENV{LOGLEVEL} ||= "WARN";
+}
+
 use DJabberd;
 use DJabberd::Authen::AllowedUsers;
 use DJabberd::Authen::StaticPassword;
@@ -5,6 +9,16 @@ use DJabberd::TestSAXHandler;
 use DJabberd::RosterStorage::SQLite;
 use DJabberd::RosterStorage::Dummy;
 use DJabberd::RosterStorage::LiveJournal;
+
+sub once_logged_in {
+    my $cb = shift;
+    my $server = Test::DJabberd::Server->new(id => 1);
+    $server->start;
+    my $pa = Test::DJabberd::Client->new(server => $server, name => "partya");
+    $pa->login;
+    $cb->($pa);
+    $server->kill;
+}
 
 sub two_parties {
     my $cb = shift;
@@ -142,13 +156,17 @@ sub kill {
 package Test::DJabberd::Client;
 use strict;
 
-
 use overload
     '""' => \&as_string;
 
 sub as_string {
     my $self = shift;
     return $self->{name} . '@' . $self->{server}->hostname;
+}
+
+sub server {
+    my $self = shift;
+    return $self->{server};
 }
 
 sub new {
@@ -200,14 +218,14 @@ sub login {
     my $self = shift;
     my $sock;
     for (1..3) {
-        $sock = IO::Socket::INET->new(PeerAddr => "127.0.0.1:" . $self->{server}->clientport, Timeout => 1);
+        $sock = IO::Socket::INET->new(PeerAddr => "127.0.0.1:" . $self->server->clientport, Timeout => 1);
         last if $sock;
         sleep 1;
     }
     $self->{sock} = $sock
         or die "Cannot connect to server " . $self->server->id;
 
-    my $to = $self->{server}->hostname;
+    my $to = $self->server->hostname;
 
     print $sock "
    <stream:stream
