@@ -2,11 +2,6 @@ package DJabberd::Authen;
 use strict;
 use base 'DJabberd::Plugin';
 
-sub new {
-    my ($class) = @_;
-    return bless {}, $class;
-}
-
 sub register {
     my ($self, $server) = @_;
     if ($self->can_retrieve_cleartext) {

@@ -79,8 +79,8 @@ sub set_config_serverport {
 }
 
 sub set_fake_s2s_peer {
-    my ($self, $host, $ipport) = @_;
-    $self->{fake_peers}{$host} = $ipport;
+    my ($self, $host, $ipendpt) = @_;
+    $self->{fake_peers}{$host} = $ipendpt;
 }
 
 sub add_vhost {

@@ -12,12 +12,12 @@ sub set_config_policy {
 
 sub set_config_allowedusers {
     my ($self, $val) = @_;
-    $self->{allowed} = [ split(/\s+/, $val) ];
+    $self->{allowed} = ref $val ? $val : [ split(/\s+/, $val) ];
 }
 
 sub set_config_deniedusers {
     my ($self, $val) = @_;
-    $self->{denied} = [ split(/\s+/, $val) ];
+    $self->{denied} = ref $val ? $val : [ split(/\s+/, $val) ];
 }
 
 sub finalize {

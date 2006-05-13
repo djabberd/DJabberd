@@ -4,8 +4,13 @@ use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger();
 
 sub new {
-    my $class = shift;
-    return bless {}, $class;
+    my ($class, @config) = @_;
+    my $self = bless {}, $class;
+    while (my ($k, $v) = splice(@config, 0, 2)) {
+        my $meth = "set_config_$k";
+        $self->$meth($v);
+    }
+    return $self;
 }
 
 # called when </Plugin> line is parsed.  you can die here if the object hasn't

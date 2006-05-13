@@ -176,19 +176,18 @@ sub process_iq_getauth {
     my ($conn, $iq) = @_;
     # <iq type='get' id='gaimf46fbc1e'><query xmlns='jabber:iq:auth'><username>brad</username></query></iq>
 
-    my $child = $iq->query->first_element
-        or return;
-
-    return 0 unless $child->element eq "{jabber:iq:auth}username";
-
     # force SSL by not letting them login
     if ($conn->vhost->requires_ssl && ! $conn->ssl) {
         $conn->stream_error("policy-violation", "Local policy requires use of SSL before authentication.");
         return;
     }
 
-    my $username = $child->first_child;
-    die "Element in username field?" if ref $username;
+    my $username = "";
+    my $child = $iq->query->first_element;
+    if ($child && $child->element eq "{jabber:iq:auth}username") {
+        $username = $child->first_child;
+        die "Element in username field?" if ref $username;
+    }
 
     my $id = $iq->id;
 
@@ -259,7 +258,7 @@ sub process_iq_setauth {
                                       if ($password && $password eq $good_password) {
                                           $accept->();
                                       } elsif ($digest) {
-                                          my $good_dig = Digest::SHA1::sha1_hex($conn->{stream_id} . $good_password);
+                                          my $good_dig = lc(Digest::SHA1::sha1_hex($conn->{stream_id} . $good_password));
                                           if ($good_dig eq $digest) {
                                               $accept->();
                                           } else {
