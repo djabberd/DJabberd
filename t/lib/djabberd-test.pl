@@ -54,6 +54,16 @@ sub start_client {
 package Test::DJabberd::Server;
 use strict;
 
+
+
+use overload
+    '""' => \&as_string;
+
+sub as_string {
+    my $self = shift;
+    return $self->hostname;
+}
+
 sub new {
     my $class = shift;
     my $self = bless {@_}, $class;
