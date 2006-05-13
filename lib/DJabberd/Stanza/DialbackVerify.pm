@@ -17,7 +17,7 @@ sub process {
                                 warn " ... dialback verify valid.\n";
                                 $conn->dialback_verify_valid(recv_server => $self->recv_server,
                                                              orig_server => $self->orig_server,
-                                                             id          => $self->attrs->{"{jabber:server:dialback}id"});
+                                                             id          => $self->verify_stream_id);
                             },
                             on_failure => sub {
                                 warn " ... dialback verify failure.\n";
