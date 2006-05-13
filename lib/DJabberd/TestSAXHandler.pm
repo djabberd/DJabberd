@@ -87,9 +87,4 @@ sub end_element {
 
 *_nodes_from_events = \&DJabberd::SAXHandler::_nodes_from_events;
 
-sub DESTROY {
-    #warn "TestSAXHandler destroyed";
-    $_[0]->SUPER::DESTROY();
-}
-
 1;

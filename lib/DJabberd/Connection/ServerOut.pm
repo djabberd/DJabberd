@@ -29,7 +29,7 @@ sub new {
         return;
     }
     IO::Handle::blocking($sock, 0);
-    my $ip = $endpt->addr;
+    $ip = $endpt->addr;
     connect $sock, Socket::sockaddr_in($endpt->port, Socket::inet_aton($ip));
 
     my $self = $class->SUPER::new($sock, $queue->vhost->server);
