@@ -438,7 +438,7 @@ sub start_init_stream {
     my DJabberd::Connection  $self = shift;
     my %opts = @_;
     my $extra_attr = delete $opts{'extra_attr'} || "";
-    my $domain     = delete $opts{'domain'} || Carp::croak("need domain");
+    my $to         = delete $opts{'to'} || Carp::croak("need 'to' domain");
     die if %opts;
 
     # {=init-version-is-max} -- we must announce the highest version we support
@@ -446,7 +446,7 @@ sub start_init_stream {
     my $ver_attr    = $our_version->as_attr_string;
 
     # {=xml-lang}
-    my $xml = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream to='$domain' xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:server' xml:lang='en' $extra_attr $ver_attr>};
+    my $xml = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream to='$to' xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:server' xml:lang='en' $extra_attr $ver_attr>};
     $self->log_outgoing_data($xml);
     $self->write($xml);
 }

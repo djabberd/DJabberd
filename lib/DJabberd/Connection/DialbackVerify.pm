@@ -56,7 +56,8 @@ sub event_write {
     if ($self->{state} eq "connecting") {
         $self->{state} = "connected";
         $self->log->debug("$self->{id} connected for DialbackResult " . $self->{db_result}->orig_server);
-        $self->start_init_stream(extra_attr => "xmlns:db='jabber:server:dialback'", domain => $self->{db_result}->recv_server);
+        $self->start_init_stream(extra_attr => "xmlns:db='jabber:server:dialback'",
+                                 to         => $self->{db_result}->orig_server);
         $self->watch_read(1);
     } else {
         return $self->SUPER::event_write;
