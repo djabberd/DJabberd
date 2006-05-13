@@ -217,8 +217,7 @@ sub _process_inbound_subscribed {
                                                                         to   => $ritem->jid);
                                   $probe->procdeliver($conn);  # FIXME: lame that we need to pass $conn;
 
-                                  # pass along the subscribed packet from its source: (XMPP-IM 9.3)
-                                  $self->procdeliver($conn);
+                                  # TODO: pass along the subscribed packet from its source: (XMPP-IM 9.3)
                               },
                               error => sub { my $reason = $_[1]; },
                           },
