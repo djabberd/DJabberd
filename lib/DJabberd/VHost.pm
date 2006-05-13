@@ -8,7 +8,7 @@ use Digest::HMAC_SHA1 qw(hmac_sha1_hex);
 
 
 our $logger = DJabberd::Log->get_logger();
-our $hook_logger = DJabberd::Log->get_logger("DJabberd::VHost");
+our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
 
 sub new {
     my ($class, %opts) = @_;
