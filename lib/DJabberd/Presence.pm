@@ -119,7 +119,7 @@ sub process_inbound {
 
     # find the RosterItem corresponding to this sender, and only once we have
     # it, invoke the next handler
-    $conn->run_hook_chain(phase => "RosterLoadItem",
+    $conn->vhost->run_hook_chain(phase => "RosterLoadItem",
                           args  => [ $to_jid, $from_jid ],
                           methods => {
                               error   => sub {
@@ -183,7 +183,7 @@ sub _process_inbound_subscribe {
     # mark the roster item as pending-in, and save it:
     $ritem->subscription->set_pending_in;
 
-    $conn->run_hook_chain(phase => "RosterSetItem",
+    $conn->vhost->run_hook_chain(phase => "RosterSetItem",
                           args  => [ $to_jid, $ritem ],
                           methods => {
                               done => sub {
@@ -207,7 +207,7 @@ sub _process_inbound_subscribed {
     #warn "processing inbound subscribed...\n";
     $ritem->subscription->got_inbound_subscribed;
 
-    $conn->run_hook_chain(phase => "RosterSetItem",
+    $conn->vhost->run_hook_chain(phase => "RosterSetItem",
                           args  => [ $to_jid, $ritem ],
                           methods => {
                               done => sub {
@@ -239,7 +239,7 @@ sub _process_inbound_probe {
 
     # this hook chain is a little different, it's expected
     # to always fall through to the end.
-    $conn->run_hook_chain(phase => "PresenceCheck",
+    $conn->vhost->run_hook_chain(phase => "PresenceCheck",
                           args  => [ $jid, $add_presence ],
                           fallback => sub {
                               # send them
@@ -270,13 +270,14 @@ sub broadcast_from {
         }
     };
 
-    $conn->run_hook_chain(phase => "RosterGet",
-                          methods => {
-                              set_roster => sub {
-                                  my (undef, $roster) = @_;
-                                  $broadcast->($roster);
-                              },
-                          });
+    $conn->vhost->run_hook_chain(phase => "RosterGet",
+                                 args  => [ $conn->bound_jid ],
+                                 methods => {
+                                     set_roster => sub {
+                                         my (undef, $roster) = @_;
+                                         $broadcast->($roster);
+                                     },
+                                 });
 }
 
 sub _process_outbound_available {
@@ -327,16 +328,16 @@ sub _process_outbound_subscribe {
 
     my $save = sub {
         my $ritem = shift;
-        $conn->run_hook_chain(phase => "RosterSetItem",
-                              args  => [ $from_jid, $ritem ],
-                              methods => {
-                                  done => sub {
-                                      # TODO: roster push, then:
-                                      $deliver->();
-                                  },
-                                  error => sub { my $reason = $_[1]; },
-                              },
-                              );
+        $conn->vhost->run_hook_chain(phase => "RosterSetItem",
+                                     args  => [ $from_jid, $ritem ],
+                                     methods => {
+                                         done => sub {
+                                             # TODO: roster push, then:
+                                             $deliver->();
+                                         },
+                                         error => sub { my $reason = $_[1]; },
+                                     },
+                                     );
     };
 
     my $on_load = sub {
@@ -354,15 +355,15 @@ sub _process_outbound_subscribe {
         }
     };
 
-    $conn->run_hook_chain(phase => "RosterLoadItem",
-                          args  => [ $from_jid, $contact_jid ],
-                          methods => {
-                              error   => sub {
-                                  my (undef, $reason) = @_;
-                                  return $self->fail($conn, "RosterLoadItem hook failed: $reason");
-                              },
-                              set => $on_load,
-                          });
+    $conn->vhost->run_hook_chain(phase => "RosterLoadItem",
+                                 args  => [ $from_jid, $contact_jid ],
+                                 methods => {
+                                     error   => sub {
+                                         my (undef, $reason) = @_;
+                                         return $self->fail($conn, "RosterLoadItem hook failed: $reason");
+                                     },
+                                     set => $on_load,
+                                 });
 }
 
 
@@ -373,27 +374,27 @@ sub _process_outbound_subscribed {
     my $contact_jid = $self->to_jid
         or return $self->fail($conn, "no/invalid 'to' attribute");
 
-    $conn->run_hook_chain(phase => "RosterLoadItem",
-                          args  => [ $conn->bound_jid, $contact_jid ],
-                          methods => {
-                              error   => sub {
-                                  my (undef, $reason) = @_;
-                                  return $self->fail($conn, "RosterLoadItem hook failed: $reason");
-                              },
-                              set => sub {
-                                  my (undef, $ritem) = @_;
+    $conn->vhost->run_hook_chain(phase => "RosterLoadItem",
+                                 args  => [ $conn->bound_jid, $contact_jid ],
+                                 methods => {
+                                     error   => sub {
+                                         my (undef, $reason) = @_;
+                                         return $self->fail($conn, "RosterLoadItem hook failed: $reason");
+                                     },
+                                     set => sub {
+                                         my (undef, $ritem) = @_;
 
-                                  # not in roster, skip.
-                                  return unless $ritem;
+                                         # not in roster, skip.
+                                         return unless $ritem;
 
-                                  my $subs = $ritem->subscription;
+                                         my $subs = $ritem->subscription;
 
-                                  # skip unless we were in pending in state
-                                  return unless $subs->pending_in;
+                                         # skip unless we were in pending in state
+                                         return unless $subs->pending_in;
 
-                                  $self->_process_outbound_subscribed_with_ritem($conn, $ritem);
-                              },
-                          });
+                                         $self->_process_outbound_subscribed_with_ritem($conn, $ritem);
+                                     },
+                                 });
 }
 
 # second stage of outbound 'subscribed' processing, once we load the item and
@@ -405,16 +406,16 @@ sub _process_outbound_subscribed_with_ritem {
 
     my $subs = $ritem->subscription;
 
-    $conn->run_hook_chain(phase => "RosterSetItem",
-                          args  => [ $conn->bound_jid, $ritem ],
-                          methods => {
-                              done => sub {
-                                  # TODO: roster push
-                                  $self->procdeliver($conn);
-                              },
-                              error => sub { my $reason = $_[1]; },
-                          },
-                          );
+    $conn->vhost->run_hook_chain(phase => "RosterSetItem",
+                                 args  => [ $conn->bound_jid, $ritem ],
+                                 methods => {
+                                     done => sub {
+                                         # TODO: roster push
+                                         $self->procdeliver($conn);
+                                     },
+                                     error => sub { my $reason = $_[1]; },
+                                 },
+                                 );
 }
 
 

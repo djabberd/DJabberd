@@ -97,7 +97,13 @@ sub run_hook_chain {
     foreach my $ph (@$phase) {
         $logger->logcroak("Undocumented hook phase: '$ph'") unless
             $DJabberd::HookDocs::hook{$ph};
-        push @hooks, @{ $self->{hooks}->{$ph} || [] };
+
+        # self can be undef if the connection object invokes us.
+        # because sometimes there is no vhost, as in the case of
+        # old serverin dialback without a to address.
+        if ($self) {
+            push @hooks, @{ $self->{hooks}->{$ph} || [] };
+        }
     }
     push @hooks, $fallback if $fallback;
 

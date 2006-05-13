@@ -48,13 +48,14 @@ sub send_presence_probes {
         }
     };
 
-    $self->run_hook_chain(phase => "RosterGet",
-                          methods => {
-                              set_roster => sub {
-                                  my (undef, $roster) = @_;
-                                  $send_probes->($roster);
-                              },
-                          });
+    $self->vhost->run_hook_chain(phase => "RosterGet",
+                                 args  => [ $self->bound_jid ],
+                                 methods => {
+                                     set_roster => sub {
+                                         my (undef, $roster) = @_;
+                                         $send_probes->($roster);
+                                     },
+                                 });
 }
 
 sub close {
@@ -123,14 +124,14 @@ sub on_stanza_received {
     # same variable as $node, but down(specific)-classed.
     my $stanza = $class->downbless($node, $self);
 
-    $self->run_hook_chain(phase => "filter_incoming_client",
-                          args  => [ $stanza ],
-                          methods => {
-                              reject => sub { },  # just stops the chain
-                          },
-                          fallback => sub {
-                              $self->filter_incoming_client_builtin($stanza);
-                          });
+    $self->vhost->run_hook_chain(phase => "filter_incoming_client",
+                                 args  => [ $stanza, $self ],
+                                 methods => {
+                                     reject => sub { },  # just stops the chain
+                                 },
+                                 fallback => sub {
+                                     $self->filter_incoming_client_builtin($stanza);
+                                 });
 }
 
 sub is_authenticated_jid {
@@ -160,15 +161,15 @@ sub filter_incoming_client_builtin {
         $stanza->set_from($bj->as_string) if $bj;
     }
 
-    $self->run_hook_chain(phase => "switch_incoming_client",
-                          args  => [ $stanza ],
-                          methods => {
-                              process => sub { $stanza->process($self) },
-                              deliver => sub { $stanza->deliver($self) },
-                          },
-                          fallback => sub {
-                              $self->switch_incoming_client_builtin($stanza);
-                          });
+    $self->vhost->run_hook_chain(phase => "switch_incoming_client",
+                                 args  => [ $stanza ],
+                                 methods => {
+                                     process => sub { $stanza->process($self) },
+                                     deliver => sub { $stanza->deliver($self) },
+                                 },
+                                 fallback => sub {
+                                     $self->switch_incoming_client_builtin($stanza);
+                                 });
 }
 
 sub switch_incoming_client_builtin {

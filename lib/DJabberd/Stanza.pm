@@ -50,21 +50,21 @@ sub set_connection {
 sub deliver {
     my ($stanza, $conn) = @_;
 
-    $conn->run_hook_chain(phase => "deliver",
-                          args  => [ $stanza ],
-                          methods => {
-                              delivered => sub { },
-                              # FIXME: in future, this should note deliver was
-                              # complete and the next message to this jid should be dequeued and
-                              # subsequently delivered.  (in order deliver)
-                              error => sub {
-                                  my $reason = $_[1];
-                                  $stanza->delivery_failure($conn, $reason);
-                              },
-                          },
-                          fallback => sub {
-                              $stanza->delivery_failure($conn);
-                          });
+    $conn->vhost->run_hook_chain(phase => "deliver",
+                                 args  => [ $stanza ],
+                                 methods => {
+                                     delivered => sub { },
+                                     # FIXME: in future, this should note deliver was
+                                     # complete and the next message to this jid should be dequeued and
+                                     # subsequently delivered.  (in order deliver)
+                                     error => sub {
+                                         my $reason = $_[1];
+                                         $stanza->delivery_failure($conn, $reason);
+                                     },
+                                 },
+                                 fallback => sub {
+                                     $stanza->delivery_failure($conn);
+                                 });
 }
 
 # by default, stanzas need to and from coming from a server
@@ -73,6 +73,7 @@ sub acceptable_from_server {
     my ($to, $from) = ($self->to_jid, $self->from_jid);
     return 0 unless $to && $from;
     return 0 unless $from->domain eq $conn->peer_domain;
+    #return 0 unless $conn->vhost;  FIXME?  yes?
     return 1;
 }
 

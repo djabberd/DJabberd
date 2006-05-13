@@ -43,14 +43,16 @@ $hook{'pre_stanza_write'} = {
 };
 
 $hook{'c2s-iq'} = {};
-$hook{'deliver'} = {};
+$hook{'deliver'} = {
+    args => ['Stanza'],
+};
 
 $hook{'RosterGet'} = {
-    args => [],
+    args => ['JID'],
     callbacks => {
-
+        set_roster => [ 'Roster' ],
     },
-    des  => "Retrieve a user's roster.",
+    des  => "Retrieve user JID's roster.",
 };
 
 $hook{'RosterRemoveItem'} = {

@@ -88,9 +88,6 @@ sub filter_incoming_server_builtin {
 sub switch_incoming_server_builtin {
     my ($self, $stanza) = @_;
 
-    # FIXME: we want to process here.. like for presence and stuff later,
-    # but for now all we care about is message delivery.  ghettos:
-
     if ($stanza->isa("DJabberd::Stanza::DialbackResult") ||
         $stanza->isa("DJabberd::Stanza::DialbackVerify"))
     {

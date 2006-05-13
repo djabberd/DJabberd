@@ -10,30 +10,27 @@ use DJabberd::RosterItem;
 sub register {
     my ($self, $vhost) = @_;
     $vhost->register_hook("RosterGet", sub {
-        my ($conn, $cb) = @_;
+        my ($vh, $cb, $jid) = @_;
         # cb can '->set_roster(Roster)' or decline
-        my $jid = $conn->bound_jid;
         $self->get_roster($cb, $jid);
     });
     $vhost->register_hook("RosterAddUpdateItem", sub {
-        my ($conn, $cb, $ritem) = @_;
-        my $jid = $conn->bound_jid;
+        my ($vh, $cb, $jid, $ritem) = @_;
         # $cb takes ->done($ritem_final) or error
         $self->addupdate_roster_item($cb, $jid, $ritem);
     });
     $vhost->register_hook("RosterRemoveItem", sub {
-        my ($conn, $cb, $ritem) = @_;
-        my $jid = $conn->bound_jid;
+        my ($vh, $cb, $jid, $ritem) = @_;
         $self->delete_roster_item($cb, $jid, $ritem);
     });
     $vhost->register_hook("RosterLoadItem", sub {
-        my ($conn, $cb, $user_jid, $contact_jid) = @_;
+        my ($vh, $cb, $user_jid, $contact_jid) = @_;
         # cb can 'set($data|undef)' and 'error($reason)'
         $self->load_roster_item($user_jid, $contact_jid, $cb);
     });
 
     $vhost->register_hook("RosterSetItem", sub {
-        my (undef, $cb, $user_jid, $ritem) = @_;
+        my ($vh, $cb, $user_jid, $ritem) = @_;
         # cb can ->error($reason) and ->done()
         $self->set_roster_item($cb, $user_jid, $ritem);
     });

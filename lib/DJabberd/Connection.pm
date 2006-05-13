@@ -152,13 +152,17 @@ sub stream_id {
     return $self->{stream_id} ||= Digest::SHA1::sha1_hex(rand() . rand() . rand());
 }
 
-# DEPRECATED:
+# only use this run_hook_chain when
 sub run_hook_chain {
     my $self = shift;
     my %opts = @_;
     $opts{hook_invocant} = $self;
-    Carp::carp("deprecated caller of run_hook_chain on a connection");
-    return $self->vhost->run_hook_chain(%opts);
+    my ($pkg, $filename, $line) = caller;
+    my $vhost = $self->vhost;
+    if ($vhost) {
+        warn("DEPRECATED caller ($pkg/$filename/$line) of run_hook_chain on a connection\n");
+    }
+    return DJabberd::VHost::run_hook_chain($vhost, %opts);
 }
 
 sub vhost {
@@ -237,18 +241,18 @@ sub send_stanza {
         return $cloned;
     };
 
-    $self->run_hook_chain(phase => "pre_stanza_write",
-                          args  => [ $getter ],
-                          methods => {
-                              # TODO: implement.
-                          },
-                          fallback => tsub {
-                              # if any hooks called the $getter, instantiating
-                              # the $cloned copy, then that's what we write.
-                              # as an optimization (the fast path), we just
-                              # write the untouched, uncloned original.
-                              $self->write_stanza($cloned || $stanza);
-                          });
+    $self->vhost->run_hook_chain(phase => "pre_stanza_write",
+                                 args  => [ $getter ],
+                                 methods => {
+                                     # TODO: implement.
+                                 },
+                                 fallback => tsub {
+                                     # if any hooks called the $getter, instantiating
+                                     # the $cloned copy, then that's what we write.
+                                     # as an optimization (the fast path), we just
+                                     # write the untouched, uncloned original.
+                                     $self->write_stanza($cloned || $stanza);
+                                 });
 }
 
 sub write_stanza {

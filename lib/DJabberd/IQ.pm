@@ -20,18 +20,18 @@ sub process {
         'set-{jabber:iq:auth}query' => \&process_iq_setauth,
     };
 
-    $conn->run_hook_chain(phase    => "c2s-iq",
-                          args     => [ $self ],
-                          fallback => sub {
-                              my $sig = $self->signature;
-                              my $meth = $handler->{$sig};
-                              unless ($meth) {
-                                  $self->send_error;
-                                  $logger->warn("Unknown IQ packet: $sig");
-                                  return;
-                              }
-                              $meth->($conn, $self);
-                          });
+    $conn->vhost->run_hook_chain(phase    => "c2s-iq",
+                                 args     => [ $self ],
+                                 fallback => sub {
+                                     my $sig = $self->signature;
+                                     my $meth = $handler->{$sig};
+                                     unless ($meth) {
+                                         $self->send_error;
+                                         $logger->warn("Unknown IQ packet: $sig");
+                                         return;
+                                     }
+                                     $meth->($conn, $self);
+                                 });
 }
 
 sub signature {
@@ -87,18 +87,19 @@ sub process_iq_getroster {
         $iq->send_result_raw($roster->as_xml);
     };
 
-    $conn->run_hook_chain(phase => "RosterGet",
-                          methods => {
-                              set_roster => sub {
-                                  my ($self, $roster) = @_;
-                                  $logger->debug("set_roster called in process_iq_getroster");
-                                  $send_roster->($roster);
-                              },
-                          },
-                          fallback => sub {
-                              $logger->debug("Fallback RosterGet invoked");
-                              $send_roster->(DJabberd::Roster->new()),
-                          });
+    $conn->vhost->run_hook_chain(phase => "RosterGet",
+                                 args  => [ $conn->bound_jid ],
+                                 methods => {
+                                     set_roster => sub {
+                                         my ($self, $roster) = @_;
+                                         $logger->debug("set_roster called in process_iq_getroster");
+                                         $send_roster->($roster);
+                                     },
+                                 },
+                                 fallback => sub {
+                                     $logger->debug("Fallback RosterGet invoked");
+                                     $send_roster->(DJabberd::Roster->new()),
+                                 });
     return 1;
 }
 
@@ -138,36 +139,36 @@ sub process_iq_setroster {
 
     # {=add-item-to-roster}
     my $phase = $removing ? "RosterRemoveItem" : "RosterAddUpdateItem";
-    $conn->run_hook_chain(phase   => $phase,
-                          args    => [ $ritem ],
-                          methods => {
-                              done => sub {
-                                  my ($self, $ritem_final) = @_;
+    $conn->vhost->run_hook_chain(phase   => $phase,
+                                 args    => [ $conn->bound_jid, $ritem ],
+                                 methods => {
+                                     done => sub {
+                                         my ($self, $ritem_final) = @_;
 
-                                  # the RosterRemoveItem isn't required to return the final item
-                                  $ritem_final = $ritem if $removing;
+                                         # the RosterRemoveItem isn't required to return the final item
+                                         $ritem_final = $ritem if $removing;
 
-                                  $iq->send_result;
-                                  $conn->vhost->roster_push($conn->bound_jid, $ritem_final);
+                                         $iq->send_result;
+                                         $conn->vhost->roster_push($conn->bound_jid, $ritem_final);
 
-                                  # TODO: section 8.6: must send a
-                                  # bunch of presence
-                                  # unsubscribe/unsubscribed messages
-                              },
-                              error => sub {
-                                  $iq->send_error;
-                              },
-                          },
-                          fallback => sub {
-                              if ($removing) {
-                                  # NOTE: we used to send an error here, but clients get
-                                  # out of sync and we need to let them think a delete
-                                  # happened even if it didn't.
-                                  $iq->send_result;
-                              } else {
-                                  $iq->send_error;
-                              }
-                          });
+                                         # TODO: section 8.6: must send a
+                                         # bunch of presence
+                                         # unsubscribe/unsubscribed messages
+                                     },
+                                     error => sub {
+                                         $iq->send_error;
+                                     },
+                                 },
+                                 fallback => sub {
+                                     if ($removing) {
+                                         # NOTE: we used to send an error here, but clients get
+                                         # out of sync and we need to let them think a delete
+                                         # happened even if it didn't.
+                                         $iq->send_result;
+                                     } else {
+                                         $iq->send_error;
+                                     }
+                                 });
 
     return 1;
 }
@@ -225,16 +226,18 @@ sub process_iq_setauth {
 
     return unless $username =~ /^\w+$/;
 
+    my $vhost = $conn->vhost;
+
     my $accept = sub {
         $conn->{authed}   = 1;
         $conn->{username} = $username;
         $conn->{resource} = $resource;
 
         # register
-        my $sname = $conn->vhost->name;
+        my $sname = $vhost->name;
         my $jid = DJabberd::JID->new("$username\@$sname/$resource");
 
-        $conn->vhost->register_jid($jid, $conn);
+        $vhost->register_jid($jid, $conn);
         $conn->set_bound_jid($jid);
 
         $iq->send_result;
@@ -246,10 +249,10 @@ sub process_iq_setauth {
         return 1;
     };
 
-    my $can_get_password = $conn->vhost->are_hooks("GetPassword");
+    my $can_get_password = $vhost->are_hooks("GetPassword");
 
     if ($can_get_password) {
-        $conn->run_hook_chain(phase => "GetPassword",
+        $vhost->run_hook_chain(phase => "GetPassword",
                               args  => [ username => $username, conn => $conn ],
                               methods => {
                                   set => sub {
@@ -270,7 +273,7 @@ sub process_iq_setauth {
                               },
                               fallback => $reject);
     } else {
-        $conn->run_hook_chain(phase => "CheckCleartext",
+        $vhost->run_hook_chain(phase => "CheckCleartext",
                               args => [ username => $username, conn => $conn, password => $password ],
                               methods => {
                                   accept => $accept,

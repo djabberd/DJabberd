@@ -17,7 +17,8 @@ sub new {
 }
 
 sub deliver {
-    my ($self, $conn, $cb, $stanza) = @_;
+    my ($self, $vhost, $cb, $stanza) = @_;
+    die unless $vhost == $self->{vhost}; # sanity check
 
     my $to = $stanza->to_jid
         or return $cb->declined;
@@ -25,7 +26,6 @@ sub deliver {
     $logger->debug("s2s delivery attempt for $to");
 
     # don't initiate outgoing connections back to ourself
-    my $vhost  = $self->{vhost};
     my $domain = $to->domain;
     if ($vhost->name eq $domain) {
         $logger->debug("Not doing s2s to ourself");
@@ -38,7 +38,6 @@ sub deliver {
         $cb->declined;
         return;
     }
-
 
     # FIXME: let get_conn_for_domain return an error code or something
     # which we can then pass along smarter to the callback, so client gets
