@@ -6,6 +6,8 @@ use DJabberd;
 use Scalar::Util qw(weaken);
 
 my $server = DJabberd->new;
+my $vhost = DJabberd::VHost->new(server_name => "foo");
+$server->add_vhost($vhost);
 DJabberd::HookDocs->allow_hook("Foo");
 DJabberd::HookDocs->allow_hook("Nothing");
 
@@ -17,7 +19,7 @@ my $track_obj;
 # that can't be optimized away
 my $outside;
 
-$server->register_hook("Foo", sub {
+$vhost->register_hook("Foo", sub {
     my ($srv, $cb, @args) = @_;
     $cb->baz;
 });
@@ -28,7 +30,7 @@ $server->register_hook("Foo", sub {
     $track_obj = \$obj;
     weaken($track_obj);
 
-    $server->run_hook_chain(phase   => "Foo",
+    $vhost->run_hook_chain(phase   => "Foo",
                             args    => [ $obj, "arg2", "arg3" ],
                             methods => {
                                 bar => sub {
@@ -50,7 +52,7 @@ is($track_obj, undef, "ref in args destroyed");
     $track_obj = \$obj;
     weaken($track_obj);
 
-    $server->run_hook_chain(phase   => "Foo",
+    $vhost->run_hook_chain(phase   => "Foo",
                             args    => [ "arg1", "arg2" ],
                             methods => {
                                 bar => sub {
@@ -72,7 +74,7 @@ is($track_obj, undef, "ref in callbacks destroyed");
     $track_obj = \$obj;
     weaken($track_obj);
 
-    $server->run_hook_chain(phase   => "Foo",
+    $vhost->run_hook_chain(phase   => "Foo",
                             args    => [ "arg1", "arg2" ],
                             methods => {
                                 bar => sub {
@@ -94,7 +96,7 @@ is($track_obj, undef, "ref in fallback destroyed");
     $track_obj = \$obj;
     weaken($track_obj);
 
-    $server->run_hook_chain(phase   => "Nothing",
+    $vhost->run_hook_chain(phase   => "Nothing",
                             args    => [ "arg1", "arg2" ],
                             methods => {
                                 bar => sub {
