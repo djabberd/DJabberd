@@ -25,6 +25,11 @@ two_parties(sub {
     like($xml[1], qr/\bsubscription=.none\b/, "no subscription either way");
     unlike($xml[1], qr/\bask\b/, "no pending");
 
+    $pa->send_xml(qq{<presence to='$pb' type='subscribe' />});
+
+    my $xml = $pa->recv_xml;
+    like($xml, qr/\bask=.subscribe\b/, "subscribe is pending");
+
     #$pa->send_xml("<message type='chat' to='$pa'>Hello back!</message>");
     #like($pa->recv_xml, qr/Hello back/, "pa got pb's message");
 

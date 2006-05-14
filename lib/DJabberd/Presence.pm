@@ -332,7 +332,7 @@ sub _process_outbound_subscribe {
                                      args  => [ $from_jid, $ritem ],
                                      methods => {
                                          done => sub {
-                                             # TODO: roster push, then:
+                                             $conn->vhost->roster_push($from_jid, $ritem);
                                              $deliver->();
                                          },
                                          error => sub { my $reason = $_[1]; },
