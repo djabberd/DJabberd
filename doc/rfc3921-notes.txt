@@ -1934,7 +1934,7 @@ RFC 3921                        XMPP IM                     October 2004
        "subscribe" with the user's bare JID (i.e., <user@example.com>)
        as the 'from' address (if the user provided a 'from' address set
        to the user's full JID, the server SHOULD remove the resource
-       identifier).  If the contact is served by a different host than
+       identifier).  {=remove-resource-on-presence-out} If the contact is served by a different host than
        the user, the user's server MUST route the presence stanza to the
        contact's server for delivery to the contact (this case is
        assumed throughout; however, if the contact is served by the same
