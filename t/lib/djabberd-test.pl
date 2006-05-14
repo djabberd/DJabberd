@@ -132,10 +132,15 @@ sub link_with {
     push @{$self->{peers}}, $other;
 }
 
-sub roster {
+sub roster_name {
     my $self = shift;
     use FindBin qw($Bin);
-    my $roster = "$Bin/t-roster-$self->{id}.sqlite";
+    return "$Bin/t-roster-$self->{id}.sqlite";
+}
+
+sub roster {
+    my $self = shift;
+    my $roster = $self->roster_name;
     unlink $roster;
     return $roster;
 }
