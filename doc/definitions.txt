@@ -1,0 +1,16 @@
+bare jid:  node@domain
+
+full jid:  node@domain/resource
+
+connected resource: after completing stream authentication, a client
+MUST bind a resource to the stream so that the client's address is of
+the form <user@domain/resource>, after which the entity is now said to
+be a "connected resource" in the terminology of [XMPP-CORE].
+
+active resource: Upon establishing a session, a connected resource (in
+the terminology of [XMPP-CORE]) is said to be an "active resource".
+
+available resource: presence of no 'type' attribute, and not type='unavailable'
+
+
+
