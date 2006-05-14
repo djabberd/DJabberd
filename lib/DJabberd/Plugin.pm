@@ -6,10 +6,15 @@ our $logger = DJabberd::Log->get_logger();
 sub new {
     my ($class, @config) = @_;
     my $self = bless {}, $class;
-    while (my ($k, $v) = splice(@config, 0, 2)) {
-        my $meth = "set_config_$k";
-        $self->$meth($v);
+
+    if (@config) {
+        while (my ($k, $v) = splice(@config, 0, 2)) {
+            my $meth = "set_config_$k";
+            $self->$meth($v);
+        }
+        $self->finalize;
     }
+
     return $self;
 }
 

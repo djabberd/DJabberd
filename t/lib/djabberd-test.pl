@@ -60,16 +60,9 @@ sub two_parties_s2s {
     $server2->kill;
 }
 
-sub start_client {
-
-}
-
 
 package Test::DJabberd::Server;
 use strict;
-
-
-
 use overload
     '""' => \&as_string;
 
