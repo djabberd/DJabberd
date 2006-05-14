@@ -10,6 +10,11 @@ use fields (
             'is_available',          # bool: is an "available resource"
             );
 
+sub requested_roster {
+    my $self = shift;
+    return $self->{requested_roster};
+}
+
 sub set_requested_roster {
     my ($self, $val) = @_;
     $self->{requested_roster} = $val;
@@ -72,11 +77,6 @@ sub close {
 
 sub namespace {
     return "jabber:client";
-}
-
-sub requested_roster {
-    my $self = shift;
-    return $self->{requested_roster};
 }
 
 sub on_stream_start {

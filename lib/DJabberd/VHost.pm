@@ -246,7 +246,7 @@ sub roster_push {
 
     my @conns = $self->find_conns_of_bare($jid);
     foreach my $c (@conns) {
-        #TODO:  next unless $c->is_available;
+        next unless $c->is_available && $c->requested_roster;
         my $id = $c->new_iq_id;
         my $iq = "<iq to='" . $c->bound_jid->as_string . "' type='set' id='$id'>$xml</iq>";
         $c->xmllog->info($iq);

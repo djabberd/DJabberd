@@ -64,7 +64,13 @@ sub test_responses {
     my ($client, %map) = @_;
     my $n = values %map;
     # TODO: timeout on recv_xml_obj and die if don't get 'em all
-    my @stanzas = map { $client->recv_xml_obj } (1..$n);
+    my @stanzas;
+    my $verbose = ($ENV{LOGLEVEL} || "") eq "DEBUG";
+    for (1..$n) {
+        warn "Reading stanza $_/$n...\n" if $verbose;
+        push @stanzas, $client->recv_xml_obj;
+        warn "Got stanza: " . $stanzas[-1]->as_xml . "\n" if $verbose;
+    }
 
     my %unmatched = %map;
   STANZA:
@@ -289,7 +295,14 @@ sub login {
     my $authreply2 = $self->recv_xml;
     die "no reply" unless $authreply2 =~ /id=.auth2\b/;
     die "bad password" unless $authreply2 =~ /type=.result\b/;
+}
 
+sub get_roster {
+    my $self = shift;
+    $self->send_xml(qq{<iq type='get' id='rosterplz'><query xmlns='jabber:iq:roster'/></iq>});
+    my $xmlo = $self->recv_xml_obj;
+    die unless $xmlo->as_xml =~ /type=.result.+jabber:iq:roster/s;
+    return $xmlo;
 }
 
 1;

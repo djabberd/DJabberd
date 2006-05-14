@@ -1,12 +1,14 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 22;
+use Test::More tests => 32;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
 two_parties(sub {
     my ($pa, $pb) = @_;
     $pa->login;
+    $pa->send_xml(qq{<presence><status>Init-A-Pres</status></presence>});
+    $pa->get_roster;  # pb isn't going to request its roster.
 
     $pb->login;
     $pb->send_xml(qq{<presence><status>InitPres</status></presence>});
@@ -20,7 +22,6 @@ two_parties(sub {
     </item>
   </query>
 </iq>});
-
 
     test_responses($pa,
                    "IQ result" => sub {
@@ -45,8 +46,6 @@ two_parties(sub {
     is($xml->attr("{}type"), "subscribe", "type subscribe");
 
     $pb->send_xml(qq{<presence to='$pa' type='subscribed' />});
-    $xml = $pb->recv_xml;
-    like($xml, qr/\bsubscription=.from\b/, "subscription from item");
 
     # now PA gets a roster push and the subscribed packet
     test_responses($pa,
@@ -73,5 +72,37 @@ two_parties(sub {
     # reply immediately with the answer
     $xml = $pa->recv_xml;
     like($xml, qr/<presence.+\bfrom=.$pb.+PresVer2/s, "got presver2 presence of pb");
+
+    $pb->send_xml(qq{<presence to='$pa' type='subscribe' />});
+
+    $xml = $pa->recv_xml;
+    like($xml, qr/\bsubscribe\b/, "get presence packet");
+
+    # PA accepts...
+    $pa->send_xml(qq{<presence to='$pb' type='subscribed' />});
+
+    # now PA gets a roster push and the subscribed packet
+    test_responses($pa,
+                   "roster push" => sub {
+                       my ($xo, $xml) = @_;
+                       $xml =~ /\bsubscription=.both\b/;
+                   });
+
+    test_responses($pb,
+                   "pb pres subscribed" => sub {
+                       my ($xo, $xml) = @_;
+                       return 0 unless $xml =~ /\btype=.subscribed\b/;
+                       return 0 unless $xml =~ /\bfrom=.$pa\b/;
+                       return 1;
+                   },
+                   "presence of user" => sub {
+                       my ($xo, $xml) = @_;
+                       $xml =~ /Init-A-Pres/;
+                   });
+
+    $pa->send_xml(qq{<presence><status>I_am_A</status></presence>});
+    $pb->send_xml(qq{<presence><status>I_am_B</status></presence>});
+    like($pa->recv_xml, qr/I_am_B/, "a got b's presence");
+    like($pb->recv_xml, qr/I_am_A/, "b got a's presence");
 
 });
