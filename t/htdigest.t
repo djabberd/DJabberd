@@ -4,6 +4,7 @@
 use strict;
 use Test::More tests => 4;
 use lib 't/lib';
+BEGIN {  $ENV{LOGLEVEL} ||= "FATAL" }
 BEGIN { require 'djabberd-test.pl' }
 
 use DJabberd::Authen::HTDigest;

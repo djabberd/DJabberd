@@ -21,10 +21,10 @@ sub set_config_realm {
 
 sub finalize {
     my $self = shift;
-    $logger->logdie("No htdigest file") unless $self->{htdigest};
-    $logger->logdie("htdigest file '$self->{htdigest}' does not exist") unless -e $self->{htdigest};
-    $logger->logdie("htdigest file '$self->{htdigest} not readable") unless -r $self->{htdigest};
-    $logger->logdie("No realm specified") unless $self->{realm};
+    $logger->error_die("No htdigest file") unless $self->{htdigest};
+    $logger->error_die("htdigest file '$self->{htdigest}' does not exist") unless -e $self->{htdigest};
+    $logger->error_die("htdigest file '$self->{htdigest} not readable") unless -r $self->{htdigest};
+    $logger->error_die("No realm specified") unless $self->{realm};
 }
 
 sub can_retrieve_cleartext { 0 }
