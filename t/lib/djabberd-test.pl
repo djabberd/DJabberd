@@ -102,6 +102,7 @@ sub as_string {
 sub new {
     my $class = shift;
     my $self = bless {@_}, $class;
+
     die unless $self->{id};
     return $self;
 }
@@ -131,22 +132,28 @@ sub link_with {
     push @{$self->{peers}}, $other;
 }
 
-sub start {
+sub roster {
     my $self = shift;
-
     use FindBin qw($Bin);
     my $roster = "$Bin/t-roster-$self->{id}.sqlite";
     unlink $roster;
+    return $roster;
+}
+
+sub start {
+    my $self = shift;
+    my $plugins = shift ||
+        [
+         DJabberd::Authen::AllowedUsers->new(policy => "deny",
+                                             allowedusers => [qw(partya partyb)]),
+         DJabberd::Authen::StaticPassword->new(password => "password"),
+         DJabberd::RosterStorage::SQLite->new(database => $self->roster),
+         ];
 
     my $vhost = DJabberd::VHost->new(
                                      server_name => $self->hostname,
                                      s2s         => 1,
-                                     plugins   => [
-                                                   DJabberd::Authen::AllowedUsers->new(policy => "deny",
-                                                                                       allowedusers => [qw(partya partyb)]),
-                                                   DJabberd::Authen::StaticPassword->new(password => "password"),
-                                                   DJabberd::RosterStorage::SQLite->new(database => $roster),
-                                                   ],
+                                     plugins     => $plugins,
                                      );
 
     my $server = DJabberd->new;
@@ -244,6 +251,7 @@ sub send_xml {
 
 sub login {
     my $self = shift;
+    my $password = shift || 'password';
     my $sock;
     for (1..3) {
         $sock = IO::Socket::INET->new(PeerAddr => "127.0.0.1:" . $self->server->clientport, Timeout => 1);
@@ -275,10 +283,10 @@ sub login {
     die "didn't get reply" unless $authreply =~ /id=.auth1\b/;
     my $response = "";
     if ($authreply =~ /\bpassword\b/) {
-        $response = "<password>password</password>";
+        $response = "<password>$password</password>";
     } elsif ($authreply =~ /\bdigest\b/) {
         use Digest::SHA1 qw(sha1_hex);
-        my $dig = lc(sha1_hex($ss->id . "password"));
+        my $dig = lc(sha1_hex($ss->id . $password));
         $response = "<digest>$dig</digest>";
     } else {
         die "can't do password nor digest auth: [$authreply]";
