@@ -213,7 +213,6 @@ sub _process_inbound_subscribe {
                            args  => [ $to_jid, $ritem ],
                            methods => {
                                done => sub {
-                                   $vhost->roster_push($to_jid, $ritem);
                                    $self->deliver($vhost);
                                },
                                error => sub { my $reason = $_[1]; },
