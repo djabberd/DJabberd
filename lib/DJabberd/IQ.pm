@@ -113,6 +113,17 @@ sub process_iq_getroster {
         my $roster = shift;
         $logger->info("Sending roster to conn $conn->{id}");
         $iq->send_result_raw($roster->as_xml);
+
+        # JIDs who want to subscribe to us, since we were offline
+        foreach my $jid (map  { $_->jid }
+                         grep { $_->subscription->is_none_pending_in }
+                         $roster->items) {
+            my $subpkt = DJabberd::Presence->make_subscribe(to   => $conn->bound_jid,
+                                                            from => $jid);
+            # already in roster as pendin, we've already processed it, so just
+            # deliver it so user can reply with subscribed/unsubscribed:
+            $subpkt->deliver($conn->vhost);
+        }
     };
 
     $conn->vhost->run_hook_chain(phase => "RosterGet",

@@ -52,6 +52,18 @@ sub make_subscribed {
 }
 
 # constructor
+sub make_subscribe {
+    my ($class, %opts) = @_;
+    my ($from, $to) = map { delete $opts{$_} } qw(from to);
+    croak "Invalid options" if %opts;
+
+    my $xml = DJabberd::XMLElement->new("", "presence", { '{}type' => 'subscribe',
+                                                          '{}from' => $from->as_bare_string,
+                                                          '{}to'   => $to->as_bare_string }, []);
+    return $class->downbless($xml);
+}
+
+# constructor
 sub available_stanza {
     my ($class) = @_;
     my $xml = DJabberd::XMLElement->new("", "presence", {}, []);
@@ -201,7 +213,7 @@ sub _process_inbound_subscribe {
                            args  => [ $to_jid, $ritem ],
                            methods => {
                                done => sub {
-                                   # no roster push, i don't think.  (TODO: re-read spec)
+                                   $vhost->roster_push($to_jid, $ritem);
                                    $self->deliver($vhost);
                                },
                                error => sub { my $reason = $_[1]; },

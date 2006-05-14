@@ -35,6 +35,7 @@ sub as_xml {
     my $self = shift;
     my $xml = "<query xmlns='jabber:iq:roster'>";
     foreach my $it (@{ $self->{items} }) {
+        next if $it->subscription->is_none_pending_in;
         $xml .= $it->as_xml;
     }
     $xml .= "</query>";
