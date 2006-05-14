@@ -87,11 +87,18 @@ sub on_stream_start {
     my $orig_server = $vhost->name;
     my $recv_server = $self->{queue}->domain;
 
-    $vhost->generate_dialback_result($ss->id, sub {
+    my $db_params = DJabberd::DialbackParams->new(
+                                                  id   => $ss->id,
+                                                  recv => $recv_server,
+                                                  orig => $orig_server,
+                                                  vhost => $vhost,
+                                                  );
+    $db_params->generate_dialback_result(sub {
         my $res = shift;
         $self->log->debug("$self->{id} sending res '$res'");
         $self->write(qq{<db:result to='$recv_server' from='$orig_server'>$res</db:result>});
     });
+
 }
 
 sub on_stanza_received {

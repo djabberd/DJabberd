@@ -3,9 +3,6 @@ use strict;
 use Carp qw(croak);
 use DJabberd::Util qw(tsub as_bool);
 use DJabberd::Log;
-use Digest::HMAC_SHA1 qw(hmac_sha1_hex);
-
-
 
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
@@ -237,7 +234,7 @@ sub roster_push {
     my ($self, $jid, $ritem) = @_;
     croak("no ritem") unless $ritem;
 
-    # FIXME: single-server roster push only.   need to use a hook
+    # TODO: single-server roster push only.   need to use a hook
     # to go across the cluster
 
     my $xml = "<query xmlns='jabber:iq:roster'>";
@@ -268,53 +265,6 @@ sub get_secret_key_by_handle {
         # bogus handle.  currently only handle "i" is supported.
         $cb->(undef);
     }
-}
-
-# FIXME: need to hmac not just stream_id, but (stream_id,origsever,recvserver)
-#   actually, it's most important that the recvserver is included, otherwise
-#   could act like us by connecting to recv server and issuing a result
-#   that we'd previously given to our attackers.  origserver is useless to
-#   include because it's a constant.
-#
-sub generate_dialback_result {
-    my ($self, $stream_id, $cb) = @_;
-    $logger->info("Generating diablack result for vhost $self->{server_name} for stream $stream_id");
-    $self->get_secret_key(sub {
-        my ($shandle, $secret) = @_;
-        my $res = join("-", $shandle, hmac_sha1_hex($stream_id, $secret));
-        $logger->debug("Generated dialback result '$res' using secret '$secret, handle '$shandle' and stream '$stream_id'");
-        $cb->($res);
-    });
-}
-
-sub verify_callback {
-    my ($self, %args) = @_;
-    my $stream_id  = delete $args{'stream_id'};
-    my $restext    = delete $args{'result_text'};
-    my $on_success = delete $args{'on_success'};
-    my $on_failure = delete $args{'on_failure'};
-    Carp::croak("args") if %args;
-
-    my ($handle, $digest) = split(/-/, $restext);
-    $logger->debug("verify callback, restext=[$restext], stream_id = $stream_id");
-
-    $self->get_secret_key_by_handle($handle, sub {
-        my $secret = shift;
-        $logger->debug("Secret handle is '$secret'");
-
-        # bogus handle if no secret
-        unless ($secret) {
-            $on_failure->();
-            return;
-        }
-
-        my $proper_digest = hmac_sha1_hex($stream_id, $secret);
-        if ($digest eq $proper_digest) {
-            $on_success->();
-        } else {
-            $on_failure->();
-        }
-    });
 }
 
 sub debug {

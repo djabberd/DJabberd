@@ -6,6 +6,8 @@ use strict;
 use base qw(DJabberd::Stanza);
 
 use DJabberd::Log;
+use DJabberd::DialbackParams;
+
 our $logger = DJabberd::Log->get_logger();
 
 sub process {
@@ -14,21 +16,25 @@ sub process {
 
     $logger->debug("Procesing dialback verify for connection $conn->{id}");
 
+    my $db_params = DJabberd::DialbackParams->new(
+                                                  id    => $self->verify_stream_id,
+                                                  orig  => $self->dialback_to,
+                                                  recv  => $self->dialback_from,
+                                                  vhost => $conn->vhost,
+                                                  );
 
-    my $vhost = $conn->vhost;
-
-    $vhost->verify_callback(result_text => $self->result_text,
-                            stream_id   => $self->verify_stream_id,
-                            on_success  => sub {
-                                $logger->debug("Dialback verify success for connection $conn->{id}");
-                                $conn->dialback_verify_valid(recv_server => $self->recv_server,
-                                                             orig_server => $self->orig_server,
-                                                             id          => $self->verify_stream_id);
-                            },
-                            on_failure => sub {
-                                $logger->warn("Dialback verify success for connection $conn->{id}");
-                                $conn->dialback_verify_invalid;
-                            });
+    $db_params->verify_callback(
+                                result_text => $self->result_text,
+                                on_success  => sub {
+                                    $logger->debug("Dialback verify success for connection $conn->{id}");
+                                    $conn->dialback_verify_valid(recv_server => $self->recv_server,
+                                                                 orig_server => $self->orig_server,
+                                                                 id          => $self->verify_stream_id);
+                                },
+                                on_failure => sub {
+                                    $logger->warn("Dialback verify success for connection $conn->{id}");
+                                    $conn->dialback_verify_invalid;
+                                });
 }
 
 # always acceptable
