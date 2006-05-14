@@ -145,15 +145,20 @@ sub roster {
     return $roster;
 }
 
-sub start {
+sub standard_plugins {
     my $self = shift;
-    my $plugins = shift ||
-        [
+    return [
          DJabberd::Authen::AllowedUsers->new(policy => "deny",
                                              allowedusers => [qw(partya partyb)]),
          DJabberd::Authen::StaticPassword->new(password => "password"),
          DJabberd::RosterStorage::SQLite->new(database => $self->roster),
          ];
+
+}
+
+sub start {
+    my $self = shift;
+    my $plugins = shift || $self->standard_plugins;
 
     my $vhost = DJabberd::VHost->new(
                                      server_name => $self->hostname,
