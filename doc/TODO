@@ -48,7 +48,8 @@ cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...
       before being allowed to perform the action, or has provided
       improper credentials; the associated error type SHOULD be "auth".   no error currently gets sent on non AUTH
 
--- being booted with invalid-from stream error as a result of some s2s vcard IQ stuff:
+-- being booted with invalid-from stream error as a result of some s2s vcard IQ stuff.
+   to reproduce:  Psi requesting vcard over s2s to Adium.
 
 DEBUG DJabberd.Connection.ServerIn             14 parsing 168 bytes...
 INFO  DJabberd.Connection.XML.ServerIn         14 < <iq type='get' id='mir_45' from='mart@s8n.me.uk/loquat' to='brad@fitzpat.com'><vCard xmlns
