@@ -3,7 +3,7 @@ use strict;
 use base qw(DJabberd::Stanza);
 use Carp qw(croak confess);
 
-# TODO:  _process_outbound_invisible   -- seen in wild.  is this in spec?
+# TODO:  _process_outbound_invisible   -- seen in wild.  not in spec, but how to handle?
 #  Wildfire crew says:
 #    Presences of type invisible are not XMPP compliant. That was the
 #    old way invisibility was implemented before. The correct way to #
@@ -13,6 +13,10 @@ use Carp qw(croak confess);
 #    sent. In # other words, the server will ignore the invisibility
 #    request.
 
+# TODO: inbound_unsubscribe
+# TODO: inbound_unsubscribed
+# TODO: outbound_unsubscribe
+# TODO: outbound_unsubscribed
 
 # used by DJabberd::PresenceChecker::Local.
 my %last_bcast;   # barejidstring -> { full_jid_string -> $cloned_pres_stanza }
