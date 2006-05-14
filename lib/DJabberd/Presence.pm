@@ -323,6 +323,8 @@ sub _process_outbound_subscribe {
     # between parties
 
     my $deliver = sub {
+        # let's bare-ifiy our from address, as per the SHOULD in XMPP-IM 8.2.5
+        $self->set_from($self->from_jid->as_bare_string);
         $self->procdeliver($conn->vhost);
     };
 

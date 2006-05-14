@@ -30,7 +30,10 @@ two_parties(sub {
     my $xml = $pa->recv_xml;
     like($xml, qr/\bask=.subscribe\b/, "subscribe is pending");
 
-    #$pa->send_xml("<message type='chat' to='$pa'>Hello back!</message>");
-    #like($pa->recv_xml, qr/Hello back/, "pa got pb's message");
+    $xml = $pb->recv_xml_obj;
+    is($xml->attr("{}to"), $pb->as_string, "to pb");
+    is($xml->attr("{}from"), $pa->as_string, "from a");
+    is($xml->attr("{}type"), "subscribe", "type subscribe");
+
 
 });

@@ -188,6 +188,13 @@ sub recv_xml {
     return $ev->as_xml;
 }
 
+sub recv_xml_obj {
+    my $self = shift;
+    my $ev = $self->get_event;
+    die unless UNIVERSAL::isa($ev, "DJabberd::XMLElement");
+    return $ev;
+}
+
 sub get_stream_start {
     my $self = shift;
     my $ev = $self->get_event();
