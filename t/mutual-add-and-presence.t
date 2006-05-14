@@ -1,13 +1,15 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 26;
+use Test::More tests => 22;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
 two_parties(sub {
     my ($pa, $pb) = @_;
     $pa->login;
+
     $pb->login;
+    $pb->send_xml(qq{<presence><status>InitPres</status></presence>});
 
     $pa->send_xml(qq{<iq type='set' id='set1'>
   <query xmlns='jabber:iq:roster'>
@@ -19,11 +21,18 @@ two_parties(sub {
   </query>
 </iq>});
 
-    my @xml = sort { length($a) <=> length($b) } ($pa->recv_xml, $pa->recv_xml);
-    like($xml[0], qr/type=.result\b/, "got IQ result");
-    like($xml[1], qr/MrB.+Friends/s, "got roster push back");
-    like($xml[1], qr/\bsubscription=.none\b/, "no subscription either way");
-    unlike($xml[1], qr/\bask\b/, "no pending");
+
+    test_responses($pa,
+                   "IQ result" => sub {
+                       my ($xo, $xml) = @_;
+                       $xml =~ /type=.result/;
+                   },
+                   "roster push" => sub {
+                       my ($xo, $xml) = @_;
+                       $xml =~ /MrB.+Friends/s &&
+                           $xml =~ /\bsubscription=.none\b/ &&
+                           $xml !~ /\bask\b/;
+                   });
 
     $pa->send_xml(qq{<presence to='$pb' type='subscribe' />});
 
@@ -40,20 +49,29 @@ two_parties(sub {
     like($xml, qr/\bsubscription=.from\b/, "subscription from item");
 
     # now PA gets a roster push and the subscribed packet
-    @xml = ($pa->recv_xml, $pa->recv_xml);
-    # flip them if presence came first.
-    @xml = ($xml[1], $xml[0]) if $xml[0] =~ /\btype=.subscribed\b/;
-    # so order is 0: roster push, 1: presence subscribed
-    like($xml[0], qr/\bsubscription=.to\b/, "has subscription to");
-    like($xml[1], qr/\btype=.subscribed\b/, "got subscribed back");
-    like($xml[1], qr/\bfrom=.$pb\b/, "got subscribed back from $pb");
+    test_responses($pa,
+                   "roster push" => sub {
+                       my ($xo, $xml) = @_;
+                       $xml =~ /\bsubscription=.to\b/;
+                   },
+                   "presence subscribed" => sub {
+                       my ($xo, $xml) = @_;
+                       return 0 unless $xml =~ /\btype=.subscribed\b/;
+                       return 0 unless $xml =~ /\bfrom=.$pb\b/;
+                       return 1;
+                   },
+                   "presence of user" => sub {
+                       my ($xo, $xml) = @_;
+                       $xml =~ /InitPres/;
+                   });
 
-    # now PA is subscribed to PB.  so let's make PB be present.
-    $pb->send_xml(qq{<presence/>});
+
+    # now PA is subscribed to PB.  so let's make PB change its status
+    $pb->send_xml(qq{<presence><status>PresVer2</status></presence>});
 
     # let's pretend pa gets confused and asks again, pb's server should
     # reply immediately with the answer
     $xml = $pa->recv_xml;
-    like($xml, qr/<presence.+\bfrom=.$pb/, "got presence of pb");
+    like($xml, qr/<presence.+\bfrom=.$pb.+PresVer2/s, "got presver2 presence of pb");
 
 });

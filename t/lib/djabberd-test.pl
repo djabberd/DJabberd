@@ -1,7 +1,7 @@
 BEGIN {
     $ENV{LOGLEVEL} ||= "WARN";
 }
-
+use strict;
 use DJabberd;
 use DJabberd::Authen::AllowedUsers;
 use DJabberd::Authen::StaticPassword;
@@ -60,6 +60,28 @@ sub two_parties_s2s {
     $server2->kill;
 }
 
+sub test_responses {
+    my ($client, %map) = @_;
+    my $n = values %map;
+    # TODO: timeout on recv_xml_obj and die if don't get 'em all
+    my @stanzas = map { $client->recv_xml_obj } (1..$n);
+
+    my %unmatched = %map;
+  STANZA:
+    foreach my $s (@stanzas) {
+        foreach my $k (keys %unmatched) {
+            my $tester = $map{$k};
+            my $okay = eval { $tester->($s, $s->as_xml); };
+            if ($okay) {
+                Test::More::pass("matched response '$k'");
+                delete $unmatched{$k};
+                next STANZA;
+            }
+        }
+        Carp::croak("Didn't match stanza: " . $s->as_xml);
+    }
+
+}
 
 package Test::DJabberd::Server;
 use strict;
