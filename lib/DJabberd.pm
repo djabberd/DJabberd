@@ -131,7 +131,10 @@ sub dump_obj_stats {
     print Dumper(\%class_ct);
 }
 
+
 sub track_new_obj {
+    return unless $ENV{TRACKOBJ};
+
     my ($class, $obj) = @_;
     my $i = 0;
     my $fileline;
@@ -151,6 +154,8 @@ sub track_new_obj {
 }
 
 sub track_destroyed_obj {
+    return unless $ENV{TRACKOBJ};
+
     my ($class, $obj) = @_;
     my $addr = refaddr($obj);
     my $fileline = $obj_source{$addr}->[0] or die "Where did $obj come from?";
