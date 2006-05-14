@@ -57,7 +57,7 @@ sub new {
     # {=serverportnumber}
     $self->{s2s_port} = 5269 unless defined $self->{s2s_port};
 
-    die "unknown opts: " . join(", ", keys %opts) if %opts; #FIXME: better
+    croak("Unknown server parameters: " . join(", ", keys %opts)) if %opts;
 
     bless $self, $class;
     return $self;

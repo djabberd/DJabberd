@@ -26,8 +26,11 @@ sub new {
                                    # if a plugin implements a cluster-wide keyed shared secret
     };
 
+    croak("Missing/invalid vhost name") unless
+        $self->{server_name} && $self->{server_name} =~ /^[\w\.]+$/;
+
     my $plugins = delete $opts{plugins};
-    die "unknown opts" if %opts; #FIXME: better
+    croak("Unknown vhost parameters: " . join(", ", keys %opts)) if %opts;
 
     bless $self, $class;
 
@@ -149,8 +152,7 @@ sub spec_version {
 
 sub name {
     my $self = shift;
-    return $self->{server_name} || die "No server name configured.";
-    # FIXME: try to determine it
+    return $self->{server_name};
 }
 
 # vhost method
@@ -218,16 +220,14 @@ sub find_conns_of_bare {
 sub uses_jid {
     my ($self, $jid) = @_;
     return 0 unless $jid;
-    # FIXME: this does no canonicalization of server_name, for one
-    return $jid->as_string eq $self->{server_name};
+    return lc($jid->as_string) eq $self->{server_name};
 }
 
 # returns true if given jid is controlled by this vhost
 sub handles_jid {
     my ($self, $jid) = @_;
     return 0 unless $jid;
-    # FIXME: this does no canonicalization of server_name, for one
-    return $jid->domain eq $self->{server_name};
+    return lc($jid->domain) eq $self->{server_name};
 }
 
 sub roster_push {
