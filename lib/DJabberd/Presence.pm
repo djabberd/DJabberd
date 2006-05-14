@@ -4,6 +4,15 @@ use base qw(DJabberd::Stanza);
 use Carp qw(croak confess);
 
 # TODO:  _process_outbound_invisible   -- seen in wild.  is this in spec?
+#  Wildfire crew says:
+#    Presences of type invisible are not XMPP compliant. That was the
+#    old way invisibility was implemented before. The correct way to #
+#    implement invisibility is to use JEP-0126: Invisibility that is #
+#    based on privacy lists. The server will ignore presences of type
+#    # invisible and instead assume that an available presence was
+#    sent. In # other words, the server will ignore the invisibility
+#    request.
+
 
 # used by DJabberd::PresenceChecker::Local.
 my %last_bcast;   # barejidstring -> { full_jid_string -> $cloned_pres_stanza }
@@ -153,7 +162,6 @@ sub _process_inbound_unavailable {
 sub _process_inbound_subscribe {
     my ($self, $vhost, $ritem, $from_jid) = @_;
 
-    my $subs = $ritem ? $ritem->subscription : "";
     my $to_jid = $self->to_jid;
 
     # XMPP: server SHOULD auto-reply if contact already subscribed from
@@ -162,7 +170,7 @@ sub _process_inbound_subscribe {
                                                        from => $to_jid);
         $subd->procdeliver($vhost);
 
-        # let's ack like they probed us too, so we send them our presence.
+        # let's act like they probed us too, so we send them our presence.
         my $probe = DJabberd::Presence->probe(from => $from_jid,
                                               to   => $to_jid);
         $probe->procdeliver($vhost);
@@ -263,8 +271,7 @@ sub broadcast_from {
 
     my $broadcast = sub {
         my $roster = shift;
-        foreach my $it ($roster->to_items) {
-            #warn "Broadcasting presence to @{[ $it->jid ]} ...\n";
+        foreach my $it ($roster->from_items) {
             my $dpres = $self->clone;
             $dpres->set_to($it->jid);
             $dpres->set_from($from_jid);

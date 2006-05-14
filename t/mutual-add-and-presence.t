@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 24;
+use Test::More tests => 26;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
@@ -47,5 +47,13 @@ two_parties(sub {
     like($xml[0], qr/\bsubscription=.to\b/, "has subscription to");
     like($xml[1], qr/\btype=.subscribed\b/, "got subscribed back");
     like($xml[1], qr/\bfrom=.$pb\b/, "got subscribed back from $pb");
+
+    # now PA is subscribed to PB.  so let's make PB be present.
+    $pb->send_xml(qq{<presence/>});
+
+    # let's pretend pa gets confused and asks again, pb's server should
+    # reply immediately with the answer
+    $xml = $pa->recv_xml;
+    like($xml, qr/<presence.+\bfrom=.$pb/, "got presence of pb");
 
 });
