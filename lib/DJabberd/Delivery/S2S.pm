@@ -20,6 +20,12 @@ sub deliver {
     my ($self, $vhost, $cb, $stanza) = @_;
     die unless $vhost == $self->{vhost}; # sanity check
 
+    # don't do s2s if the vhost doesn't have it enabled
+    unless ($vhost->s2s) {
+        $cb->declined;
+        return;
+    }
+
     my $to = $stanza->to_jid
         or return $cb->declined;
 
@@ -30,13 +36,6 @@ sub deliver {
     if ($vhost->name eq $domain) {
         $logger->debug("Not doing s2s to ourself");
         return $cb->declined;
-    }
-
-    # don't do s2s if the vhost doesn't have it enabled
-    unless ($vhost->s2s) {
-        $logger->debug("s2s delivery disabled.");
-        $cb->declined;
-        return;
     }
 
     # FIXME: let get_conn_for_domain return an error code or something
