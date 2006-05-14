@@ -107,7 +107,15 @@ sub event_read_a {
 
     for my $ans (@ans) {
         my $rv = eval {
-            $cb->(DJabberd::IPEndPoint->new($ans->address, $self->{port}));
+            if ($ans->isa('Net::DNS::RR::CNAME')) {
+                $self->close;
+                DJabberd::DNS->new(hostname => $ans->cname,
+                                   port     => $self->{port},
+                                   callback => $cb);
+            }
+            else {
+                $cb->(DJabberd::IPEndPoint->new($ans->address, $self->{port}));
+            }
             $self->close;
             1;
         };
