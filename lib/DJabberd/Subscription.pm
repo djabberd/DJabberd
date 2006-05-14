@@ -50,6 +50,14 @@ sub new_from_name {
     return $sb->();
 }
 
+sub is_none_pending_in {
+    my $self = shift;
+    return $self->{pendin} &&
+        ! $self->{pendout} &&
+        ! $self->{to} &&
+        ! $self->{from};
+}
+
 sub pending_out {
     my $self = shift;
     return $self->{pendout};

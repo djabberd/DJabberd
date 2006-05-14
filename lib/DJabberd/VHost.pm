@@ -237,6 +237,10 @@ sub roster_push {
     my ($self, $jid, $ritem) = @_;
     croak("no ritem") unless $ritem;
 
+    # XMPP-IM: howwever a server SHOULD NOT push or deliver roster items
+    # in that state to the contact. (None + Pending In)
+    return if $ritem->subscription->is_none_pending_in;
+
     # TODO: single-server roster push only.   need to use a hook
     # to go across the cluster
 
