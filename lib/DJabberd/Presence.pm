@@ -108,6 +108,8 @@ sub process_outbound {
 
 sub process_inbound {
     my ($self, $vhost) = @_;
+    Carp::confess("Not a vhost") unless $vhost->isa("DJabberd::VHost");
+
     my $type      = $self->type || "available";
 
     return $self->fail($vhost, "bogus type") unless $type =~ /^\w+$/;
@@ -197,6 +199,7 @@ sub _process_inbound_subscribe {
 
 sub _process_inbound_subscribed {
     my ($self, $vhost, $ritem) = @_;
+    Carp::confess("Not a vhost") unless $vhost->isa("DJabberd::VHost");
 
     # MUST ignore inbound subscribed if we weren't awaiting
     # its arrival
@@ -216,8 +219,7 @@ sub _process_inbound_subscribed {
                                    my $probe = DJabberd::Presence->probe(from => $to_jid,
                                                                          to   => $ritem->jid);
                                    $probe->procdeliver($vhost);
-
-                                   # TODO: pass along the subscribed packet from its source: (XMPP-IM 9.3)
+                                   $self->deliver($vhost);
                                },
                                error => sub { my $reason = $_[1]; },
                            },
@@ -408,13 +410,11 @@ sub _process_outbound_subscribed_with_ritem {
 
     $ritem->subscription->got_outbound_subscribed;
 
-    my $subs = $ritem->subscription;
-
     $conn->vhost->run_hook_chain(phase => "RosterSetItem",
                                  args  => [ $conn->bound_jid, $ritem ],
                                  methods => {
                                      done => sub {
-                                         # TODO: roster push
+                                         $conn->vhost->roster_push($conn->bound_jid, $ritem);
                                          $self->procdeliver($conn->vhost);
                                      },
                                      error => sub { my $reason = $_[1]; },

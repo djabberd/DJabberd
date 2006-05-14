@@ -93,7 +93,7 @@ sub switch_incoming_server_builtin {
     {
         $stanza->process($self);
     } elsif ($stanza->isa("DJabberd::Presence")) {
-        $stanza->process_inbound($self);
+        $stanza->process_inbound($self->vhost);
     } else {
         $stanza->deliver($self);
     }

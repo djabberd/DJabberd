@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 8;
+use Test::More tests => 24;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
@@ -35,5 +35,17 @@ two_parties(sub {
     is($xml->attr("{}from"), $pa->as_string, "from a");
     is($xml->attr("{}type"), "subscribe", "type subscribe");
 
+    $pb->send_xml(qq{<presence to='$pa' type='subscribed' />});
+    $xml = $pb->recv_xml;
+    like($xml, qr/\bsubscription=.from\b/, "subscription from item");
+
+    # now PA gets a roster push and the subscribed packet
+    @xml = ($pa->recv_xml, $pa->recv_xml);
+    # flip them if presence came first.
+    @xml = ($xml[1], $xml[0]) if $xml[0] =~ /\btype=.subscribed\b/;
+    # so order is 0: roster push, 1: presence subscribed
+    like($xml[0], qr/\bsubscription=.to\b/, "has subscription to");
+    like($xml[1], qr/\btype=.subscribed\b/, "got subscribed back");
+    like($xml[1], qr/\bfrom=.$pb\b/, "got subscribed back from $pb");
 
 });
