@@ -1,0 +1,13 @@
+List of quirks enabled when a vhost's QuirksMode is enabled (the default)
+
+======================
+libgaim 1.5.0 (as found in Adium 0.89) sends this in response to a type of vCard query it doesn't
+support:
+
+<iq id='aacba' from='brad@jabber.bradfitz.com/Psi' to='brad@jabber.bradfitz.com/Psi' type='error'>
+
+In this case, I was actually logged in as brad@fitzpat.com/Adium, but
+it set the 'from' to the address that the original IQ 'get was from.
+
+So in quirks mode the from is re-written to the correct address, rather than closing the client
+with a stream error of invalid-from.
