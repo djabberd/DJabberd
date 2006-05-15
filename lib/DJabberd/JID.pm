@@ -10,7 +10,7 @@ sub new {
 
     # {=jidformat}, {=jidsizes}
     return undef unless $jidstring && $jidstring =~
-        m!^(?: (\w{1,1023}) \@)?     # optional node
+        m!^(?: ([\w\.]{1,1023}) \@)?     # optional node
            ([^/]{1,1023})            # domain
            (?: /(.{1,1023})   )?     # optional resource
            !x;
