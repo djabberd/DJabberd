@@ -22,6 +22,8 @@ sub new {
                               # bob@207.7.148.210     -> DJabberd::Connection
         'bare2fulls'  => {},  # barejids -> { fulljid -> 1 }
 
+        'quirksmode'  => 1,
+
         'server_secret' => undef,  # server secret we use for dialback HMAC keys.  trumped
                                    # if a plugin implements a cluster-wide keyed shared secret
     };
@@ -51,6 +53,13 @@ sub setup_default_plugins {
     unless ($self->are_hooks("PresenceCheck")) {
         $self->add_plugin(DJabberd::PresenceChecker::Local->new);
     }
+}
+
+sub quirksmode { $_[0]{quirksmode} };
+
+sub set_config_quirksmode {
+    my ($self, $val) = @_;
+    $self->{quirksmode} = as_bool($val);
 }
 
 sub set_config_s2s {

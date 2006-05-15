@@ -11,3 +11,5 @@ it set the 'from' to the address that the original IQ 'get was from.
 
 So in quirks mode the from is re-written to the correct address, rather than closing the client
 with a stream error of invalid-from.
+
+This was fixed in gaim svn r14116 in protocols/jabber/iq.c

@@ -95,6 +95,7 @@ use overload
     '""' => \&as_string;
 
 our $PLUGIN_CB;
+our $VHOST_CB;
 
 sub as_string {
     my $self = shift;
@@ -166,12 +167,13 @@ sub start {
                                      s2s         => 1,
                                      plugins     => $plugins,
                                      );
-
     my $server = DJabberd->new;
 
     foreach my $peer (@{$self->{peers} || []}){
         $server->set_fake_s2s_peer($peer->hostname => DJabberd::IPEndPoint->new("127.0.0.1", $peer->serverport));
     }
+
+    $VHOST_CB->($vhost) if $VHOST_CB;
 
     $server->add_vhost($vhost);
     $server->set_config_serverport($self->serverport);

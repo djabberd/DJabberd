@@ -147,11 +147,22 @@ sub filter_incoming_client_builtin {
     #  client and a server via authentication and resource binding.
     #{=clientin-invalid-from}
     my $from = $stanza->from_jid;
+    my $vhost = $self->vhost;
 
     if ($from && ! $self->is_authenticated_jid($from)) {
         # make sure it is from them, if they care to tell us who they are.
         # (otherwise further processing should assume it's them anyway)
-        return $self->stream_error('invalid-from');
+
+        # libgaim quirks bug.  libgaim sends bogus from on IQ errors.
+        # see doc/quirksmode.txt.
+        if ($vhost->quirksmode && $stanza->isa("DJabberd::IQ") &&
+            $stanza->type eq "error" && $stanza->from eq $stanza->to) {
+            # fix up from address
+            $from = $self->bound_jid;
+            $stanza->set_from($from);
+        } else {
+            return $self->stream_error('invalid-from');
+        }
     }
 
     # if no from, we set our own
@@ -160,15 +171,15 @@ sub filter_incoming_client_builtin {
         $stanza->set_from($bj->as_string) if $bj;
     }
 
-    $self->vhost->run_hook_chain(phase => "switch_incoming_client",
-                                 args  => [ $stanza ],
-                                 methods => {
-                                     process => sub { $stanza->process($self) },
-                                     deliver => sub { $stanza->deliver($self) },
-                                 },
-                                 fallback => sub {
-                                     $self->switch_incoming_client_builtin($stanza);
-                                 });
+    $vhost->run_hook_chain(phase => "switch_incoming_client",
+                           args  => [ $stanza ],
+                           methods => {
+                               process => sub { $stanza->process($self) },
+                               deliver => sub { $stanza->deliver($self) },
+                           },
+                           fallback => sub {
+                               $self->switch_incoming_client_builtin($stanza);
+                           });
 }
 
 sub switch_incoming_client_builtin {
