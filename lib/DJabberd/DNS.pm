@@ -6,6 +6,7 @@ use fields (
             'callback',
             'srv',
             'port',
+            'recurse_count',
             );
 use Carp qw(croak);
 
@@ -26,6 +27,7 @@ sub srv {
     my $callback = delete $opts{'callback'};
     my $service  = delete $opts{'service'};
     my $port     = delete $opts{'port'};
+    my $recurse_count = delete($opts{'recurse_count'}) || 0;
     croak "unknown opts" if %opts;
 
     # default port for s2s
@@ -52,6 +54,7 @@ sub srv {
     $self->{callback} = $callback;
     $self->{srv}      = $service;
     $self->{port}     = $port;
+    $self->{recurse_count} = $recurse_count;
 
     # TODO: set a timer to fire with lookup error in, say, 5 seconds
     # or whatever caller wants
@@ -69,6 +72,7 @@ sub new {
     my $hostname = delete $opts{'hostname'};
     my $callback = delete $opts{'callback'};
     my $port     = delete $opts{'port'};
+    my $recurse_count = delete($opts{'recurse_count'}) || 0;
     croak "unknown opts" if %opts;
 
     my $sock = $resolver->bgsend($hostname);
@@ -77,6 +81,7 @@ sub new {
     $self->{hostname} = $hostname;
     $self->{callback} = $callback;
     $self->{port}     = $port;
+    $self->{recurse_count} = $recurse_count;
 
     # TODO: set a timer to fire with lookup error in, say, 5 seconds
     # or whatever caller wants
@@ -108,10 +113,19 @@ sub event_read_a {
     for my $ans (@ans) {
         my $rv = eval {
             if ($ans->isa('Net::DNS::RR::CNAME')) {
-                $self->close;
-                DJabberd::DNS->new(hostname => $ans->cname,
-                                   port     => $self->{port},
-                                   callback => $cb);
+                if ($self->{recurse_count} < 5) {
+                    $self->close;
+                    DJabberd::DNS->new(hostname => $ans->cname,
+                                       port     => $self->{port},
+                                       callback => $cb,
+                                       recurse_count => $self->{recurse_count}+1);
+                }
+                else {
+                    # Too much recursion
+                    $logger->warn("Too much CNAME recursion while resolving ".$self->{hostname});
+                    $self->close;
+                    $cb->(undef);
+                }
             }
             else {
                 $cb->(DJabberd::IPEndPoint->new($ans->address, $self->{port}));

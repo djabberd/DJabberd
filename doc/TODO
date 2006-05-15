@@ -1,8 +1,6 @@
 cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...
   give them types?
 
--- mart introduced CNAME support, but it can recurse forever.
-
 -- debian install guide.
 
 -- debian packaging
