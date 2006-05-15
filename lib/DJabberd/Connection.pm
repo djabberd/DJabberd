@@ -260,7 +260,7 @@ sub write_stanza {
     die "too many parameters" if @ex;
 
     my $to_jid    = $stanza->to   || die "no to";
-    my $from_jid  = $stanza->from || die "no from";
+    my $from_jid  = $stanza->from;  # this can be iq
     my $elename   = $stanza->element_name;
 
     my $other_attrs = "";
@@ -270,18 +270,23 @@ sub write_stanza {
         $other_attrs .= "$k=\"" . exml($v) . "\" ";
     }
 
+    my $from = "";
+    die "no from" if ($elename ne 'iq' && !$from_jid);
+
+    $from = $from_jid ? qq{ from='$from_jid'} : "";
+
     my $ns = $self->namespace;
 
-    my $xml = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
+    my $xml = "<$elename $other_attrs to='$to_jid'$from>" . $stanza->innards_as_xml . "</$elename>";
 
     if ($self->xmllog->is_info) {
         # refactor this out
         my $debug;
         if($self->xmllog->is_debug) {
-            $debug = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
+            $debug = "<$elename $other_attrs to='$to_jid'$from>" . $stanza->innards_as_xml . "</$elename>";
         } else {
             local $DJabberd::ASXML_NO_TEXT = 1;
-            $debug = "<$elename $other_attrs to='$to_jid' from='$from_jid'>" . $stanza->innards_as_xml . "</$elename>";
+            $debug = "<$elename $other_attrs to='$to_jid'$from>" . $stanza->innards_as_xml . "</$elename>";
         }
         $self->log_outgoing_data($debug);
     }
