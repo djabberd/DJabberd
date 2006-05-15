@@ -5,6 +5,8 @@ use fields (
             'element',   # element name
             'attrs',     # hashref of {namespace}attr => value
             'children',  # arrayref of child elements of this same type, or scalars for text nodes
+            'raw',       # in some cases we have the raw xml and we have to create a fake XMLElement object
+                         # business logic is that as_xml returns the raw stuff if it is exists, children has to be empty -- sky
             );
 
 use DJabberd::Util;
@@ -34,6 +36,12 @@ sub new {
 sub DESTROY {
     my $self = shift;
     DJabberd->track_destroyed_obj($self);
+}
+
+sub set_raw {
+    my DJabberd::XMLElement $self = shift;
+    $self->{raw} = shift;
+    $self->{children} = [];
 }
 
 sub children_elements {
@@ -121,6 +129,10 @@ sub innards_as_xml {
     my $self = shift;
     my $nsmap = shift || {};
     my $def_ns = shift;
+
+    if ($self->{raw}) {
+        return $self->{raw};
+    }
 
     my $ret = "";
     foreach my $c ($self->children) {
