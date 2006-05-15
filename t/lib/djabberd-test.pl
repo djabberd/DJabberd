@@ -94,6 +94,8 @@ use strict;
 use overload
     '""' => \&as_string;
 
+our $PLUGIN_CB;
+
 sub as_string {
     my $self = shift;
     return $self->hostname;
@@ -148,17 +150,16 @@ sub roster {
 sub standard_plugins {
     my $self = shift;
     return [
-         DJabberd::Authen::AllowedUsers->new(policy => "deny",
-                                             allowedusers => [qw(partya partyb)]),
-         DJabberd::Authen::StaticPassword->new(password => "password"),
-         DJabberd::RosterStorage::SQLite->new(database => $self->roster),
-         ];
-
+            DJabberd::Authen::AllowedUsers->new(policy => "deny",
+                                                allowedusers => [qw(partya partyb)]),
+            DJabberd::Authen::StaticPassword->new(password => "password"),
+            DJabberd::RosterStorage::SQLite->new(database => $self->roster),
+            ];
 }
 
 sub start {
     my $self = shift;
-    my $plugins = shift || $self->standard_plugins;
+    my $plugins = shift || ($PLUGIN_CB ? $PLUGIN_CB->($self) : $self->standard_plugins);
 
     my $vhost = DJabberd::VHost->new(
                                      server_name => $self->hostname,
