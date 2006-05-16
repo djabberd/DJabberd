@@ -46,26 +46,6 @@ cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...
       before being allowed to perform the action, or has provided
       improper credentials; the associated error type SHOULD be "auth".   no error currently gets sent on non AUTH
 
--- being booted with invalid-from stream error as a result of some s2s vcard IQ stuff.
-   to reproduce:  Psi requesting vcard over s2s to Adium.
-
-DEBUG DJabberd.Connection.ServerIn             14 parsing 168 bytes...
-INFO  DJabberd.Connection.XML.ServerIn         14 < <iq type='get' id='mir_45' from='mart@s8n.me.uk/loquat' to='brad@fitzpat.com'><vCard xmlns
-='vcard-temp' prodid='-//HandGen//NONSGML vGen v1.0//EN' version='2.0'/></iq>
-INFO  DJabberd.Connection.XML.ClientIn         1 > <iq type="get" id="mir_45"  to='brad@fitzpat.com' from='mart@s8n.me.uk/loquat'><vCard xmlns
-='vcard-temp' prodid='-//HandGen//NONSGML vGen v1.0//EN' version='2.0'/></iq>
-DEBUG DJabberd.Connection.ClientIn             1 parsing 284 bytes...
-INFO  DJabberd.Connection.XML.ClientIn         1 < <iq id='mir_45' from='mart@s8n.me.uk/loquat' type='error' to='mart@s8n.me.uk/loquat'><vCard
- xmlns='vcard-temp' prodid='-//HandGen//NONSGML vGen v1.0//EN' version='2.0'/><error type='cancel' code='501'><feature-not-implemented xmlns='
-urn:ietf:params:xml:ns:xmpp-stanzas'/></error></iq>
-WARN  DJabberd.Connection.ClientIn             1 stream error 'invalid-from':
-DEBUG DJabberd.RosterStorage.SQLite            Getting roster for 'brad@fitzpat.com/Adium'
-DEBUG DJabberd.RosterStorage.SQLite              ... got groups, calling set_roster..
-DEBUG DJabberd.Delivery.S2S                    s2s delivery attempt for mart@s8n.me.uk
-INFO  DJabberd.Connection.XML.ServerOut        24 > <presence type="unavailable"  to='mart@s8n.me.uk' from='brad@fitzpat.com/Adium'></presence
-.....
-DEBUG DJabberd.Connection.ClientIn             DISCONNECT: 1
-
 -- seems to be a bug doing s2s dialback to Wildfire. Cursory debugging suggests it's
   Wildfire's fault, not including the vhost in its stream element; it includes it
   in the "verify" element, though. Is that supposed to work? Debug log:
