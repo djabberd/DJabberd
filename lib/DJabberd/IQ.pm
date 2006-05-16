@@ -84,11 +84,17 @@ sub process_iq_disco_info_query {
     my ($conn, $iq) = @_;
 
 
+
+    # TODO: these can be sent back to another server I believe -- sky
+
     # TODO: Here we need to figure out what identities we have and
     # capabilities we have
     my $xml = qq{<query xmlns='http://jabber.org/protocol/disco#info'>
-<identity category='server' type='im' name='djabberd'/>
-</query>};
+                     <identity category='server' type='im' name='djabberd'/>};
+    foreach my $cap ($conn->vhost->features) {
+        $xml .= "<feature var='$cap'/>";
+    }
+    $xml .= "</query>";
 
     $iq->send_reply('result', $xml);
 }

@@ -26,6 +26,9 @@ sub new {
 
         'server_secret' => undef,  # server secret we use for dialback HMAC keys.  trumped
                                    # if a plugin implements a cluster-wide keyed shared secret
+
+        features            => [],     # list of features
+
     };
 
     croak("Missing/invalid vhost name") unless
@@ -42,6 +45,16 @@ sub new {
     }
 
     return $self;
+}
+
+sub add_feature {
+    my ($self, $feature) = @_;
+    push @{$self->{features}}, $feature;
+}
+
+sub features {
+    my ($self) = @_;
+    return @{$self->{features}};
 }
 
 sub setup_default_plugins {

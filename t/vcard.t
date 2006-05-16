@@ -2,7 +2,7 @@
 
 
 use strict;
-use Test::More tests => 9;
+use Test::More tests => 11;
 use lib 't/lib';
 #BEGIN {  $ENV{LOGLEVEL} ||= "FATAL" }
 BEGIN { require 'djabberd-test.pl' }
@@ -24,6 +24,15 @@ two_parties( sub {
     my ($pa, $pb) = @_;
     $pa->login;
     $pb->login;
+
+    $pa->send_xml("<iq type='get'
+    from='$pa/testsuite'
+    to='" . $pa->server . "'
+    id='info1'>
+  <query xmlns='http://jabber.org/protocol/disco#info'/>
+</iq>");
+    like($pa->recv_xml, qr{vcard-temp}, "vcard");
+
 
     $pa->send_xml("<iq
     from='$pa/testsuite'

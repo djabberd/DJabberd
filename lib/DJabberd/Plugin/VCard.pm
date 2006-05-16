@@ -63,7 +63,7 @@ sub register {
     };
     $vhost->register_hook("switch_incoming_client",$cb);
     $vhost->register_hook("switch_incoming_server",$cb);
-
+    $vhost->add_feature("vcard-temp");
 
 }
 
