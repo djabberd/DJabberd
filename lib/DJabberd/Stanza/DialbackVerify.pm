@@ -13,14 +13,29 @@ our $logger = DJabberd::Log->get_logger();
 sub process {
     my ($self, $conn) = @_;
 
-
     $logger->debug("Procesing dialback verify for connection $conn->{id}");
+
+    my $fail = sub {
+        $logger->debug("DialbackVerify failed: $_[0]");
+        return 0;
+    };
+
+    # stream to parameter is optional on dialback, so this may be the first time
+    # we get to bind this connection to a vhost.
+    my $vhost   = $conn->vhost;
+    my $to_host = $self->dialback_to;
+    unless ($vhost) {
+        $vhost = $conn->server->lookup_vhost($to_host)
+            or return $fail->("no vhost for this connection");
+        $conn->set_vhost($vhost)
+            or return $fail->("s2s disabled for this vhost");
+    }
 
     my $db_params = DJabberd::DialbackParams->new(
                                                   id    => $self->verify_stream_id,
-                                                  orig  => $self->dialback_to,
+                                                  orig  => $to_host,
                                                   recv  => $self->dialback_from,
-                                                  vhost => $conn->vhost,
+                                                  vhost => $vhost,
                                                   );
 
     $db_params->verify_callback(
