@@ -124,7 +124,7 @@ sub event_read_a {
                     # Too much recursion
                     $logger->warn("Too much CNAME recursion while resolving ".$self->{hostname});
                     $self->close;
-                    $cb->(undef);
+                    $cb->();
                 }
             }
             else {
@@ -141,7 +141,7 @@ sub event_read_a {
 
     # no result
     $self->close;
-    $cb->(undef);
+    $cb->();
 }
 
 sub event_read_srv {

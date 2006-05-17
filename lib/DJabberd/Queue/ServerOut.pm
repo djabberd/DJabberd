@@ -68,7 +68,7 @@ sub failed_to_connect {
     $self->{last_connect_fail} = time();
 
     while (my $qi = shift @{ $self->{to_deliver} }) {
-        $qi->callback->fail;
+        $qi->callback->error;
     }
 }
 
