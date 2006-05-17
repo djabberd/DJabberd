@@ -200,6 +200,10 @@ use strict;
 use overload
     '""' => \&as_string;
 
+sub resource {
+    return $_[0]{resource} ||= ($ENV{UNICODE_RESOURCE} ? "test\xe2\x80\x99s computer" : "testsuite");
+}
+
 sub as_string {
     my $self = shift;
     return $self->{name} . '@' . $self->{server}->hostname;
@@ -305,11 +309,12 @@ sub login {
         die "can't do password nor digest auth: [$authreply]";
     }
 
+    my $res = $self->resource;
     print $sock "<iq type='set' id='auth2'>
   <query xmlns='jabber:iq:auth'>
     <username>$username</username>
     $response
-    <resource>testsuite</resource>
+    <resource>$res</resource>
   </query>
 </iq>";
 
