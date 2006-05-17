@@ -1,4 +1,9 @@
-cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...
+-- if a@foo.com/Home and a@foo.com/Work are both connected, subscribed to b@foo.com,
+   presence changes of b@foo.com don't go to both a's /Home and /Work resources.  it's
+   kinda random.  likewise with messages to only a@foo.com:  SHOULD go to all.
+   this starts to get into cluster-wide delivery.
+
+-- cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...
   give them types?
 
 -- debian install guide.
@@ -22,25 +27,18 @@ cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...
      http://www.kismith.co.uk/wordpress/index.php/2005/12/16/i-say-i-say-i-say-did-you-hear-the-one-about/
      http://psi-im.org/wiki/Jingle_branch
    So think we could do the Jingle stuff Jabber-server-side and get the Psi
-   client connecting to Asterisk over SIP or something? 
-
--- invites on next connect
--- and don't send rosteritems with that incoming bit on
-
--- iChat "wants to add you as a buddy!" forever bug.  do we not say subscribed back?  state is both/both when this happens.
+   client connecting to Asterisk over SIP or something?
 
 -- speed up XMLElement as_xml ... try to reuse the original scalarref read from the network, if
    we can align the boundaries of XML stanzas to network reads.  XML::Parser::Expat can help
-   us:  (where $self->{parser} is our incremental parser)
+   us:  (where $self->{parser} is our incremental parser), but we're using LibXML now.
 
     print Dumper("eobj = " . eval { $self->{parser}->_expat_obj->current_byte });
     $VAR1 = 'eobj = 22';
 
-
 -- when a server goes away, we still have a queue for it and don't reestablish connections with it
    send message from server a to server b, kill server a, start it again
    now messages can from a to b but not from b to a
-
 
 -- <not-authorized/> -- the sender must provide proper credentials
       before being allowed to perform the action, or has provided
