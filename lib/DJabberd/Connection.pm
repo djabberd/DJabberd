@@ -157,9 +157,12 @@ sub run_hook_chain {
     my $self = shift;
     my %opts = @_;
     $opts{hook_invocant} = $self;
+
+    my $known_deprecated = delete $opts{deprecated};
     my ($pkg, $filename, $line) = caller;
     my $vhost = $self->vhost;
-    if ($vhost) {
+
+    unless ($known_deprecated) {
         warn("DEPRECATED caller ($pkg/$filename/$line) of run_hook_chain on a connection\n");
     }
     return DJabberd::VHost::run_hook_chain($vhost, %opts);

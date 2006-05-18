@@ -56,6 +56,7 @@ sub on_stanza_received {
     my $stanza = $class->downbless($node, $self);
 
     $self->run_hook_chain(phase => "filter_incoming_server",
+                          deprecated => 1,  # yes, we know this is deprecated, but we don't have a vhost always during dialback.
                           args  => [ $stanza ],
                           methods => {
                               reject => sub { },  # just stops the chain
@@ -75,6 +76,7 @@ sub filter_incoming_server_builtin {
     }
 
     $self->run_hook_chain(phase => "switch_incoming_server",
+                          deprecated => 1,  # yes, we know this is deprecated, but we don't have a vhost always during dialback.
                           args  => [ $stanza ],
                           methods => {
                               process => sub { $stanza->process($self) },
