@@ -331,4 +331,29 @@ sub get_roster {
     return $xmlo;
 }
 
+# assumes no roster has been requested yet.
+# assumes no initial presence has been sent yet.
+sub subscribe_successfully {
+    my ($self, $other) = @_;
+
+    $self->send_xml(qq{<presence to='$other' type='subscribe' />});
+    #$self->recv_xml =~ /\bask=.subscribe\b/
+    #    or die "didn't get subscription back";
+
+    $other->recv_xml =~ /<pre.+\btype=.subscribe\b/
+        or die "other party ($other) didn't get type='subscribe'\n";
+
+    $other->send_xml(qq{<presence to='$self' type='subscribed' />});
+
+    main::test_responses($self,
+                         "presence subscribed" => sub {
+                             my ($xo, $xml) = @_;
+                             return 0 unless $xml =~ /\btype=.subscribed\b/;
+                             return 0 unless $xml =~ /\bfrom=.$other\b/;
+                             return 1;
+                         },
+                         );
+}
+
+
 1;

@@ -24,6 +24,11 @@ sub new {
     }, $class;
 }
 
+sub is_bare {
+    my $self = shift;
+    return $self->{resource} ? 0 : 1;
+}
+
 sub node {
     my $self = shift;
     return $self->{node};

@@ -1,8 +1,3 @@
--- if a@foo.com/Home and a@foo.com/Work are both connected, subscribed to b@foo.com,
-   presence changes of b@foo.com don't go to both a's /Home and /Work resources.  it's
-   kinda random.  likewise with messages to only a@foo.com:  SHOULD go to all.
-   this starts to get into cluster-wide delivery.
-
 -- cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...
   give them types?
 

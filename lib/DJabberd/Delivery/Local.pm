@@ -7,14 +7,21 @@ sub run_before { ("DJabberd::Delivery::S2S") }
 
 sub deliver {
     my ($self, $vhost, $cb, $stanza) = @_;
-    #warn "local delivery!\n";
     my $to = $stanza->to_jid                or return $cb->declined;
-    #warn "  to = $to (" . $to->as_string . ")!\n";
 
-    my $dconn = $vhost->find_jid($to)  or return $cb->declined;
-    #warn "  dest conn = $dconn\n";
+    my @dconns;
+    if ($to->is_bare) {
+        @dconns = $vhost->find_conns_of_bare($to)
+            or return $cb->declined;
+    } else {
+        $dconns[0] = $vhost->find_jid($to)
+            or return $cb->declined;
+    }
 
-    $dconn->send_stanza($stanza);
+    foreach my $c (@dconns) {
+        $c->send_stanza($stanza);
+    }
+
     $cb->delivered;
 }
 
