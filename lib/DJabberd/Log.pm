@@ -44,7 +44,7 @@ log4perl.logger.DJabberd.Connection.XML = $loglevel
 
 log4perl.appender.screen = Log::Log4perl::Appender::ScreenColoredLevels
 log4perl.appender.screen.layout = Log::Log4perl::Layout::PatternLayout
-log4perl.appender.screen.layout.ConversionPattern = %-5p %-40c %m %n
+log4perl.appender.screen.layout.ConversionPattern = %P %-5p %-40c %m %n
 };
         Log::Log4perl->init(\$conf);
         $logger = Log::Log4perl->get_logger();

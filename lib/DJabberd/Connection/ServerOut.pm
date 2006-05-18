@@ -130,9 +130,16 @@ sub event_err {
     $self->{queue}->on_connection_error($self);
     return $self->SUPER::event_err;
 }
+
 sub event_hup {
     my $self = shift;
     return $self->event_err;
+}
+
+sub close {
+    my $self = shift;
+    $self->{queue}->on_connection_error($self);
+    return $self->SUPER::close;
 }
 
 1;

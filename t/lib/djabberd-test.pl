@@ -279,6 +279,7 @@ sub login {
         or die "Cannot connect to server " . $self->server->id;
 
     my $to = $self->server->hostname;
+    $self->start_new_parser;
 
     print $sock "
    <stream:stream
