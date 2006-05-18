@@ -107,7 +107,8 @@ sub danga_socket_writerfunc {
             my $errstr = Net::SSLeay::ERR_error_string($err);
             warn " SSL write err = $err, $errstr\n";
             Net::SSLeay::print_errs("SSL_write");
-            die "we died writing\n";
+            $conn->close;
+            return 0;
         }
 
         return $written;
