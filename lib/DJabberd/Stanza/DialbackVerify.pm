@@ -10,6 +10,11 @@ use DJabberd::DialbackParams;
 
 our $logger = DJabberd::Log->get_logger();
 
+sub on_recv_from_server {
+    my ($self, $conn) = @_;
+    $self->process($conn);
+}
+
 sub process {
     my ($self, $conn) = @_;
 

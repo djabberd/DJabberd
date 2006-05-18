@@ -1,3 +1,6 @@
+-- can we reuse s2s connections in both directions?  Our code doesn't, but worse,
+   I don't think it'd even allow other people to try and do it to us.  What does spec say?
+
 -- s2s and client timeouts
 
 -- cleanup/unifiy callbacks.... error vs. fail, on_data vs set vs loaded, etc...

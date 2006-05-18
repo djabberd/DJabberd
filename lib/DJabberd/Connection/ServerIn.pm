@@ -83,22 +83,8 @@ sub filter_incoming_server_builtin {
                               deliver => sub { $stanza->deliver($self) },
                           },
                           fallback => sub {
-                              $self->switch_incoming_server_builtin($stanza);
+                              $stanza->on_recv_from_server($self);
                           });
-}
-
-sub switch_incoming_server_builtin {
-    my ($self, $stanza) = @_;
-
-    if ($stanza->isa("DJabberd::Stanza::DialbackResult") ||
-        $stanza->isa("DJabberd::Stanza::DialbackVerify"))
-    {
-        $stanza->process($self);
-    } elsif ($stanza->isa("DJabberd::Presence")) {
-        $stanza->process_inbound($self->vhost);
-    } else {
-        $stanza->deliver($self);
-    }
 }
 
 sub is_server { 1 }

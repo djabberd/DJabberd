@@ -108,11 +108,10 @@ sub on_stanza_received {
         $self->log_incoming_data($node);
     }
 
-
     # we only deal with dialback verifies here.  kinda ghetto
     # don't make a Stanza::DialbackVerify, maybe we should.
     unless ($node->element eq "{jabber:server:dialback}result") {
-        return $self->SUPER::process_stanza_builtin($node);
+        return $self->SUPER::process_incoming_stanza_from_s2s_out($node);
     }
 
     unless ($node->attr("{}type") eq "valid") {

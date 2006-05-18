@@ -30,9 +30,14 @@ sub downbless {
 
 }
 
+sub on_recv_from_server {
+    my ($self, $conn) = @_;
+    $self->deliver($conn->vhost);
+}
+
 sub process {
     my ($self, $conn) = @_;
-    warn "$self ->process not implemented\n";
+    die "$self ->process not implemented\n";
 }
 
 sub connection {
@@ -59,7 +64,7 @@ sub deliver {
     } elsif ($stanza->{connection}) {
         $vhost = $stanza->{connection}->vhost;
     }
-    Carp::croak("Can't determine vhost") unless $vhost;
+    Carp::croak("Can't determine vhost delivering: " . $stanza->as_xml) unless $vhost;
 
     $vhost->run_hook_chain(phase => "deliver",
                            args  => [ $stanza ],

@@ -92,7 +92,7 @@ sub on_stanza_received {
     # we only deal with dialback verifies here.  kinda ghetto
     # don't make a Stanza::DialbackVerify, maybe we should.
     unless ($node->element eq "{jabber:server:dialback}verify") {
-        return $self->SUPER::process_stanza_builtin($node);
+        return $self->SUPER::process_incoming_stanza_from_s2s_out($node);
     }
 
     my $id = $node->attr("{}id");

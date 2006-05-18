@@ -200,7 +200,7 @@ sub is_server {
     die "Undefined 'is_server' for $_[0]";
 }
 
-sub process_stanza_builtin {
+sub process_incoming_stanza_from_s2s_out {
     my ($self, $node) = @_;
 
     my %stanzas = (
@@ -215,7 +215,7 @@ sub process_stanza_builtin {
     }
 
     my $obj = $class->downbless($node, $self);
-    $obj->process($self);
+    $obj->on_recv_from_server($self);
 }
 
 sub jid {
@@ -404,8 +404,13 @@ sub start_init_stream {
     my $our_version = $self->server->spec_version;
     my $ver_attr    = $our_version->as_attr_string;
 
+    # by default we send the optional to='' attribute in our stream, but we have support for
+    # disabling it for our test suite.
+    $to = "to='$to'";
+    $to = "" if $DJabberd::_T_NO_TO_IN_DIALBACKVERIFY_STREAM;
+
     # {=xml-lang}
-    my $xml = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream to='$to' xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:server' xml:lang='en' $extra_attr $ver_attr>};
+    my $xml = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream $to xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:server' xml:lang='en' $extra_attr $ver_attr>};
     $self->log_outgoing_data($xml);
     $self->write($xml);
 }

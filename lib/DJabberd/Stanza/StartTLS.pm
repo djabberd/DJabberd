@@ -14,7 +14,7 @@ sub can_do_ssl {
     return -e 'server-key.pem' && -e 'server-cert.pem';
 }
 
-sub process {
+sub on_recv_from_server {
     my ($self, $conn) = @_;
 
     # {=tls-no-spaces} -- we can't send spaces after the closing bracket

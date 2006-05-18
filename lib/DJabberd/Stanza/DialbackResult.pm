@@ -5,6 +5,11 @@ use base qw(DJabberd::Stanza);
 use DJabberd::DNS;
 use DJabberd::Connection::DialbackVerify;
 
+sub on_recv_from_server {
+    my ($self, $conn) = @_;
+    $self->process($conn);
+}
+
 sub process {
     my ($self, $conn) = @_;
 
@@ -16,7 +21,6 @@ sub process {
     my $vhost = $conn->vhost;
     unless ($vhost) {
         $vhost = $conn->server->lookup_vhost($recv_server);
-        warn "found vhost = $vhost for '$recv_server'\n";
         if ($vhost) {
             return unless $conn->set_vhost($vhost);
         }

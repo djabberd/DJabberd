@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use base qw(DJabberd::Stanza);
 
-sub process {
+sub on_recv_from_server {
     my ($self, $conn) = @_;
     $conn->set_rcvd_features($self);
 }

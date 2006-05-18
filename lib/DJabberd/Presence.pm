@@ -21,6 +21,11 @@ use Carp qw(croak confess);
 # used by DJabberd::PresenceChecker::Local.
 my %last_bcast;   # barejidstring -> { full_jid_string -> $cloned_pres_stanza }
 
+sub on_recv_from_server {
+    my ($self, $conn) = @_;
+    $self->process_inbound($conn->vhost);
+}
+
 sub local_presence_info {
     my ($class, $jid) = @_;
     my $barestr = $jid->as_bare_string;
