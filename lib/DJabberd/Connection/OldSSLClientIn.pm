@@ -50,8 +50,13 @@ sub new {
 
     #Net::SSLeay::connect($ssl) or Net::SSLeay::die_now("Failed SSL connect ($!)");
 
-    my $err = Net::SSLeay::accept($ssl) and Net::SSLeay::die_if_ssl_error('ssl accept');
-    warn "SSL accept err = $err\n";
+    my $rv = Net::SSLeay::accept($ssl);
+    if (!$rv) {
+        warn "SSL accept error on $self\n";
+        $self->close;
+        return;
+    }
+
     warn "$self:  Cipher `" . Net::SSLeay::get_cipher($ssl) . "'\n";
 
     $self->set_writer_func(DJabberd::Stanza::StartTLS->danga_socket_writerfunc($self));

@@ -26,6 +26,11 @@ sub on_recv_from_server {
     $self->process_inbound($conn->vhost);
 }
 
+sub on_recv_from_client {
+    my ($self, $conn) = @_;
+    $self->process_outbound($conn);
+}
+
 sub local_presence_info {
     my ($class, $jid) = @_;
     my $barestr = $jid->as_bare_string;

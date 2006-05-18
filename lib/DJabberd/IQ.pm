@@ -5,6 +5,18 @@ use base qw(DJabberd::Stanza);
 use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger();
 
+sub on_recv_from_client {
+    my ($self, $conn) = @_;
+
+    my $to = $self->to_jid;
+    if (! $to || $conn->vhost->uses_jid($to)) {
+        $self->process($conn);
+        return;
+    }
+
+    $self->deliver;
+}
+
 # DO NOT OVERRIDE THIS
 sub process {
     my DJabberd::IQ $self = shift;

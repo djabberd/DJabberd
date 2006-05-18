@@ -178,27 +178,8 @@ sub filter_incoming_client_builtin {
                                deliver => sub { $stanza->deliver($self) },
                            },
                            fallback => sub {
-                               $self->switch_incoming_client_builtin($stanza);
+                               $stanza->on_recv_from_client($self);
                            });
-}
-
-sub switch_incoming_client_builtin {
-    my ($self, $stanza) = @_;
-
-    if ($stanza->isa("DJabberd::Presence")) {
-        $stanza->process_outbound($self);
-        return;
-    }
-
-    my $to = $stanza->to_jid;
-    if (!$to ||
-        ($to && $self->vhost->uses_jid($to)))
-    {
-        $stanza->process($self);
-        return;
-    }
-
-    $stanza->deliver;
 }
 
 1;

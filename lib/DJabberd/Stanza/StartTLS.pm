@@ -14,7 +14,10 @@ sub can_do_ssl {
     return -e 'server-key.pem' && -e 'server-cert.pem';
 }
 
-sub on_recv_from_server {
+sub on_recv_from_server { &process }
+sub on_recv_from_client { &process }
+
+sub process {
     my ($self, $conn) = @_;
 
     # {=tls-no-spaces} -- we can't send spaces after the closing bracket
@@ -56,8 +59,12 @@ sub on_recv_from_server {
 
     #Net::SSLeay::connect($ssl) or Net::SSLeay::die_now("Failed SSL connect ($!)");
 
-    my $err = Net::SSLeay::accept($ssl) and Net::SSLeay::die_if_ssl_error('ssl accept');
-    warn "SSL accept err = $err\n";
+    my $rv = Net::SSLeay::accept($ssl);
+    if (!$rv) {
+        warn "SSL accept error on $conn\n";
+        $conn->close;
+        return;
+    }
 
     warn "$conn:  Cipher `" . Net::SSLeay::get_cipher($ssl) . "'\n";
 
