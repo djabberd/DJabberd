@@ -13,11 +13,6 @@ use Carp qw(croak confess);
 #    sent. In # other words, the server will ignore the invisibility
 #    request.
 
-# TODO: inbound_unsubscribe
-# TODO: inbound_unsubscribed
-# TODO: outbound_unsubscribe
-# TODO: outbound_unsubscribed
-
 # used by DJabberd::PresenceChecker::Local.
 my %last_bcast;   # barejidstring -> { full_jid_string -> $cloned_pres_stanza }
 
@@ -288,6 +283,27 @@ sub _process_inbound_probe {
                            );
 }
 
+sub _process_inbound_unsubscribe {
+    my ($self, $vhost, $ritem) = @_;
+
+    # TODO:
+    # 1) MUST roster push
+    # 2) MUST deliver to all available resources
+
+    # both -> to
+}
+
+sub _process_inbound_unsubscribed {
+    my ($self, $vhost, $ritem) = @_;
+
+    # TODO:
+    # 1) MUST roster push
+    # 2) MUST deliver to all available resources
+
+    # to -> none
+    # keep it in the roster as 'none', don't remove.  client does that with type='remove'
+}
+
 sub broadcast_from {
     my ($self, $conn) = @_;
 
@@ -345,6 +361,28 @@ sub _process_outbound_unavailable {
     $conn->set_available(0);
     $self->broadcast_from($conn);
 }
+
+
+sub _process_outbound_unsubscribe {
+    my ($self, $conn) = @_;
+    # TODO: outbound_unsubscribe
+    my $from_jid    = $conn->bound_jid;
+    my $contact_jid = $self->to_jid or die "Can't subscribe to bogus jid";
+    # xmpp-ip 8.4.[12]
+    # roster push,   (to => none, both => from)
+    # deliver.
+}
+
+sub _process_outbound_unsubscribed {
+    my ($self, $conn) = @_;
+    # TODO: outbound_unsubscribed
+    my $from_jid    = $conn->bound_jid;
+    my $contact_jid = $self->to_jid or die "Can't subscribe to bogus jid";
+    # xmpp-ip 8.5.[12]
+    # roster push   (from => none, both => to)
+    # send unavailable presence to contact
+}
+
 
 sub _process_outbound_subscribe {
     my ($self, $conn) = @_;

@@ -194,6 +194,9 @@ sub process_iq_setroster {
                                           groups  => \@groups,
                                           );
 
+    # TODO if ($removing), send unsubscribe/unsubscribed presence
+    # stanzas.  See RFC3921 8.6
+
     # {=add-item-to-roster}
     my $phase = $removing ? "RosterRemoveItem" : "RosterAddUpdateItem";
     $conn->vhost->run_hook_chain(phase   => $phase,
