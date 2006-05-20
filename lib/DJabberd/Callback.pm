@@ -9,6 +9,8 @@ sub new {
     return bless $_[1], $_[0];
 }
 
+sub reset { $_[0]{_has_been_called} = 0; }
+
 #sub DESTROY {
 #    my $self = shift;
 #    DJabberd->track_destroyed_obj($self);

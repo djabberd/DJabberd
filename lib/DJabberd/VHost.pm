@@ -113,13 +113,31 @@ sub run_hook_chain {
         die if %opts;
     }
 
-    hook_chain_fast($self, $phase, $args, $methods, $fallback, $hook_inv);
+    hook_chain_fast($self,
+                    $phase,
+                    $args     || [],
+                    $methods  || {},
+                    $fallback || sub {},
+                    $hook_inv);
 }
+
+my $dummy_sub = sub {};
 
 sub hook_chain_fast {
     my ($self, $phase, $args, $methods, $fallback, $hook_inv) = @_;
 
-    $hook_inv ||= $self;
+    # fast path, no phases, only fallback:
+    if ($self && ! ref $phase && ! @{ $self->{hooks}->{$phase} || []}) {
+        $fallback->($self,
+                    DJabberd::Callback->new({
+                        decline    => $dummy_sub,
+                        declined   => $dummy_sub,
+                        stop_chain => $dummy_sub,
+                        %$methods,
+                    }),
+                    @$args);
+        return;
+    }
 
     # make phase into an arrayref;
     $phase = [ $phase ] unless ref $phase;
@@ -138,39 +156,42 @@ sub hook_chain_fast {
     }
     push @hooks, $fallback if $fallback;
 
-    my $try_another;
+    my ($cb, $try_another);  # pre-declared here so they're captured by closures below
     my $stopper = sub {
         $try_another = undef;
     };
     $try_another = sub {
-
         my $hk = shift @hooks
             or return;
 
-        $hk->($hook_inv,
-              DJabberd::Callback->new({
-                  decline    => $try_another,
-                  declined   => $try_another,
-                  stop_chain => $stopper,
-                  _post_fire => sub {
-                      # when somebody fires this callback, we know
-                      # we're done (unless it was decline/declined)
-                      # and we need to clean up circular references
-                      my $fired = shift;
-                      unless ($fired =~ /^decline/) {
-                          $try_another = undef;
-                      }
-                  },
-                  %{ $methods || {} },
-              }),
-              @{ $args || [] });
+        $cb->{_has_been_called} = 0;  # cheating version of: $cb->reset;
+        $hk->($self || $hook_inv,
+              $cb,
+              @$args);
 
-        # experiment in stopping the common case of leaks
+        # just in case the last person in the chain forgets
+        # to call a callback, we destroy the circular reference ourselves.
         unless (@hooks) {
-            $hook_logger->debug("Destroying hooks for phase $phase->[0]");
             $try_another = undef;
+            $cb = undef;
         }
     };
+    $cb = DJabberd::Callback->new({
+        decline    => $try_another,
+        declined   => $try_another,
+        stop_chain => $stopper,
+        _post_fire => sub {
+            # when somebody fires this callback, we know
+            # we're done (unless it was decline/declined)
+            # and we need to clean up circular references
+            my $fired = shift;
+            unless ($fired =~ /^decline/) {
+                $try_another = undef;
+                $cb = undef;
+            }
+        },
+        %$methods,
+    });
 
     $try_another->();
 }
