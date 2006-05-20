@@ -99,23 +99,23 @@ sub delivery_failure {
 }
 
 sub to {
-    my $self = shift;
-    return $self->attr("{}to");
+    my DJabberd::Stanza $self = shift;
+    return $self->{attrs}{"{}to"};
 }
 
 sub from {
-    my $self = shift;
-    return $self->attr("{}from");
+    my DJabberd::Stanza $self = shift;
+    return $self->{attrs}{"{}from"};
 }
 
 sub to_jid {
-    my $self = shift;
-    return DJabberd::JID->new($self->to);
+    my DJabberd::Stanza $self = shift;
+    return DJabberd::JID->new($self->{attrs}{"{}to"});
 }
 
 sub from_jid {
-    my $self = shift;
-    return DJabberd::JID->new($self->from);
+    my DJabberd::Stanza $self = shift;
+    return DJabberd::JID->new($self->{attrs}{"{}from"});
 }
 
 sub set_from {

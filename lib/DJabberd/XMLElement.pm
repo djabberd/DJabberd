@@ -3,7 +3,7 @@ use strict;
 use fields (
             'ns',        # namespace name
             'element',   # element name
-            'attrs',     # hashref of {namespace}attr => value
+            'attrs',     # hashref of {namespace}attr => value.  NOTE: used by Stanza.pm directly.
             'children',  # arrayref of child elements of this same type, or scalars for text nodes
             'raw',       # in some cases we have the raw xml and we have to create a fake XMLElement object
                          # business logic is that as_xml returns the raw stuff if it is exists, children has to be empty -- sky
