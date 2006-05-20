@@ -7,6 +7,8 @@ use fields (
                             # may be undef, as it's a weakref.  if you want to mess with the
                             # structure, you can't do so unless you're the owner, so clone
                             # it first otherwise.
+            '_memo_tojid',   # memoized to jid
+            '_memo_fromjid', # memoized from jid
             );
 
 sub downbless {
@@ -110,23 +112,25 @@ sub from {
 
 sub to_jid {
     my DJabberd::Stanza $self = shift;
-    return DJabberd::JID->new($self->{attrs}{"{}to"});
+    return $self->{_memo_tojid} ||= DJabberd::JID->new($self->{attrs}{"{}to"});
 }
 
 sub from_jid {
     my DJabberd::Stanza $self = shift;
-    return DJabberd::JID->new($self->{attrs}{"{}from"});
+    return $self->{_memo_fromjid} ||= DJabberd::JID->new($self->{attrs}{"{}from"});
 }
 
 sub set_from {
     #my ($self, $from) = @_;
     my DJabberd::Stanza $self = $_[0];
+    $self->{_memo_fromjid} = undef;
     $self->{attrs}{"{}from"} = ref $_[1] ? $_[1]->as_string : $_[1];
 }
 
 sub set_to {
     #my ($self, $to) = @_;
     my DJabberd::Stanza $self = $_[0];
+    $self->{_memo_tojid} = undef;
     $self->{attrs}{"{}to"} = ref $_[1] ? $_[1]->as_string : $_[1];
 }
 
