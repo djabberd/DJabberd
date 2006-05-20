@@ -127,7 +127,7 @@ sub id {
 
 sub hostname {
     my $self = shift;
-    return "s$self->{id}.example.com";
+    return $self->{hostname} || "s$self->{id}.example.com";
 }
 
 sub link_with {
