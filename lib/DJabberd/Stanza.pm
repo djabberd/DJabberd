@@ -66,9 +66,9 @@ sub deliver {
     }
     Carp::croak("Can't determine vhost delivering: " . $stanza->as_xml) unless $vhost;
 
-    $vhost->run_hook_chain(phase => "deliver",
-                           args  => [ $stanza ],
-                           methods => {
+    $vhost->hook_chain_fast("deliver",
+                            [ $stanza ],
+                            {
                                delivered => sub { },
                                # FIXME: in future, this should note deliver was
                                # complete and the next message to this jid should be dequeued and
@@ -78,7 +78,7 @@ sub deliver {
                                    $stanza->delivery_failure($vhost, $reason);
                                },
                            },
-                           fallback => sub {
+                           sub {
                                $stanza->delivery_failure($vhost);
                            });
 }

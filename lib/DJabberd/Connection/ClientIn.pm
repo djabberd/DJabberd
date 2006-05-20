@@ -104,6 +104,13 @@ sub on_stream_start {
 
 sub is_server { 0 }
 
+my %element2class = (
+             "{jabber:client}iq"       => 'DJabberd::IQ',
+             "{jabber:client}message"  => 'DJabberd::Message',
+             "{jabber:client}presence" => 'DJabberd::Presence',
+             "{urn:ietf:params:xml:ns:xmpp-tls}starttls"  => 'DJabberd::Stanza::StartTLS',
+             );
+
 sub on_stanza_received {
     my ($self, $node) = @_;
 
@@ -111,26 +118,20 @@ sub on_stanza_received {
         $self->log_incoming_data($node);
     }
 
-    my %class = (
-                 "{jabber:client}iq"       => 'DJabberd::IQ',
-                 "{jabber:client}message"  => 'DJabberd::Message',
-                 "{jabber:client}presence" => 'DJabberd::Presence',
-                 "{urn:ietf:params:xml:ns:xmpp-tls}starttls"  => 'DJabberd::Stanza::StartTLS',
-                 );
-    my $class = $class{$node->element} or
+    my $class = $element2class{$node->element} or
         return $self->stream_error("unsupported-stanza-type");
 
     # same variable as $node, but down(specific)-classed.
     my $stanza = $class->downbless($node, $self);
 
-    $self->vhost->run_hook_chain(phase => "filter_incoming_client",
-                                 args  => [ $stanza, $self ],
-                                 methods => {
-                                     reject => sub { },  # just stops the chain
-                                 },
-                                 fallback => sub {
-                                     $self->filter_incoming_client_builtin($stanza);
-                                 });
+    $self->vhost->hook_chain_fast("filter_incoming_client",
+                                  [ $stanza, $self ],
+                                  {
+                                      reject => sub { },  # just stops the chain
+                                  },
+                                  sub {
+                                      $self->filter_incoming_client_builtin($stanza);
+                                  });
 }
 
 sub is_authenticated_jid {
@@ -171,15 +172,16 @@ sub filter_incoming_client_builtin {
         $stanza->set_from($bj->as_string) if $bj;
     }
 
-    $vhost->run_hook_chain(phase => "switch_incoming_client",
-                           args  => [ $stanza ],
-                           methods => {
-                               process => sub { $stanza->process($self) },
-                               deliver => sub { $stanza->deliver($self) },
-                           },
-                           fallback => sub {
-                               $stanza->on_recv_from_client($self);
-                           });
+    $vhost->hook_chain_fast("switch_incoming_client",
+                            [ $stanza ],
+                            {
+                                process => sub { $stanza->process($self) },
+                                deliver => sub { $stanza->deliver($self) },
+                            },
+                            sub {
+                                $stanza->on_recv_from_client($self);
+                            });
+
 }
 
 1;

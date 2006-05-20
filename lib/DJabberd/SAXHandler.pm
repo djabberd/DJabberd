@@ -17,12 +17,16 @@ sub new {
     return $self;
 }
 
+use constant EVT_START_ELEMENT => 1;
+use constant EVT_END_ELEMENT   => 2;
+use constant EVT_CHARS         => 3;
+
 sub start_element {
     my $self = shift;
     my $data = shift;
 
     if ($self->{capture_depth}) {
-        push @{$self->{events}}, ["start_element", $data];
+        push @{$self->{events}}, [EVT_START_ELEMENT, $data];
         $self->{capture_depth}++;
         return;
     }
@@ -48,7 +52,7 @@ sub start_element {
         $self->{capture_depth} = 1;
 
         # capture via saving SAX events
-        push @{$self->{events}}, ["start_element", $data];
+        push @{$self->{events}}, [EVT_START_ELEMENT, $data];
 
         $self->{on_end_capture} = $cb;
         return 1;
@@ -67,7 +71,7 @@ sub characters {
     my ($self, $data) = @_;
 
     if ($self->{capture_depth}) {
-        push @{$self->{events}}, ["characters", $data];
+        push @{$self->{events}}, [EVT_CHARS, $data];
     }
 }
 
@@ -81,7 +85,7 @@ sub end_element {
     }
 
     if ($self->{capture_depth}) {
-        push @{$self->{events}}, ["end_element", $data];
+        push @{$self->{events}}, [EVT_END_ELEMENT, $data];
         $self->{capture_depth}--;
         return if $self->{capture_depth};
         my $doc = undef;
@@ -117,10 +121,10 @@ sub _nodes_from_events {
             my $child = shift @events;
             push @children, $child;
 
-            if ($child->[0] eq "start_element") {
+            if ($child->[0] == EVT_START_ELEMENT) {
                 $depth++;
                 next;
-            } elsif ($child->[0] eq "end_element") {
+            } elsif ($child->[0] == EVT_END_ELEMENT) {
                 $depth--;
                 next if $depth;
                 pop @children;  # this was our own element
@@ -145,12 +149,12 @@ sub _nodes_from_events {
 
     while (@events) {
         my $ev = shift @events;
-        if ($ev->[0] eq "characters") {
+        if ($ev->[0] == EVT_CHARS) {
             $handle_chars->($ev);
             next;
         }
 
-        if ($ev->[0] eq "start_element") {
+        if ($ev->[0] == EVT_START_ELEMENT) {
             $handle_element->($ev);
             next;
         }

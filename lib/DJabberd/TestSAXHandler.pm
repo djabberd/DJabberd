@@ -15,12 +15,16 @@ sub new {
     return $self;
 }
 
+use constant EVT_START_ELEMENT => 1;
+use constant EVT_END_ELEMENT   => 2;
+use constant EVT_CHARS         => 3;
+
 sub start_element {
     my $self = shift;
     my $data = shift;
 
     if ($self->{capture_depth}) {
-        push @{$self->{events}}, ["start_element", $data];
+        push @{$self->{events}}, [EVT_START_ELEMENT, $data];
         $self->{capture_depth}++;
         return;
     }
@@ -41,7 +45,7 @@ sub start_element {
         $self->{capture_depth} = 1;
 
         # capture via saving SAX events
-        push @{$self->{events}}, ["start_element", $data];
+        push @{$self->{events}}, [EVT_START_ELEMENT, $data];
 
         $self->{on_end_capture} = $cb;
         return 1;
@@ -60,7 +64,7 @@ sub characters {
     my ($self, $data) = @_;
 
     if ($self->{capture_depth}) {
-        push @{$self->{events}}, ["characters", $data];
+        push @{$self->{events}}, [EVT_CHARS, $data];
     }
 }
 
@@ -74,7 +78,7 @@ sub end_element {
     }
 
     if ($self->{capture_depth}) {
-        push @{$self->{events}}, ["end_element", $data];
+        push @{$self->{events}}, [EVT_END_ELEMENT, $data];
         $self->{capture_depth}--;
         return if $self->{capture_depth};
         my $doc = undef;

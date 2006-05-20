@@ -108,12 +108,18 @@ sub run_hook_chain {
     my ($phase, $methods, $args, $fallback, $hook_inv)
         = @opts{qw(phase methods args fallback hook_invocant)};
 
-    $hook_inv ||= $self;
-
     if (0) {
         delete @opts{qw(phase methods args fallback hook_invocant)};
         die if %opts;
     }
+
+    hook_chain_fast($self, $phase, $args, $methods, $fallback, $hook_inv);
+}
+
+sub hook_chain_fast {
+    my ($self, $phase, $args, $methods, $fallback, $hook_inv) = @_;
+
+    $hook_inv ||= $self;
 
     # make phase into an arrayref;
     $phase = [ $phase ] unless ref $phase;
