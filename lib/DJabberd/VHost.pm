@@ -105,12 +105,15 @@ sub run_hook_chain {
     my $self = shift;
     my %opts = @_;
 
-    my $phase    = delete $opts{'phase'};
-    my $methods  = delete $opts{'methods'} || {};
-    my $args     = delete $opts{'args'}    || [];
-    my $fallback = delete $opts{'fallback'};
-    my $hook_inv = delete $opts{'hook_invocant'} || $self;
-    die if %opts;
+    my ($phase, $methods, $args, $fallback, $hook_inv)
+        = @opts{qw(phase methods args fallback hook_invocant)};
+
+    $hook_inv ||= $self;
+
+    if (0) {
+        delete @opts{qw(phase methods args fallback hook_invocant)};
+        die if %opts;
+    }
 
     # make phase into an arrayref;
     $phase = [ $phase ] unless ref $phase;
@@ -130,10 +133,10 @@ sub run_hook_chain {
     push @hooks, $fallback if $fallback;
 
     my $try_another;
-    my $stopper = tsub {
+    my $stopper = sub {
         $try_another = undef;
     };
-    $try_another = tsub {
+    $try_another = sub {
 
         my $hk = shift @hooks
             or return;
@@ -152,9 +155,9 @@ sub run_hook_chain {
                                               $try_another = undef;
                                           }
                                       },
-                                      %$methods,
+                                      %{ $methods || {} },
                                       ),
-              @$args);
+              @{ $args || [] });
 
         # experiment in stopping the common case of leaks
         unless (@hooks) {

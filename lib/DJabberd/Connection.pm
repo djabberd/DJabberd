@@ -233,7 +233,7 @@ sub send_stanza {
     # getter subref for pre_stanza_write hooks to
     # get at their own private copy of the stanza
     my $cloned;
-    my $getter = tsub {
+    my $getter = sub {
         return $cloned if $cloned;
         if ($self != $stanza->connection) {
             $cloned = $stanza->clone;
@@ -249,7 +249,7 @@ sub send_stanza {
                                  methods => {
                                      # TODO: implement.
                                  },
-                                 fallback => tsub {
+                                 fallback => sub {
                                      # if any hooks called the $getter, instantiating
                                      # the $cloned copy, then that's what we write.
                                      # as an optimization (the fast path), we just
@@ -259,15 +259,15 @@ sub send_stanza {
 }
 
 sub write_stanza {
-    my ($self, $stanza, @ex) = @_;
-    die "too many parameters" if @ex;
+    my ($self, $stanza) = @_;
 
     my $to_jid    = $stanza->to   || die "no to";
     my $from_jid  = $stanza->from;  # this can be iq
     my $elename   = $stanza->element_name;
 
     my $other_attrs = "";
-    while (my ($k, $v) = each %{ $stanza->attrs }) {
+    my $attrs = $stanza->attrs;
+    while (my ($k, $v) = each %$attrs) {
         $k =~ s/.+\}//; # get rid of the namespace
         next if $k eq "to" || $k eq "from";
         $other_attrs .= "$k=\"" . exml($v) . "\" ";

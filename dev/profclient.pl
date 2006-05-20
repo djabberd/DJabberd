@@ -15,7 +15,7 @@ my $pb = Test::DJabberd::Client->new(server => $server, name => "partyb");
     $pa->login;
     $pb->login;
 
-    for (1..300) {
+    for (1..333) {
         print "$_\n" if $_ % 50 == 0;
         # PA to PB
         $pa->send_xml("<message type='chat' to='$pb'>Hello.  I am $pa.</message>");
