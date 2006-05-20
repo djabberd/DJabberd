@@ -4,11 +4,9 @@ use Carp qw(croak);
 our $AUTOLOAD;
 
 sub new {
-    my ($class, %meth) = @_;
-    # ... caller() ... store in $self
-    my $cb = bless \%meth, $class;
-    #DJabberd->track_new_obj($cb);
-    return $cb;
+    #my ($class, $meths) = @_;
+    # TODO: track where it was defined at, in debug mode?
+    return bless $_[1], $_[0];
 }
 
 #sub DESTROY {
@@ -18,7 +16,7 @@ sub new {
 
 sub desc {
     my $self = shift;
-    return $self;  # FIXME: change to "Callback defined at Djabberd.pm, line 23423"
+    return $self;  # TODO: change to "Callback defined at Djabberd.pm, line 23423"
 }
 
 sub already_fired {

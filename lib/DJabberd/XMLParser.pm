@@ -11,6 +11,8 @@ sub new {
     my ($class, @params) = @_;
     my $self = $class->SUPER::new(@params);
 
+#    my $saxhandler = $params[1]; # second param is handler.  lame.
+
     # libxml mode:
     if (1) {
         my $libxml = XML::LibXML->new;
@@ -26,6 +28,10 @@ sub new {
         $self->{expat} = $parser;
         $parser->parse_start;
     }
+
+#    $self->{Methods}{characters} = sub {
+#        $saxhandler->characters(@_);
+#    };
 
     return $self;
 }

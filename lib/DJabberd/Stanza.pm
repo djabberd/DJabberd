@@ -119,13 +119,15 @@ sub from_jid {
 }
 
 sub set_from {
-    my ($self, $from) = @_;
-    return $self->set_attr("{}from", ref $from ? $from->as_string : $from);
+    #my ($self, $from) = @_;
+    my DJabberd::Stanza $self = $_[0];
+    $self->{attrs}{"{}from"} = ref $_[1] ? $_[1]->as_string : $_[1];
 }
 
 sub set_to {
-    my ($self, $to) = @_;
-    return $self->set_attr("{}to", ref $to ? $to->as_string : $to);
+    #my ($self, $to) = @_;
+    my DJabberd::Stanza $self = $_[0];
+    $self->{attrs}{"{}to"} = ref $_[1] ? $_[1]->as_string : $_[1];
 }
 
 1;

@@ -148,21 +148,21 @@ sub hook_chain_fast {
             or return;
 
         $hk->($hook_inv,
-              DJabberd::Callback->new(
-                                      decline    => $try_another,
-                                      declined   => $try_another,
-                                      stop_chain => $stopper,
-                                      _post_fire => sub {
-                                          # when somebody fires this callback, we know
-                                          # we're done (unless it was decline/declined)
-                                          # and we need to clean up circular references
-                                          my $fired = shift;
-                                          unless ($fired =~ /^decline/) {
-                                              $try_another = undef;
-                                          }
-                                      },
-                                      %{ $methods || {} },
-                                      ),
+              DJabberd::Callback->new({
+                  decline    => $try_another,
+                  declined   => $try_another,
+                  stop_chain => $stopper,
+                  _post_fire => sub {
+                      # when somebody fires this callback, we know
+                      # we're done (unless it was decline/declined)
+                      # and we need to clean up circular references
+                      my $fired = shift;
+                      unless ($fired =~ /^decline/) {
+                          $try_another = undef;
+                      }
+                  },
+                  %{ $methods || {} },
+              }),
               @{ $args || [] });
 
         # experiment in stopping the common case of leaks

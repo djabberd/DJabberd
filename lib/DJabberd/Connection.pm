@@ -132,8 +132,7 @@ sub set_bound_jid {
 }
 
 sub bound_jid {
-    my ($self) = @_;
-    return $self->{bound_jid};
+    return $_[0]->{bound_jid};
 }
 
 sub set_version {
@@ -169,8 +168,7 @@ sub run_hook_chain {
 }
 
 sub vhost {
-    my $self = shift;
-    return $self->{vhost};
+    return $_[0]->{vhost};
 }
 
 # this can fail to signal that this connection can't work on this
@@ -227,8 +225,7 @@ sub jid {
 }
 
 sub send_stanza {
-    my ($self, $stanza, @ex) = @_;
-    die if @ex;
+    my ($self, $stanza) = @_;
 
     # getter subref for pre_stanza_write hooks to
     # get at their own private copy of the stanza
@@ -244,18 +241,18 @@ sub send_stanza {
         return $cloned;
     };
 
-    $self->vhost->run_hook_chain(phase => "pre_stanza_write",
-                                 args  => [ $getter ],
-                                 methods => {
+    $self->vhost->hook_chain_fast("pre_stanza_write",
+                                  [ $getter ],
+                                  {
                                      # TODO: implement.
-                                 },
-                                 fallback => sub {
-                                     # if any hooks called the $getter, instantiating
-                                     # the $cloned copy, then that's what we write.
-                                     # as an optimization (the fast path), we just
-                                     # write the untouched, uncloned original.
-                                     $self->write_stanza($cloned || $stanza);
-                                 });
+                                  },
+                                  sub {
+                                      # if any hooks called the $getter, instantiating
+                                      # the $cloned copy, then that's what we write.
+                                      # as an optimization (the fast path), we just
+                                      # write the untouched, uncloned original.
+                                      $self->write_stanza($cloned || $stanza);
+                                  });
 }
 
 sub write_stanza {
@@ -370,7 +367,7 @@ sub event_read {
     my $p = $self->{parser};
     my $len = length $$bref;
 
-    $self->log->debug("$self->{id} parsing $len bytes...") unless $len == 1;
+    #$self->log->debug("$self->{id} parsing $len bytes...") unless $len == 1;
 
     eval {
         $p->parse_chunk_scalarref($bref);

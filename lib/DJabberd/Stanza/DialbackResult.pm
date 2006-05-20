@@ -36,16 +36,16 @@ sub process {
         return;
     }
 
-    my $final_cb = DJabberd::Callback->new(
-                                           pass => sub {
-                                               $conn->dialback_result_valid(orig_server => $orig_server,
-                                                                            recv_server => $recv_server);
-                                           },
-                                           fail => sub {
-                                               my ($self_cb, $reason) = @_;
-                                               $conn->dialback_result_invalid($reason);;
-                                           },
-                                           );
+    my $final_cb = DJabberd::Callback->new({
+        pass => sub {
+            $conn->dialback_result_valid(orig_server => $orig_server,
+                                         recv_server => $recv_server);
+        },
+        fail => sub {
+            my ($self_cb, $reason) = @_;
+            $conn->dialback_result_invalid($reason);;
+        },
+    });
     # async DNS lookup
     DJabberd::DNS->srv(service  => "_xmpp-server._tcp",
                        domain   => $orig_server,

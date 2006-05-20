@@ -25,11 +25,11 @@ sub register {
         my (undef, $cb, $jid, $add_cb) = @_;
         # cb can 'decline' only
 
-        my $cb2 = DJabberd::Callback->new(
-                                          done     => sub { $cb->decline },
-                                          decline  => sub { $cb->decline },
-                                          declined => sub { $cb->decline },
-                                          );
+        my $cb2 = DJabberd::Callback->new({
+            done     => sub { $cb->decline },
+            decline  => sub { $cb->decline },
+            declined => sub { $cb->decline },
+        });
 
         $self->check_presence($cb2, $jid, $add_cb);
 

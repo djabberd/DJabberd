@@ -19,15 +19,13 @@ sub new {
     }
 
     # constructing a new XMLElement:
-    my ($ns, $elementname, $attrs, $children) = @_;
-
-    Carp::confess("children isn't an arrayref, is: $children") unless ref $children eq "ARRAY";
-
-    my $self = fields::new($class);
-    $self->{ns}       = $ns;
-    $self->{element}  = $elementname;
-    $self->{attrs}    = $attrs;
-    $self->{children} = $children;
+    my DJabberd::XMLElement $self = fields::new($class);
+    ($self->{ns},
+     $self->{element},
+     $self->{attrs},
+     $self->{children}) = @_;
+    #my ($ns, $elementname, $attrs, $children) = @_;
+    #Carp::confess("children isn't an arrayref, is: $children") unless ref $children eq "ARRAY";
 
     #DJabberd->track_new_obj($self);
     return $self;
@@ -45,22 +43,22 @@ sub set_raw {
 }
 
 sub children_elements {
-    my DJabberd::XMLElement $self = shift;
+    my DJabberd::XMLElement $self = $_[0];
     return grep { ref $_ } @{ $self->{children} };
 }
 
 sub children {
-    my DJabberd::XMLElement $self = shift;
+    my DJabberd::XMLElement $self = $_[0];
     return @{ $self->{children} };
 }
 
 sub first_child {
-    my $self = shift;
+    my DJabberd::XMLElement $self = $_[0];
     return @{ $self->{children} } ? $self->{children}[0] : undef;
 }
 
 sub first_element {
-    my $self = shift;
+    my DJabberd::XMLElement $self = $_[0];
     foreach my $c (@{ $self->{children} }) {
         return $c if ref $c;
     }
@@ -80,30 +78,30 @@ sub attrs {
 }
 
 sub element {
-    my $self = shift;
+    my DJabberd::XMLElement $self = $_[0];
     return ($self->{ns}, $self->{element}) if wantarray;
     return "{$self->{ns}}$self->{element}";
 }
 
 sub element_name {
-    my $self = shift;
+    my DJabberd::XMLElement $self = $_[0];
     return $self->{element};
 }
 
 sub namespace {
-    my $self = shift;
+    my DJabberd::XMLElement $self = $_[0];
     return $self->{ns};
 }
 
 sub as_xml {
-    my $self = shift;
+    my DJabberd::XMLElement $self = shift;
     my $nsmap = shift || {};  # localname -> uri, uri -> localname
     my $def_ns = shift;
 
-    my ($ns, $el) = $self->element;
+    my ($ns, $el) = ($self->{ns}, $self->{element});
 
     my $attr_str = "";
-    my $attr = $self->attrs;
+    my $attr = $self->{attrs};
     foreach my $k (keys %$attr) {
         next if $k eq "{}xmlns";
         my $value = $attr->{$k};
@@ -126,7 +124,7 @@ sub as_xml {
 }
 
 sub innards_as_xml {
-    my $self = shift;
+    my DJabberd::XMLElement $self = shift;
     my $nsmap = shift || {};
     my $def_ns = shift;
 
@@ -135,7 +133,7 @@ sub innards_as_xml {
     }
 
     my $ret = "";
-    foreach my $c ($self->children) {
+    foreach my $c (@{ $self->{children} }) {
         if (ref $c) {
             $ret .= $c->as_xml($nsmap, $def_ns);
         } else {
