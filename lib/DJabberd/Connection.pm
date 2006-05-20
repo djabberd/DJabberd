@@ -78,6 +78,21 @@ sub xmllog {
     return $_[0]->{xmllog};
 }
 
+sub vhost {
+    my DJabberd::Connection $self = $_[0];
+    return $self->{vhost};
+}
+
+sub server {
+    my DJabberd::Connection $self = $_[0];
+    return $self->{server};
+}
+
+sub bound_jid {
+    my DJabberd::Connection $self = $_[0];
+    return $self->{bound_jid};
+}
+
 sub new_iq_id {
     my $self = shift;
     $self->{iqctr}++;
@@ -131,10 +146,6 @@ sub set_bound_jid {
     $self->{bound_jid} = $jid;
 }
 
-sub bound_jid {
-    return $_[0]->{bound_jid};
-}
-
 sub set_version {
     my ($self, $verob) = @_;
     $self->{version} = $verob;
@@ -167,10 +178,6 @@ sub run_hook_chain {
     return DJabberd::VHost::run_hook_chain($vhost, %opts);
 }
 
-sub vhost {
-    return $_[0]->{vhost};
-}
-
 # this can fail to signal that this connection can't work on this
 # vhost for instance, this vhost doesn't support s2s, so a serverin or
 # dialback subclass can override this to return 0 when s2s isn't
@@ -180,11 +187,6 @@ sub set_vhost {
     Carp::croak("Not a DJabberd::VHost: $vhost") unless UNIVERSAL::isa($vhost, "DJabberd::VHost");
     $self->{vhost} = $vhost;
     return 1;
-}
-
-sub server {
-    my $self = shift;
-    return $self->{server};
 }
 
 # called by DJabberd::SAXHandler
