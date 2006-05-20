@@ -11,10 +11,21 @@ sub new {
     my ($class, @params) = @_;
     my $self = $class->SUPER::new(@params);
 
-    my $libxml = XML::LibXML->new;
-    $libxml->set_handler($self);
-    $self->{LibParser} = $libxml;
-    $libxml->init_push;
+    # libxml mode:
+    if (1) {
+        my $libxml = XML::LibXML->new;
+        $libxml->set_handler($self);
+        $self->{LibParser} = $libxml;
+        $libxml->init_push;
+    }
+
+    # expat mode:
+    if (0) {
+        #use XML::SAX::Expat::Incremental;
+        my $parser = XML::SAX::Expat::Incremental->new(Handler => $self);
+        $self->{expat} = $parser;
+        $parser->parse_start;
+    }
 
     return $self;
 }
@@ -22,12 +33,16 @@ sub new {
 *parse_more = \&parse_chunk;
 sub parse_chunk {
     #my ($self, $chunk) = @_;
+
     $_[0]->{LibParser}->push($_[1]);
+#    $_[0]->{expat}->parse_more($_[1]);
 }
 
 sub parse_chunk_scalarref {
     #my ($self, $chunk) = @_;
+
     $_[0]->{LibParser}->push(${$_[1]});
+#    $_[0]->{expat}->parse_more(${$_[1]});
 }
 
 sub finish_push {
