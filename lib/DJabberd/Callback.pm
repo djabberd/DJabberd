@@ -7,14 +7,14 @@ sub new {
     my ($class, %meth) = @_;
     # ... caller() ... store in $self
     my $cb = bless \%meth, $class;
-    DJabberd->track_new_obj($cb);
+    #DJabberd->track_new_obj($cb);
     return $cb;
 }
 
-sub DESTROY {
-    my $self = shift;
-    DJabberd->track_destroyed_obj($self);
-}
+#sub DESTROY {
+#    my $self = shift;
+#    DJabberd->track_destroyed_obj($self);
+#}
 
 sub desc {
     my $self = shift;
