@@ -19,6 +19,7 @@ sub new {
         $libxml->set_handler($self);
         $self->{LibParser} = $libxml;
         $libxml->init_push;
+        $self->{CONTEXT} = $libxml->{CONTEXT};
     }
 
     # expat mode:
@@ -40,15 +41,25 @@ sub new {
 sub parse_chunk {
     #my ($self, $chunk) = @_;
 
-    $_[0]->{LibParser}->push($_[1]);
-#    $_[0]->{expat}->parse_more($_[1]);
+    # 'push' (wrapper around _push) without context also works,
+    # but _push (xs) is enough faster...
+    $_[0]->{LibParser}->_push($_[0]->{CONTEXT},
+                              $_[1]);
+
+    # expat version:
+    # $_[0]->{expat}->parse_more($_[1]);
 }
 
 sub parse_chunk_scalarref {
     #my ($self, $chunk) = @_;
 
-    $_[0]->{LibParser}->push(${$_[1]});
-#    $_[0]->{expat}->parse_more(${$_[1]});
+    # 'push' (wrapper around _push) without context also works,
+    # but _push (xs) is enough faster...
+    $_[0]->{LibParser}->_push($_[0]->{CONTEXT},
+                              ${$_[1]});
+
+    # expat version:
+    # $_[0]->{expat}->parse_more(${$_[1]});
 }
 
 sub finish_push {
