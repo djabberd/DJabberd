@@ -129,9 +129,8 @@ sub on_stanza_received {
                                   {
                                       reject => sub { },  # just stops the chain
                                   },
-                                  sub {
-                                      $self->filter_incoming_client_builtin($stanza);
-                                  });
+                                  \&filter_incoming_client_builtin,
+                                  );
 }
 
 sub is_authenticated_jid {
@@ -140,7 +139,7 @@ sub is_authenticated_jid {
 }
 
 sub filter_incoming_client_builtin {
-    my ($self, $stanza) = @_;
+    my ($vhost, $cb, $stanza, $self) = @_;
 
     # <invalid-from/> -- the JID or hostname provided in a 'from'
     # address does not match an authorized JID or validated domain
