@@ -22,8 +22,7 @@ use constant EVT_END_ELEMENT   => 2;
 use constant EVT_CHARS         => 3;
 
 sub start_element {
-    my $self = shift;
-    my $data = shift;
+    my ($self, $data) = @_;
 
     if ($self->{capture_depth}) {
         push @{$self->{events}}, [EVT_START_ELEMENT, $data];
@@ -44,6 +43,10 @@ sub start_element {
         $ds->on_stream_start($ss);
         return;
     }
+
+    # FIXME: close connection harshly if the first thing we get isn't a stream start.
+    # basically, ask the $ds client object if it's expecting an opening stream,
+    # then we also do the right thing after ssl/sasl
 
     my $start_capturing = sub {
         my $cb = shift;
@@ -97,65 +100,51 @@ sub end_element {
 }
 
 sub _nodes_from_events {
-    my $evlist = shift;  # don't modify
-    #my $tree = ["namespace", "element", \%attr, [ <children>* ]]
+    my ($evlist, $i, $end) = @_;
+    $i   ||= 0;
+    $end ||= scalar @$evlist;
+    my $nodelist = [];    # what we're returning (nodes are text or XMLElement nodes)
 
-    my @events = @$evlist;  # our copy
-    my $nodelist = [];
+    while ($i < $end) {
+        my $ev = $evlist->[$i++];
 
-    my $handle_chars = sub {
-        my $ev = shift;
-        my $text = $ev->[1]{Data};
-        if (@$nodelist == 0 || ref $nodelist->[-1]) {
-            push @$nodelist, $text;
-        } else {
-            $nodelist->[-1] .= $text;
-        }
-    };
-
-    my $handle_element = sub {
-        my $ev = shift;
-        my $depth = 1;
-        my @children = ();
-        while (@events && $depth) {
-            my $child = shift @events;
-            push @children, $child;
-
-            if ($child->[0] == EVT_START_ELEMENT) {
-                $depth++;
-                next;
-            } elsif ($child->[0] == EVT_END_ELEMENT) {
-                $depth--;
-                next if $depth;
-                pop @children;  # this was our own element
-            }
-        }
-        die "Finished events without reaching depth 0!" if !@events && $depth;
-
-        my $ns = $ev->[1]{NamespaceURI};
-
-        # clean up the attributes from SAX
-        my $attr_sax = $ev->[1]{Attributes};
-        my $attr = {};
-        foreach my $key (keys %$attr_sax) {
-            my $val = $attr_sax->{$key}{Value};
-            $attr->{$key} = $val;
-        }
-
-        my $localname = $ev->[1]{LocalName};
-        my $ele = DJabberd::XMLElement->new($ns, $localname, $attr, _nodes_from_events(\@children));
-        push @$nodelist, $ele;
-    };
-
-    while (@events) {
-        my $ev = shift @events;
         if ($ev->[0] == EVT_CHARS) {
-            $handle_chars->($ev);
+            my $text = $ev->[1]{Data};
+            if (@$nodelist == 0 || ref $nodelist->[-1]) {
+                push @$nodelist, $text;
+            } else {
+                $nodelist->[-1] .= $text;
+            }
             next;
         }
 
         if ($ev->[0] == EVT_START_ELEMENT) {
-            $handle_element->($ev);
+            my $depth = 1;
+            my $start_idx = $i;  # index of first potential body node
+
+            while ($depth && $i < $end) {
+                my $child = $evlist->[$i++];
+
+                if ($child->[0] == EVT_START_ELEMENT) {
+                    $depth++;
+                } elsif ($child->[0] == EVT_END_ELEMENT) {
+                    $depth--;
+                }
+            }
+            die "Finished events without reaching depth 0!" if $depth;
+
+            my $end_idx = $i - 1;  # (end - start) == number of child elements
+
+            my $attr_sax = $ev->[1]{Attributes};
+            my $attr = {};
+            while (my $key = each %$attr_sax) {
+                $attr->{$key} = $attr_sax->{$key}{Value};
+            }
+
+            push @$nodelist, DJabberd::XMLElement->new($ev->[1]{NamespaceURI},
+                                                       $ev->[1]{LocalName},
+                                                       $attr,
+                                                       _nodes_from_events($evlist, $start_idx, $end_idx));
             next;
         }
 
