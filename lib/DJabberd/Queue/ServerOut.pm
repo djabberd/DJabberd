@@ -114,12 +114,12 @@ sub on_connection_error {
 
    if ($pre_state == CONNECTING) {
        # died while connecting:  no more luck
-       warn "Connection error while connecting, giving up.\n";
+       $logger->error("Connection error while connecting to '$self->{domain}', giving up");
        $self->on_final_error;
    } else {
        # died during an active connection, let's try again
        if (@{ $self->{to_deliver} }) {
-           warn "Reconnecting on $self\n";
+           $logger->warn("Reconnecting to '$self->{domain}'");
            $self->start_connecting;
        }
    }
