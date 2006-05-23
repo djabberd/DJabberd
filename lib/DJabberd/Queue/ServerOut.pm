@@ -50,14 +50,19 @@ sub domain {
 sub queue_stanza {
     my ($self, $stanza, $cb) = @_;
 
+    $logger->debug("Queuing stanza (" . $stanza->as_summary . ") for $self->{domain}");
+
     if ($self->{state} == NO_CONN) {
+        $logger->debug("  .. starting to connect to $self->{domain}");
         $self->start_connecting;
     }
 
     if ($self->{state} == CONNECTED) {
+        $logger->debug("  .. already connected, writing stanza.");
         $self->{connection}->send_stanza($stanza);
         $cb->delivered;
     } else {
+        $logger->debug("  .. pushing queue item.");
         push @{ $self->{to_deliver} }, DJabberd::QueueItem->new($stanza, $cb);
     }
 }
@@ -67,6 +72,7 @@ sub failed_to_connect {
     $self->{state}             = NO_CONN;
     $self->{last_connect_fail} = time();
 
+    $logger->debug("Failed to connect queue to $self->{domain}");
     while (my $qi = shift @{ $self->{to_deliver} }) {
         $qi->callback->error;
     }
@@ -80,6 +86,7 @@ sub on_connection_connected {
     # TODO why are we this checking here?
     return unless $conn == $self->{connection};
 
+    $logger->debug(" ... unloading queue items");
     $self->{state} = CONNECTED;
     while (my $qi = shift @{ $self->{to_deliver} }) {
         $conn->send_stanza($qi->stanza);
@@ -89,13 +96,17 @@ sub on_connection_connected {
 
 sub on_connection_failed {
    my ($self, $conn) = @_;
+   $logger->debug("s2s connection failed for queue '$self->{domain}'");
    return unless $conn == $self->{connection};
+   $logger->debug("  .. match");
    return $self->failed_to_connect;
 }
 
 sub on_connection_error {
    my ($self, $conn) = @_;
+   $logger->debug("s2s connection error for queue '$self->{domain}'");
    return unless $conn == $self->{connection};
+   $logger->debug("  .. match");
    my $pre_state = $self->{state};
 
    $self->{state}      = NO_CONN;

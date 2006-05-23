@@ -49,6 +49,7 @@ sub deliver {
 
 sub get_queue_for_domain {
     my ($self, $domain) = @_;
+    # TODO: we need to clean this periodically, like when connections timeout or fail
     return $self->{cache}{$domain} ||=
         DJabberd::Queue::ServerOut->new(source => $self,
                                         domain => $domain,
