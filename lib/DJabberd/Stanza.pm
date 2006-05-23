@@ -32,6 +32,11 @@ sub downbless {
 
 }
 
+sub as_summary {
+    my $self = shift;
+    return "[Stanza of type " . $self->element_name . " to " . $self->to_jid->as_string . "]";
+}
+
 sub on_recv_from_server {
     my ($self, $conn) = @_;
     $self->deliver($conn->vhost);
