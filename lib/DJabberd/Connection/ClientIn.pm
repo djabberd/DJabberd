@@ -138,6 +138,10 @@ sub is_authenticated_jid {
     return $jid->eq($self->bound_jid);
 }
 
+
+# This is not really a method, but gets invoked as a hookchain item
+# so if you subclass this class, this will still get called
+
 sub filter_incoming_client_builtin {
     my ($vhost, $cb, $stanza, $self) = @_;
 
@@ -147,7 +151,6 @@ sub filter_incoming_client_builtin {
     #  client and a server via authentication and resource binding.
     #{=clientin-invalid-from}
     my $from = $stanza->from_jid;
-    my $vhost = $self->vhost;
 
     if ($from && ! $self->is_authenticated_jid($from)) {
         # make sure it is from them, if they care to tell us who they are.
