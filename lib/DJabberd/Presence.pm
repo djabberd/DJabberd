@@ -334,6 +334,9 @@ sub _process_outbound_available {
     my ($self, $conn) = @_;
     if ($self->to_jid) {
         # TODO: directed presence...
+        $conn->vhost->run_hook_chain(phase => "DirectedPresence",
+                                     args =>  [ $self ],
+                                     );
         return;
     }
 
