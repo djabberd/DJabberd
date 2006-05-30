@@ -18,10 +18,24 @@ sub register {
         # args containing:  username, conn, password
         $self->check_cleartext($cb, %args);
     });
+
+    $server->register_hook("CheckJID", sub {
+        my (undef, $cb, %args) = @_;
+        # args contain: username and conn
+        $self->check_jid($cb, %args);
+
+    });
+
 }
 
 sub can_retrieve_cleartext {
     0;
+}
+
+
+sub check_jid {
+    my ($self, $cb, %args) = @_;
+    return 0;
 }
 
 sub check_cleartext {

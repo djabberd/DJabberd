@@ -64,5 +64,10 @@ sub check_cleartext {
 
     $cb->reject;
 }
+sub check_jid {
+    my $self = shift;
+
+    warn "check_jid";
+}
 
 1;

@@ -121,7 +121,7 @@ sub process {
 sub process_outbound {
     my ($self, $conn) = @_;
     my $type      = $self->type || "available";
-    #warn "OUTBOUND presence from $conn, type = '$type'\n";
+
 
     my $bjid = $conn->bound_jid;
     return 0 unless $bjid;

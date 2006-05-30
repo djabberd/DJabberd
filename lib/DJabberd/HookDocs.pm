@@ -37,6 +37,15 @@ $hook{'CheckCleartext'} = {
     },
 };
 
+$hook{'CheckJID'} = {
+    des => "Check if this knows about this JID",
+    args => [ "username" => '$username', "conn" => 'Connection', ],
+    callbacks => {
+        accept => [],
+        reject => [],
+    },
+};
+
 
 $hook{'pre_stanza_write'} = {
     des => "Called before a stanza is written to a user.  Default action if all declined is to just deliver it.",
