@@ -28,9 +28,9 @@ sub register {
     $logger->info("Starting up multiuser chat on '$self->{domain}'");
 
     $self->{vhost} = $vhost;
+    Scalar::Util::weaken($self->{vhost});
 
-
-    my $cb = sub {
+    my $dp = sub {
         my ($vh, $cb, $iq) = @_;
 
         warn $iq->first_child->element . "";;
@@ -54,7 +54,26 @@ sub register {
 
         $self->join_room($iq->to_jid->node, $iq->to_jid->resource, $iq->from_jid);
     };
-    $vhost->register_hook("DirectedPresence",$cb);
+    $vhost->register_hook("DirectedPresence",$dp);
+
+
+    my $deliver = sub {
+        my ($vhost, $cb, $stanza) = @_;
+
+
+        if($stanza->element_name ne 'message'
+           || $stanza->to_jid->domain ne $self->{domain}) {
+            return $cb->decline;
+        }
+        my $node = $stanza->to_jid->node;
+        my $room = $self->{rooms}->{$node} || die "No room name $node";
+
+        $room->send_message($stanza);
+        $cb->delivered;
+
+    };
+
+    $vhost->register_hook('deliver',$deliver);
 
 
 }

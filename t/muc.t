@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 11;
+use Test::More tests => 15;
 use lib 't/lib';
 BEGIN { require 'djabberd-test.pl' }
 
@@ -11,6 +11,7 @@ $Test::DJabberd::Server::PLUGIN_CB = sub {
     my $self = shift;
     my $plugins = $self->standard_plugins();
     push @$plugins, DJabberd::Plugin::MUC->new(subdomain => 'conference');
+    push @$plugins, DJabberd::Delivery::Local->new, DJabberd::Delivery::S2S->new; # these don't get pushed if someone else touches deliver
     return $plugins;
 };
 
@@ -53,13 +54,23 @@ two_parties_one_server(sub {
     like($xml, qr"http://jabber.org/protocol/muc#user", "Just a member");
 
 
-#    $pa->send_xml(qq { <message
-#    from='$pa'
-#    to='foobar\@conference.$server'
-#    type='groupchat'>
-#  <body>Sending message from $pa.</body>
-#</message>
-#});
+    $pa->send_xml(qq { <message
+                           from='$pa/testsuite'
+                           to='foobar\@conference.$server'
+                           type='groupchat'>
+                           <body>Sending message from $pa.</body>
+                           </message>
+                       });
+
+
+    $xml = $pa->recv_xml;
+
+    like($xml, qr"Sending message from $pa", "Got my own message back");
+    like($xml, qr"from=.foobar\@conference.$server/pa.", "Got my own message back");
+
+    $xml .= $pb->recv_xml;
+    like($xml, qr"Sending message from $pa", "Got message from pa");
+    like($xml, qr"from=.foobar\@conference.$server/pa.", "From the right user");
 
 });
 
