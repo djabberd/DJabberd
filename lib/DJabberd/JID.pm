@@ -36,6 +36,10 @@ sub domain {
     return $_[0]->[DOMAIN];
 }
 
+sub resource {
+    return $_[0]->[RES];
+}
+
 sub eq {
     my ($self, $jid) = @_;
     return $jid && $self->as_string eq $jid->as_string;
