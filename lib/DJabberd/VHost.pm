@@ -47,6 +47,11 @@ sub new {
     return $self;
 }
 
+sub server_name {
+    my $self = shift;
+    return $self->{server_name};
+}
+
 sub add_feature {
     my ($self, $feature) = @_;
     push @{$self->{features}}, $feature;
