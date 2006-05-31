@@ -16,6 +16,11 @@ use Carp qw(croak confess);
 # used by DJabberd::PresenceChecker::Local.
 my %last_bcast;   # barejidstring -> { full_jid_string -> $cloned_pres_stanza }
 
+sub is_directed {
+    my $self = shift;
+    return $self->to_jid ? 1 : 0;
+}
+
 sub on_recv_from_server {
     my ($self, $conn) = @_;
     $self->process_inbound($conn->vhost);
@@ -343,7 +348,7 @@ sub broadcast_from {
 
 sub _process_outbound_available {
     my ($self, $conn) = @_;
-    if ($self->to_jid) {
+    if ($self->is_directed) {
         $conn->{directed_presence}->{$self->to_jid}++;
         $self->deliver;
         # TODO this hook is going away
@@ -366,7 +371,7 @@ sub _process_outbound_available {
 
 sub _process_outbound_unavailable {
     my ($self, $conn) = @_;
-    if ($self->to_jid) {
+    if ($self->is_directed) {
         delete($conn->{directed_presence}->{$self->to_jid});
         $self->deliver;
         return;
