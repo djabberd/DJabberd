@@ -96,6 +96,7 @@ use overload
 
 our $PLUGIN_CB;
 our $VHOST_CB;
+our @SUBDOMAINS;
 
 sub as_string {
     my $self = shift;
@@ -171,6 +172,9 @@ sub start {
 
     foreach my $peer (@{$self->{peers} || []}){
         $server->set_fake_s2s_peer($peer->hostname => DJabberd::IPEndPoint->new("127.0.0.1", $peer->serverport));
+        foreach my $subdomain (@SUBDOMAINS) {
+            $server->set_fake_s2s_peer($subdomain . '.' . $peer->hostname => DJabberd::IPEndPoint->new("127.0.0.1", $peer->serverport));
+        }
     }
 
     $VHOST_CB->($vhost) if $VHOST_CB;
