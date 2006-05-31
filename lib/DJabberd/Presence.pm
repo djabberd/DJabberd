@@ -351,10 +351,6 @@ sub _process_outbound_available {
     if ($self->is_directed) {
         $conn->{directed_presence}->{$self->to_jid}++;
         $self->deliver;
-        # TODO this hook is going away
-        $conn->vhost->run_hook_chain(phase => "DirectedPresence",
-                                     args =>  [ $self ],
-                                     );
         return;
     }
 

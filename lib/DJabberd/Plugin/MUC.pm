@@ -34,9 +34,9 @@ sub register {
         my ($vh, $cb, $iq) = @_;
 
 
-        # XXX: shouldn't check for muc in x to support GC
-        if(($iq->to_jid->domain           ne $self->{domain})
-           || ($iq->first_child->element  ne '{http://jabber.org/protocol/muc}x')) {
+        if(!$iq->isa("DJabberd::Presence")
+           || !$iq->is_directed
+           || $iq->to_jid->domain ne $self->{domain}) {
             $cb->decline;
             return;
         }
@@ -50,9 +50,9 @@ sub register {
         }
 
         $self->join_room($iq->to_jid->node, $iq->to_jid->resource, $iq->from_jid);
+        $cb->stop_chain;
     };
-    $vhost->register_hook("DirectedPresence",$dp);
-
+    $vhost->register_hook("switch_incoming_client", $dp);
 
     my $deliver = sub {
         my ($vhost, $cb, $stanza) = @_;
