@@ -29,7 +29,6 @@ sub add {
 
 sub broadcast {
     my ($self, $nickname) = @_;
-    warn "broadcastin $nickname";
     foreach my $member (keys %{$self->{members}}) {
         my $presence = $self->make_response($nickname);
         $presence->set_to($self->{members}->{$member});

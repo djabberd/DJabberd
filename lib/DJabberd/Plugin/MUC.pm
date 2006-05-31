@@ -33,8 +33,6 @@ sub register {
     my $dp = sub {
         my ($vh, $cb, $iq) = @_;
 
-        warn $iq->first_child->element . "";;
-
 
         # XXX: shouldn't check for muc in x to support GC
         if(($iq->to_jid->domain           ne $self->{domain})
@@ -42,7 +40,6 @@ sub register {
             $cb->decline;
             return;
         }
-        warn "got a muc presence package";
 
         if($iq->to_jid->resource ne '') {
             # TODO: send an error, no nickname specified error 400 jid malfomed
