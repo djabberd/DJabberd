@@ -8,7 +8,18 @@ use fields (
 
             'got_initial_presence',  # bool: if user has already sent their initial presence
             'is_available',          # bool: is an "available resource"
+            'directed_presence',     # the jids we have sent directed presence too
             );
+
+sub directed_presence {
+    my $self = shift;
+    return keys %{$self->{directed_presence}};
+}
+
+sub clear_directed_presence {
+    my $self = shift;
+    $self->{directed_presence} = {};
+}
 
 sub requested_roster {
     my $self = shift;

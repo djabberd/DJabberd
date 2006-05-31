@@ -310,6 +310,17 @@ sub broadcast_from {
     my $from_jid = $conn->bound_jid;
     my $vhost    = $conn->vhost;
 
+
+    foreach my $to_jid ($conn->directed_presence) {
+        my $dpres = $self->clone;
+        $dpres->set_to($to_jid);
+        $dpres->set_from($from_jid);
+        # I think we only need to deliver and not procdeliver here
+        # because we don't actually want to process it anymore -- sky
+        $dpres->deliver($vhost);
+    }
+    $conn->clear_directed_presence;
+
     my $broadcast = sub {
         my $roster = shift;
         foreach my $it ($roster->from_items) {
@@ -333,7 +344,9 @@ sub broadcast_from {
 sub _process_outbound_available {
     my ($self, $conn) = @_;
     if ($self->to_jid) {
-        # TODO: directed presence...
+        $conn->{directed_presence}->{$self->to_jid}++;
+        $self->deliver;
+        # TODO this hook is going away
         $conn->vhost->run_hook_chain(phase => "DirectedPresence",
                                      args =>  [ $self ],
                                      );
@@ -354,7 +367,8 @@ sub _process_outbound_available {
 sub _process_outbound_unavailable {
     my ($self, $conn) = @_;
     if ($self->to_jid) {
-        # TODO: directed presence...
+        delete($conn->{directed_presence}->{$self->to_jid});
+        $self->deliver;
         return;
     }
 
