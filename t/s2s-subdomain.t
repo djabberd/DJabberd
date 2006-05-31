@@ -2,13 +2,14 @@
 use strict;
 use Test::More qw(no_plan);
 use lib 't/lib';
-
+BEGIN { $ENV{LOGLEVEL} ||= "OFF" };
 require 'djabberd-test.pl';
 
 
 
 $SIG{'ALRM'} = sub { local $TODO = 'Currently not working'; fail("3 seconds timeout, did not succed"); die "alarm reached" };
 
+@Test::DJabberd::Server::SUBDOMAINS = qw();
 @Test::DJabberd::Server::SUBDOMAINS = qw(subdomain);
 
 two_parties_s2s(sub {
