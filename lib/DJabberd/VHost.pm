@@ -29,6 +29,7 @@ sub new {
 
         features            => [],     # list of features
 
+        subdomain     => {},  # subdomain => plugin mapping of subdomains we should accept
     };
 
     croak("Missing/invalid vhost name") unless
@@ -45,6 +46,14 @@ sub new {
     }
 
     return $self;
+}
+
+sub register_subdomain {
+    my ($self, $subdomain, $plugin) = @_;
+    $logger->logdie("VHost '$self->{server_name}' already has '$subdomain' registered by plugin '$self->{subdomain}->{$subdomain}'")
+        if $self->{subdomain}->{$subdomain};
+
+    $self->{subdomain}->{$subdomain} = $plugin;
 }
 
 sub server_name {
