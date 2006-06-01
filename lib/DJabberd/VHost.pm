@@ -11,25 +11,25 @@ sub new {
     my ($class, %opts) = @_;
 
     my $self = {
-        'server_name' => lc(delete $opts{server_name} || ""),
-        'require_ssl' => delete $opts{require_ssl},
-        's2s'         => delete $opts{s2s},
-        'hooks'       => {},
-        'server'      => undef,  # set when added to a server
+        'server_name'   => lc(delete $opts{server_name} || ""),
+        'require_ssl'   => delete $opts{require_ssl},
+        's2s'           => delete $opts{s2s},
+        'hooks'         => {},
+        'server'        => undef,  # set when added to a server
 
         # local connections
-        'jid2sock'    => {},  # bob@207.7.148.210/rez -> DJabberd::Connection
+        'jid2sock'      => {},  # bob@207.7.148.210/rez -> DJabberd::Connection
                               # bob@207.7.148.210     -> DJabberd::Connection
-        'bare2fulls'  => {},  # barejids -> { fulljid -> 1 }
+        'bare2fulls'    => {},  # barejids -> { fulljid -> 1 }
 
-        'quirksmode'  => 1,
+        'quirksmode'    => 1,
 
         'server_secret' => undef,  # server secret we use for dialback HMAC keys.  trumped
                                    # if a plugin implements a cluster-wide keyed shared secret
 
-        features            => [],     # list of features
+        features        => [],     # list of features
 
-        subdomain     => {},  # subdomain => plugin mapping of subdomains we should accept
+        subdomain       => {},  # subdomain => plugin mapping of subdomains we should accept
     };
 
     croak("Missing/invalid vhost name") unless
