@@ -105,8 +105,6 @@ sub make_response {
     $response->set_to($from);
     $to ? $response->set_from($to) : delete($response->attrs->{"{}from"});
 
-#    Test::More::diag $iq->as_xml;
-#    Test::More::diag $response->as_xml;
     return $response;
 }
 
