@@ -38,7 +38,7 @@ sub finalize {
 
 sub register {
     my ($self, $vhost) = @_;
-    my $cb = sub {
+    my $vcard_cb = sub {
         my ($vh, $cb, $iq) = @_;
         unless ($iq->isa("DJabberd::IQ")) {
             $cb->decline;
@@ -61,8 +61,8 @@ sub register {
         }
         $cb->decline;
     };
-    $vhost->register_hook("switch_incoming_client",$cb);
-    $vhost->register_hook("switch_incoming_server",$cb);
+    $vhost->register_hook("switch_incoming_client",$vcard_cb);
+    $vhost->register_hook("switch_incoming_server",$vcard_cb);
     $vhost->add_feature("vcard-temp");
 
 }
