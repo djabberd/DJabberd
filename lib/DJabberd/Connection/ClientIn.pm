@@ -16,6 +16,11 @@ sub directed_presence {
     return keys %{$self->{directed_presence}};
 }
 
+sub add_directed_presence {
+    my ($self, $to_jid) = @_;
+    $self->{directed_presence}->{$to_jid}++;
+}
+
 sub clear_directed_presence {
     my $self = shift;
     $self->{directed_presence} = {};

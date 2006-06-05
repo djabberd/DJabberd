@@ -31,33 +31,30 @@ sub register {
     $self->{vhost} = $vhost;
     Scalar::Util::weaken($self->{vhost});
 
-    my $dp = sub {
-        my ($vh, $cb, $iq) = @_;
-
-
-        if (!$iq->isa("DJabberd::Presence")
-            || !$iq->is_directed
-            || $iq->to_jid->domain ne $self->{domain}) {
-            $cb->decline;
-            return;
-        }
-
-        if ($iq->to_jid->resource ne '') {
-            # TODO: send an error, no nickname specified error 400 jid malfomed
-        }
-
-        if ($self->{need_jid_check}) {
-            # should check if this jid is taken on this server
-        }
-
-        $self->join_room($iq->to_jid->node, $iq->to_jid->resource, $iq->from_jid);
-        $cb->stop_chain;
-    };
-    $vhost->register_hook("switch_incoming_client", $dp);
-    $vhost->register_hook("switch_incoming_server", $dp);
-
     my $deliver = sub {
         my ($vhost, $cb, $stanza) = @_;
+
+
+        if ($stanza->isa("DJabberd::Presence")
+            && $stanza->is_directed
+            && $stanza->to_jid->domain eq $self->{domain}) {
+
+            if ($stanza->to_jid->resource ne '') {
+                # TODO: send an error, no nickname specified error 400 jid malfomed
+            }
+
+            if ($self->{need_jid_check}) {
+                # should check if this jid is taken on this server
+            }
+
+            if ($stanza->is_unavailable) {
+                $self->leave_room($stanza->to_jid->node, $stanza->to_jid->resource, $stanza->from_jid);
+            } else {
+                $self->join_room($stanza->to_jid->node, $stanza->to_jid->resource, $stanza->from_jid);
+            }
+            $cb->delivered;
+            return;
+        }
 
 
         if ($stanza->element_name ne 'message'
@@ -81,6 +78,12 @@ sub join_room {
     my ($self, $room_name, $nickname, $jid) = @_;
     my $room = $self->get_room($room_name);
     $room->add($nickname, $jid);
+}
+
+sub leave_room {
+    my ($self, $room_name, $nickname, $jid) = @_;
+    my $room = $self->get_room($room_name);
+    $room->remove($nickname, $jid);
 }
 
 

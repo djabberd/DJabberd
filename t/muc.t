@@ -1,11 +1,14 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 15;
+use Test::More tests => 18;
 use lib 't/lib';
 BEGIN { require 'djabberd-test.pl' }
 
 use_ok("DJabberd::Plugin::MUC");
+
+@Test::DJabberd::Server::SUBDOMAINS = qw();
+@Test::DJabberd::Server::SUBDOMAINS = qw(conference);
 
 $Test::DJabberd::Server::PLUGIN_CB = sub {
     my $self = shift;
@@ -25,7 +28,6 @@ two_parties_one_server(sub {
     $pa->send_xml(qq{
                       <presence to='foobar\@conference.$server/pa'><x xmlns='http://jabber.org/protocol/muc'></x></presence>
                      });
-
 
     my $xml = $pa->recv_xml;
     like($xml, qr{from=\'foobar\@conference.$server/pa}, "Got broadcast back that I am in");
@@ -71,6 +73,16 @@ two_parties_one_server(sub {
     $xml .= $pb->recv_xml;
     like($xml, qr"Sending message from $pa", "Got message from pa");
     like($xml, qr"from=.foobar\@conference.$server/pa.", "From the right user");
+
+    $pa->send_xml(qq{<presence type="unavailable"><show>good bye suckers</show></presence>});
+
+    $xml = $pb->recv_xml;
+    like($xml, qr/.unavailable./, "Got an unavailable message");
+    like($xml, qr{/pa}, "From pa");
+    {
+        local $TODO = "We should preserve the show message but we don't";
+        like($xml, qr/good bye suckers/, "Preserving the show to allow custom exit messages");
+    }
 
 });
 

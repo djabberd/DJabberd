@@ -27,10 +27,17 @@ sub add {
     $self->broadcast($nickname);
 }
 
+sub remove {
+    my ($self, $nickname, $jid) = @_;
+    delete $self->{members}->{$nickname};
+    delete $self->{jid2nick}->{$jid};
+    $self->broadcast($nickname, "unavailable");
+}
+
 sub broadcast {
-    my ($self, $nickname) = @_;
+    my ($self, $nickname ,$type) = @_;
     foreach my $member (keys %{$self->{members}}) {
-        my $presence = $self->make_response($nickname);
+        my $presence = $self->make_response($nickname, $type);
         $presence->set_to($self->{members}->{$member});
         $presence->deliver($self->{vhost});
 
@@ -38,9 +45,10 @@ sub broadcast {
 }
 
 sub make_response {
-    my ($self, $nickname) = @_;
+    my ($self, $nickname, $type) = @_;
     my $presence = DJabberd::Presence->new("", 'presence');
     $presence->set_from("$self->{name}\@$self->{domain}/$nickname");
+    $presence->attrs->{"{}type"} = $type if ($type);
     $presence->set_raw( qq{ <x xmlns='http://jabber.org/protocol/muc#user'><item affiliation='member' role='participant'/></x> });
     return $presence;
 }

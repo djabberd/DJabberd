@@ -87,6 +87,11 @@ sub unavailable_stanza {
     return $class->downbless($xml);
 }
 
+sub is_unavailable {
+    my $self = shift;
+    return $self->type eq 'unavailable';
+}
+
 sub type {
     my $self = shift;
     return $self->attr("{}type");
@@ -349,7 +354,7 @@ sub broadcast_from {
 sub _process_outbound_available {
     my ($self, $conn) = @_;
     if ($self->is_directed) {
-        $conn->{directed_presence}->{$self->to_jid}++;
+        $conn->add_directed_presence($self->to_jid);
         $self->deliver;
         return;
     }
