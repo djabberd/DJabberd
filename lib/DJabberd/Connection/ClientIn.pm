@@ -94,17 +94,9 @@ sub on_stream_start {
     my $ss = shift;
     my $to_host = $ss->to;
     my $vhost = $self->server->lookup_vhost($to_host);
-    unless ($vhost) {
-        # FIXME: send proper "vhost not found message"
-        # spec says:
-        #   -- we have to start stream back to them,
-        #   -- then send stream error
-        #   -- stream should have proper 'from' address (but what if we have 2+)
-        # If the error occurs while the stream is being set up, the receiving entity MUST still send the opening <stream> tag, include the <error/> element as a child of the stream element, send the closing </stream> tag, and terminate the underlying TCP connection. In this case, if the initiating entity provides an unknown host in the 'to' attribute (or provides no 'to' attribute at all), the server SHOULD provide the server's authoritative hostname in the 'from' attribute of the stream header sent before termination
-        $self->log->info("No vhost found for host '$to_host', disconnecting");
-        $self->close;
-        return;
-    }
+    return $self->close_no_vhost($to_host)
+        unless ($vhost);
+
     $self->set_vhost($vhost);
 
     # FIXME: bitch if we're starting a stream when we already have one, and we aren't
