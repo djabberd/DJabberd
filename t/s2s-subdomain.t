@@ -1,20 +1,20 @@
 #!/usr/bin/perl
 use strict;
-use Test::More qw(no_plan);
+use Test::More tests => 4;
 use lib 't/lib';
 BEGIN { $ENV{LOGLEVEL} ||= "OFF" };
 require 'djabberd-test.pl';
 
 
 
-$SIG{'ALRM'} = sub { local $TODO = 'Currently not working'; fail("3 seconds timeout, did not succed"); die "alarm reached" };
+$SIG{'ALRM'} = sub { die "alarm reached" };
 
 use_ok('DJabberd::Plugin::SubdomainAlias');
 
 @Test::DJabberd::Server::SUBDOMAINS = qw();
 @Test::DJabberd::Server::SUBDOMAINS = qw(subdomain);
 
-$Test::DJabberd::Server::PLUGIN_CB;
+undef $Test::DJabberd::Server::PLUGIN_CB;
 $Test::DJabberd::Server::PLUGIN_CB = sub {
     my $self = shift;
     my $plugins = $self->standard_plugins();
@@ -46,6 +46,10 @@ two_parties_s2s(sub {
     };
     if($@ and $@ !~/alarm reached/) {
         die $@;
+    } elsif($@) {
+        fail("3 seconds timeout, did not succeed");
+    } else {
+        pass("Did not timeout");
     }
 });
 

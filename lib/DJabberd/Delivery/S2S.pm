@@ -33,8 +33,7 @@ sub deliver {
 
     # don't initiate outgoing connections back to ourself
     my $domain = $to->domain;
-    my $vhost_name = $vhost->name;
-    if ($domain =~ /$vhost_name\Z/) {
+    if($vhost->handles_domain($domain)) {
         $logger->debug("Not doing s2s to ourself");
         return $cb->declined;
     }

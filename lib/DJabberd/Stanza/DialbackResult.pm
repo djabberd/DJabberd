@@ -26,7 +26,7 @@ sub process {
         }
     }
 
-    if (!$vhost || $vhost->name ne $recv_server) {
+    if (!$vhost || !$vhost->handles_domain($recv_server) ) {
         # If the value of the 'to' address does not match a hostname
         # recognized by the Receiving Server, then the Receiving
         # Server MUST generate a <host-unknown/> stream error

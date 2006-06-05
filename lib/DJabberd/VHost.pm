@@ -64,7 +64,7 @@ sub handles_domain {
     } elsif (exists $self->{subdomain}->{$domain}) {
         return 1;
     } else {
-        $logger->warn("VHost '$self->{server_name}' does not handle domain '$domain'");
+        $logger->info("VHost '$self->{server_name}' does not handle domain '$domain'");
         return 0;
     }
 }
