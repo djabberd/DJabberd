@@ -13,6 +13,7 @@ use DJabberd::Delivery::Local;
 use DJabberd::Delivery::S2S;
 use DJabberd::PresenceChecker::Local;
 use DJabberd::RosterStorage::SQLite;
+use DJabberd::Plugin::MUC;
 use DJabberd::Plugin::VCard;
 my $daemonize;
 Getopt::Long::GetOptions(
@@ -27,6 +28,10 @@ my $vcard = DJabberd::Plugin::VCard->new;
 $vcard->set_config_storage("$Bin/roster.sqlite");
 $vcard->finalize;
 
+my $muc = DJabberd::Plugin::MUC->new;
+$muc->set_config_subdomain("conference");
+$muc->finalize;
+
 my $vhost = DJabberd::VHost->new(
                                  server_name => 'sixapart.com',
                                  require_ssl => 1,
@@ -35,6 +40,7 @@ my $vhost = DJabberd::VHost->new(
                                                DJabberd::Authen::SixApart->new,
                                                $rs,
                                                $vcard,
+                                               $muc,
                                                ],
                                  );
 
