@@ -19,6 +19,7 @@ sub register {
 
     if($self->{subdomain}) {
         $self->{domain} = $self->{subdomain} . "." . $vhost->server_name;
+        $vhost->register_subdomain($self->{subdomain}, __PACKAGE__);
     } else {
         $self->{domain} = $vhost->server_name;
         # we need to check if a jid exist before we create things
@@ -53,6 +54,7 @@ sub register {
         $cb->stop_chain;
     };
     $vhost->register_hook("switch_incoming_client", $dp);
+    $vhost->register_hook("switch_incoming_server", $dp);
 
     my $deliver = sub {
         my ($vhost, $cb, $stanza) = @_;
