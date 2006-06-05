@@ -71,6 +71,7 @@ sub filter_incoming_server_builtin {
 
     unless ($stanza->acceptable_from_server($self)) {
         # FIXME: who knows.  send something else.
+        $self->log->error("Stansa of type '$stanza' not acceptable");
         $self->stream_error;
         return 0;
     }
