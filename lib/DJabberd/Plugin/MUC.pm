@@ -17,7 +17,7 @@ sub register {
     my ($self, $vhost) = @_;
 
 
-    if($self->{subdomain}) {
+    if ($self->{subdomain}) {
         $self->{domain} = $self->{subdomain} . "." . $vhost->server_name;
         $vhost->register_subdomain($self->{subdomain}, __PACKAGE__);
     } else {
@@ -35,18 +35,18 @@ sub register {
         my ($vh, $cb, $iq) = @_;
 
 
-        if(!$iq->isa("DJabberd::Presence")
-           || !$iq->is_directed
-           || $iq->to_jid->domain ne $self->{domain}) {
+        if (!$iq->isa("DJabberd::Presence")
+            || !$iq->is_directed
+            || $iq->to_jid->domain ne $self->{domain}) {
             $cb->decline;
             return;
         }
 
-        if($iq->to_jid->resource ne '') {
+        if ($iq->to_jid->resource ne '') {
             # TODO: send an error, no nickname specified error 400 jid malfomed
         }
 
-        if($self->{need_jid_check}) {
+        if ($self->{need_jid_check}) {
             # should check if this jid is taken on this server
         }
 
@@ -60,8 +60,8 @@ sub register {
         my ($vhost, $cb, $stanza) = @_;
 
 
-        if($stanza->element_name ne 'message'
-           || $stanza->to_jid->domain ne $self->{domain}) {
+        if ($stanza->element_name ne 'message'
+            || $stanza->to_jid->domain ne $self->{domain}) {
             return $cb->decline;
         }
         my $node = $stanza->to_jid->node;
