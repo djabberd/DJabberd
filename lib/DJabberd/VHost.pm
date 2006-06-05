@@ -50,10 +50,23 @@ sub new {
 
 sub register_subdomain {
     my ($self, $subdomain, $plugin) = @_;
-    $logger->logdie("VHost '$self->{server_name}' already has '$subdomain' registered by plugin '$self->{subdomain}->{$subdomain}'")
-        if $self->{subdomain}->{$subdomain};
+    my $qualified_subdomain = $subdomain . "." . $self->{server_name};
+    $logger->logdie("VHost '$self->{server_name}' already has '$subdomain' registered by plugin '$self->{subdomain}->{$qualified_subdomain}'")
+        if $self->{subdomain}->{$qualified_subdomain};
 
-    $self->{subdomain}->{$subdomain} = $plugin;
+    $self->{subdomain}->{$qualified_subdomain} = $plugin;
+}
+
+sub handles_domain {
+    my ($self, $domain) = @_;
+    if ($self->{server_name} eq $domain) {
+        return 1;
+    } elsif (exists $self->{subdomain}->{$domain}) {
+        return 1;
+    } else {
+        $logger->warn("VHost '$self->{server_name}' does not handle domain '$domain'");
+        return 0;
+    }
 }
 
 sub server_name {

@@ -9,8 +9,20 @@ require 'djabberd-test.pl';
 
 $SIG{'ALRM'} = sub { local $TODO = 'Currently not working'; fail("3 seconds timeout, did not succed"); die "alarm reached" };
 
+use_ok('DJabberd::Plugin::SubdomainAlias');
+
 @Test::DJabberd::Server::SUBDOMAINS = qw();
 @Test::DJabberd::Server::SUBDOMAINS = qw(subdomain);
+
+$Test::DJabberd::Server::PLUGIN_CB;
+$Test::DJabberd::Server::PLUGIN_CB = sub {
+    my $self = shift;
+    my $plugins = $self->standard_plugins();
+    push @$plugins, DJabberd::Plugin::SubdomainAlias->new(subdomain => 'subdomain');
+    push @$plugins, DJabberd::Delivery::Local->new, DJabberd::Delivery::S2S->new; # these don't get pushed if someone else touches deliver
+    return $plugins;
+};
+
 
 two_parties_s2s(sub {
     alarm(3);

@@ -108,7 +108,11 @@ sub add_vhost {
 
 sub lookup_vhost {
     my ($self, $hostname) = @_;
-    return $self->{vhosts}{lc $hostname};
+    foreach my $vhost (values %{$self->{vhosts}}) {
+        return $vhost
+            if ($vhost->handles_domain($hostname));
+    }
+    return 0;
 }
 
 # return the version of the spec we implement
