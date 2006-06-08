@@ -89,6 +89,7 @@ sub unavailable_stanza {
 
 sub is_unavailable {
     my $self = shift;
+    no warnings 'uninitialized';   # type can be uninitialized and that is ok
     return $self->type eq 'unavailable';
 }
 
