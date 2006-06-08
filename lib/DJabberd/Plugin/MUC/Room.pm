@@ -17,6 +17,28 @@ sub new {
 
 sub add {
     my ($self, $nickname, $jid) = @_;
+
+    return if exists $self->{members}->{$nickname};
+
+    if (exists $self->{jid2nick}->{$jid}) {
+        my $old_nickname = $self->{jid2nick}->{$jid};
+        # rename nick
+        foreach my $member (keys %{$self->{members}}) {
+            my $presence = $self->make_response($old_nickname, "unavailable");
+            $presence->set_raw( qq{ <x xmlns='http://jabber.org/protocol/muc#user'>   <item affiliation='member'
+                                        jid='$jid'
+                                        nick='$nickname'
+                                        role='participant'/>
+                                        <status code='303'/></x> });
+            $presence->set_to($self->{members}->{$member});
+
+            $presence->deliver($self->{vhost});
+        }
+         delete $self->{members}->{$old_nickname};
+         delete $self->{jid2nick}->{$jid};
+    }
+
+
     foreach my $member (keys %{$self->{members}}) {
         my $presence = $self->make_response($member);
         $presence->set_to($jid);
