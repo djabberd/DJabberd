@@ -41,6 +41,8 @@ my $vhost = DJabberd::VHost->new(
                                                $rs,
                                                $vcard,
                                                $muc,
+                                               DJabberd::Delivery::Local->new,
+                                               DJabberd::Delivery::S2S->new,
                                                ],
                                  );
 
