@@ -130,8 +130,8 @@ sub get_roster {
         $cb->set_roster($roster);
     };
 
-    my $cb2 = DJabberd::Callback->new(set_roster => $on_load_roster,
-                                      decline    => sub { $cb->decline });
+    my $cb2 = DJabberd::Callback->new({set_roster => $on_load_roster,
+                                      decline    => sub { $cb->decline }});
     $self->SUPER::get_roster($cb2, $jid);
 }
 
