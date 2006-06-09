@@ -38,9 +38,25 @@ sub register {
         });
     }
 
+    if ($self->can_unregister_jids) {
+        $server->register_hook("UnregisterJID", sub {
+            my (undef, $cb, %args) = @_;
+            # args containing:  username
+            # cb can:
+            #   conflict
+            #   error
+            #   saved
+            $self->unregister_jid($cb, %args);
+        });
+    }
+
 }
 
 sub can_register_jids {
+    0;
+}
+
+sub can_unregister_jids {
     0;
 }
 

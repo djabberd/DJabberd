@@ -293,7 +293,29 @@ sub process_iq_setregister {
     my $item = $iq->query->first_element;
     if ($item && $item->element eq "{jabber:iq:register}remove") {
         if ($bjid) {
-            # TODO: delete the account
+            my $rosterwipe = sub {
+                $vhost->run_hook_chain(phase => "RosterWipe",
+                                       args => [ $bjid ],
+                                       methods => {
+                                           done => sub {
+                                               $iq->send_result;
+                                               $conn->stream_error("not-authorized");
+                                           },
+                                       });
+            };
+
+            $vhost->run_hook_chain(phase => "UnregisterJID",
+                                   args => [ username => $bjid->node, conn => $conn ],
+                                   methods => {
+                                       deleted => sub {
+                                           $rosterwipe->();
+                                       },
+                                       notfound => sub {
+                                           warn "notfound.\n";
+                                           return $iq->send_error;
+                                       }
+                                   });
+
             $iq->send_result;
         } else {
             $iq->send_error; # TODO: <forbidden/>

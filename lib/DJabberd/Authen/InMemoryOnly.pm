@@ -11,7 +11,18 @@ sub new {
 }
 
 sub can_register_jids { 1 }
+sub can_unregister_jids { 1 }
 sub can_retrieve_cleartext { 1 }
+
+sub unregister_jid {
+    my ($self, $cb, %args) = @_;
+    my $user = $args{'username'};
+    if (delete $self->{_users}{$user}) {
+        $cb->deleted;
+    } else {
+        $cb->notfound;
+    }
+}
 
 sub register_jid {
     my ($self, $cb, %args) = @_;

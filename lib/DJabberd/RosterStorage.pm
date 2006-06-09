@@ -34,6 +34,11 @@ sub register {
         # cb can ->error($reason) and ->done()
         $self->set_roster_item($cb, $user_jid, $ritem);
     });
+    $vhost->register_hook("RosterWipe", sub {
+        my ($vh, $cb, $user_jid) = @_;
+        # cb can ->error($reason) and ->done()
+        $self->wipe_roster($cb, $user_jid);
+    });
 
 }
 
@@ -66,6 +71,12 @@ sub delete_roster_item {
 sub load_roster_item {
     my ($self, $jid, $target_jid, $cb) = @_;
     $cb->error("load_roster_item not implemented");
+}
+
+# override this.
+sub wipe_roster {
+    my ($self, $cb, $jid) = @_;
+    $cb->error("wipe_roster not implemented");
 }
 
 1;

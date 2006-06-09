@@ -350,4 +350,33 @@ sub load_roster_item {
     return;
 }
 
+sub wipe_roster {
+    my ($self, $cb, $jid) = @_;
+
+    my $dbh  = $self->{dbh};
+
+    my $userid    = $self->_jidid_alloc($jid);
+    unless ($userid) {
+        $cb->error("no userid/contactid in delete");
+        return;
+    }
+
+    $dbh->begin_work;
+
+    my $fail = sub {
+        $dbh->rollback;
+        $cb->error;
+        return;
+    };
+
+    $dbh->do("DELETE FROM roster WHERE userid=?", undef, $userid)
+        or return $fail->();
+    $dbh->do("DELETE FROM rostergroup WHERE userid=?", undef, $userid)
+        or return $fail->();
+    # FIXME: clean up other tables too.
+
+    $dbh->commit or $fail->();
+    $cb->done;
+}
+
 1;

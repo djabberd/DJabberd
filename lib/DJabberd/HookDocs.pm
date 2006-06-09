@@ -112,4 +112,22 @@ $hook{'RegisterJID'} = {
     des => "In-band registration, way for core to ask auth system to provision an account.",
 };
 
+$hook{'UnregisterJID'} = {
+    args => [username => '$user'],
+    callback => {
+        deleted => {},
+        notfound => {},
+    },
+    des => "In-band unregistration, way for core to ask auth system to unprovision an account.",
+};
+
+$hook{'RosterWipe'} = {
+    args => ['JID'],
+    callback => {
+        done => {},
+        error => {},
+    },
+    des => "Wipe a user's roster",
+};
+
 1;
