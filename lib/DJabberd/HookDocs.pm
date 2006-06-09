@@ -103,5 +103,13 @@ $hook{'PresenceCheck'} = {
     des => "Called to request each hook chain item calls the given CODE with parameters (JID,DJabberd::Presence) for each full JID and last presence for that full JID that is based on the provided short JID (the first parameter).  Each hook chain item is just expected to call the CODE subref 0 or more times, then decline.",
 };
 
+$hook{'RegisterJID'} = {
+    args => [username => '$user', password => '$pass'],
+    callback => {
+        saved => {},
+        conflict => {},
+    },
+    des => "In-band registration, way for core to ask auth system to provision an account.",
+};
 
 1;

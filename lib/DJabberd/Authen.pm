@@ -26,6 +26,22 @@ sub register {
 
     });
 
+    if ($self->can_register_jids) {
+        $server->register_hook("RegisterJID", sub {
+            my (undef, $cb, %args) = @_;
+            # args containing:  username, password
+            # cb can:
+            #   conflict
+            #   error
+            #   saved
+            $self->register_jid($cb, %args);
+        });
+    }
+
+}
+
+sub can_register_jids {
+    0;
 }
 
 sub can_retrieve_cleartext {

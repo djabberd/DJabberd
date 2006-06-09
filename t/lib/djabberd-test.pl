@@ -270,9 +270,9 @@ sub send_xml {
     $self->{sock}->print($xml);
 }
 
-sub login {
+sub connect {
     my $self = shift;
-    my $password = shift || 'password';
+
     my $sock;
     for (1..3) {
         $sock = IO::Socket::INET->new(PeerAddr => "127.0.0.1:" . $self->server->clientport, Timeout => 1);
@@ -290,10 +290,22 @@ sub login {
        xmlns:stream='http://etherx.jabber.org/streams'
        xmlns='jabber:client' to='$to' version='1.0'>";
 
-    my $ss = $self->get_stream_start();
+    $self->{ss} = $self->get_stream_start();
 
     my $features = $self->recv_xml;
     die "no features" unless $features =~ /^<features\b/;
+    return 1;
+}
+
+sub login {
+    my $self = shift;
+    my $password = shift || 'password';
+
+    $self->connect or die "Failed to connect";
+
+    my $ss = $self->{ss};
+    my $sock = $self->{sock};
+    my $to = $self->server->hostname;
 
     my $username = $self->{name};
 

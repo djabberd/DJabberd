@@ -30,6 +30,8 @@ sub new {
         features        => [],     # list of features
 
         subdomain       => {},  # subdomain => plugin mapping of subdomains we should accept
+
+        inband_reg      => 0,   # bool: inband registration
     };
 
     croak("Missing/invalid vhost name") unless
@@ -105,6 +107,16 @@ sub set_config_quirksmode {
 sub set_config_s2s {
     my ($self, $val) = @_;
     $self->{s2s} = as_bool($val);
+}
+
+sub set_config_inbandreg {
+    my ($self, $val) = @_;
+    $self->{inband_reg} = as_bool($val);
+}
+
+sub allow_inband_registration {
+    my $self = shift;
+    return $self->{inband_reg};
 }
 
 sub set_config_requiressl {

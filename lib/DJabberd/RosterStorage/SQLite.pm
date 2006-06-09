@@ -350,5 +350,4 @@ sub load_roster_item {
     return;
 }
 
-
 1;

@@ -1,6 +1,7 @@
 package DJabberd::IQ;
 use strict;
 use base qw(DJabberd::Stanza);
+use DJabberd::Util qw(exml);
 
 use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger();
@@ -32,6 +33,8 @@ sub process {
         'set-{jabber:iq:auth}query' => \&process_iq_setauth,
         'get-{http://jabber.org/protocol/disco#info}query'  => \&process_iq_disco_info_query,
         'get-{http://jabber.org/protocol/disco#items}query' => \&process_iq_disco_items_query,
+        'get-{jabber:iq:register}query' => \&process_iq_getregister,
+        'set-{jabber:iq:register}query' => \&process_iq_setregister,
     };
 
     $conn->vhost->run_hook_chain(phase    => "c2s-iq",
@@ -62,8 +65,8 @@ sub send_result {
 
 sub send_error {
     my DJabberd::IQ $self = shift;
-    # TODO: take more parameters
-    $self->send_reply("error");
+    my $raw = shift;
+    $self->send_reply("error", $raw);
 }
 
 # caller must send well-formed XML (but we do the wrapping element)
@@ -232,6 +235,114 @@ sub process_iq_setroster {
 
     return 1;
 }
+
+sub process_iq_getregister {
+    my ($conn, $iq) = @_;
+
+    # If the entity is not already registered and the host supports
+    # In-Band Registration, the host MUST inform the entity of the
+    # required registration fields. If the host does not support
+    # In-Band Registration, it MUST return a <service-unavailable/>
+    # error. If the host is redirecting registration requests to some
+    # other medium (e.g., a website), it MAY return an <instructions/>
+    # element only, as shown in the Redirection section of this
+    # document.
+    my $vhost = $conn->vhost;
+    unless ($vhost->allow_inband_registration) {
+        # MUST return a <service-unavailable/>
+        $iq->send_error;  # FIXME: send the service-unavailable param
+        return;
+    }
+
+    # if authenticated, give them existing login info:
+    if (my $jid = $conn->bound_jid) {
+
+        my $password = 0 ? "<password></password>" : "";  # TODO
+        my $username = $jid->node;
+        $iq->send_result_raw(qq{<query xmlns='jabber:iq:register'>
+                                    <registered/>
+                                    <username>$username</username>
+                                    $password
+                                    </query>});
+        return;
+    }
+
+    # not authenticated, ask for their required fields
+    $iq->send_result_raw(qq{<query xmlns='jabber:iq:register'>
+                                <instructions>
+                                Choose a username and password for use with this service.
+                                </instructions>
+                                <username/>
+                                <password/>
+                                </query>});
+}
+
+sub process_iq_setregister {
+    my ($conn, $iq) = @_;
+
+    my $vhost = $conn->vhost;
+    unless ($vhost->allow_inband_registration) {
+        # MUST return a <service-unavailable/>
+        $iq->send_error;  # FIXME: send the service-unavailable param
+        return;
+    }
+
+    my $bjid = $conn->bound_jid;
+
+    # remove (cancel) support
+    my $item = $iq->query->first_element;
+    if ($item && $item->element eq "{jabber:iq:register}remove") {
+        if ($bjid) {
+            # TODO: delete the account
+            $iq->send_result;
+        } else {
+            $iq->send_error; # TODO: <forbidden/>
+        }
+        return;
+    }
+
+    my $query = $iq->query
+        or die;
+    my @children = $query->children;
+    my $get = sub {
+        my $lname = shift;
+        foreach my $c (@children) {
+            next unless ref $c && $c->element eq "{jabber:iq:register}$lname";
+            my $text = $c->first_child;
+            return undef if ref $text;
+            return $text;
+        }
+        return undef;
+    };
+
+    my $username = $get->("username");
+    my $password = $get->("password");
+    return $iq->send_error unless $username =~ /^\w+$/;
+    return $iq->send_error if $bjid && $bjid->node ne $username;
+
+    # create the account
+    $vhost->run_hook_chain(phase => "RegisterJID",
+                           args => [ username => $username, conn => $conn, password => $password ],
+                           methods => {
+                               saved => sub {
+                                   return $iq->send_result;
+                               },
+                               conflict => sub {
+                                   my $epass = exml($password);
+                                   return $iq->send_error(qq{
+                                       <query xmlns='jabber:iq:register'>
+                                           <username>$username</username>
+                                           <password>$epass</password>
+                                           </query>
+                                           <error code='409' type='cancel'>
+                                           <conflict xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>
+                                           </error>
+                                       });
+                               },
+                           });
+
+}
+
 
 sub process_iq_getauth {
     my ($conn, $iq) = @_;
