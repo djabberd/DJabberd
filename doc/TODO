@@ -1,3 +1,16 @@
+-- shouldn't allow auth with no resource
+
+-- should send a 503 error here on bogus/unsupported IQ:
+
+       4 < <iq id='SgSeu-6' type='get'><query xmlns='jabber:iq:anything'/></iq> INFO  DJabberd.Connection.XML.ClientIn         <iq  to='user0@jabber.bradfitz.com/Smack' type='error' id='SgSeu-6'></iq> WARN  DJabberd.IQ                              Unknown IQ packet: get-{jabber:iq:anything}query
+
+
+-- presence priority
+
+-- no deliver if not available resources
+
+
+
 -- can we reuse s2s connections in both directions?  Our code doesn't, but worse,
    I don't think it'd even allow other people to try and do it to us.  What does spec say?
 
