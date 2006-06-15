@@ -23,10 +23,64 @@ sub once_logged_in {
 sub two_parties {
     my $cb = shift;
 
+    if ($ENV{WILDFIRE_S2S}) {
+        two_parties_wildfire_to_local($cb);
+        return;
+    }
+
+    if ($ENV{WILDFIRE_TEST}) {
+        two_parties_one_wildfire($cb);
+        return;
+    }
+
     two_parties_one_server($cb);
     sleep 1;
     two_parties_s2s($cb);
     sleep 1;
+}
+
+sub two_parties_one_wildfire {
+    my $cb = shift;
+
+    my $wf = Test::DJabberd::Server->new(id => 1,
+                                         type => 'wildfire',
+                                         clientport => 5222,
+                                         serverport => 5269,
+                                         hostname => 's2.example.com',
+                                         connect_ip => '24.232.168.187',
+                                         not_local => 1,
+                                         );
+    $wf->start;
+    my $pa = Test::DJabberd::Client->new(server => $wf, name => "partya");
+    my $pb = Test::DJabberd::Client->new(server => $wf, name => "partyb");
+
+    $pa->create_fresh_account;
+    $pb->create_fresh_account;
+
+    $cb->($pa, $pb);
+
+}
+
+sub two_parties_wildfire_to_local {
+    my $cb = shift;
+
+    my $wf = Test::DJabberd::Server->new(id => 2,
+                                         type => 'wildfire',
+                                         clientport => 5222,
+                                         serverport => 5269,
+                                         hostname => 's2.example.com',
+                                         connect_ip => '24.232.168.187',
+                                         not_local => 1,
+                                         );
+    $wf->start;
+    my $pa = Test::DJabberd::Client->new(server => $wf, name => "partya");
+    $pa->create_fresh_account;
+
+    my $server1 = Test::DJabberd::Server->new(id => 1);
+    $server1->link_with($wf);
+    my $pb = Test::DJabberd::Client->new(server => $server1, name => "partyb");
+
+    $cb->($pa, $pb);
 }
 
 sub two_parties_one_server {
@@ -111,6 +165,11 @@ sub new {
     return $self;
 }
 
+sub peeraddr {
+    my $self = shift;
+    return $self->{connect_ip} || ($self->{not_local} ? $self->{hostname} : "127.0.0.1");
+}
+
 sub serverport {
     my $self = shift;
     return $self->{serverport} || "1100$self->{id}";
@@ -161,35 +220,44 @@ sub standard_plugins {
 
 sub start {
     my $self = shift;
-    my $plugins = shift || ($PLUGIN_CB ? $PLUGIN_CB->($self) : $self->standard_plugins);
+    my $type = $self->{type} || "djabberd";
 
-    my $vhost = DJabberd::VHost->new(
-                                     server_name => $self->hostname,
-                                     s2s         => 1,
-                                     plugins     => $plugins,
-                                     );
-    my $server = DJabberd->new;
+    if ($type eq "djabberd") {
+        my $plugins = shift || ($PLUGIN_CB ? $PLUGIN_CB->($self) : $self->standard_plugins);
 
-    foreach my $peer (@{$self->{peers} || []}){
-        $server->set_fake_s2s_peer($peer->hostname => DJabberd::IPEndPoint->new("127.0.0.1", $peer->serverport));
-        foreach my $subdomain (@SUBDOMAINS) {
-            $server->set_fake_s2s_peer($subdomain . '.' . $peer->hostname => DJabberd::IPEndPoint->new("127.0.0.1", $peer->serverport));
+        my $vhost = DJabberd::VHost->new(
+                                         server_name => $self->hostname,
+                                         s2s         => 1,
+                                         plugins     => $plugins,
+                                         );
+        my $server = DJabberd->new;
+
+        foreach my $peer (@{$self->{peers} || []}){
+            $server->set_fake_s2s_peer($peer->hostname => DJabberd::IPEndPoint->new($peer->peeraddr, $peer->serverport));
+            foreach my $subdomain (@SUBDOMAINS) {
+                $server->set_fake_s2s_peer($subdomain . '.' . $peer->hostname => DJabberd::IPEndPoint->new("127.0.0.1", $peer->serverport));
+            }
         }
+
+        $VHOST_CB->($vhost) if $VHOST_CB;
+
+        $server->add_vhost($vhost);
+        $server->set_config_serverport($self->serverport);
+        $server->set_config_clientport($self->clientport);
+
+        my $childpid = fork;
+        if (!$childpid) {
+            $server->run;
+            exit 0;
+        }
+
+        $self->{pid} = $childpid;
     }
 
-    $VHOST_CB->($vhost) if $VHOST_CB;
-
-    $server->add_vhost($vhost);
-    $server->set_config_serverport($self->serverport);
-    $server->set_config_clientport($self->clientport);
-
-    my $childpid = fork;
-    if (!$childpid) {
-        $server->run;
-        exit 0;
+    if ($type eq "wildfire") {
+        #...
     }
 
-    $self->{pid} = $childpid;
     return $self;
 }
 
@@ -208,9 +276,19 @@ sub resource {
     return $_[0]{resource} ||= ($ENV{UNICODE_RESOURCE} ? "test\xe2\x80\x99s computer" : "testsuite");
 }
 
+sub username {
+    my $self = shift;
+    return $self->{name};
+}
+
+sub password {
+    my $self = shift;
+    return $self->{password} || "password";
+}
+
 sub as_string {
     my $self = shift;
-    return $self->{name} . '@' . $self->{server}->hostname;
+    return $self->username . '@' . $self->{server}->hostname;
 }
 
 sub server {
@@ -270,12 +348,68 @@ sub send_xml {
     $self->{sock}->print($xml);
 }
 
+sub create_fresh_account {
+    my $self = shift;
+    eval {
+        warn "trying to login for " . $self->username . " ...\n";
+        if ($self->login) {
+            warn "  Logged in.\n";
+            $self->send_xml(qq{<iq type='set' id='unreg1'>
+                                   <query xmlns='jabber:iq:register'>
+                                   <remove/>
+                                   </query>
+                                   </iq>});
+            my $res = $self->recv_xml;
+            die "Couldn't wipe our account: $res" unless $res =~ /type=.result./;
+            warn "  unregistered.\n";
+        }
+    };
+    warn "Error logging in: [$@]" if $@;
+
+    warn "Connecting...\n";
+    $self->connect
+        or die "Couldn't connect to server";
+
+    warn "Connected, getting auth types..\n";
+    $self->send_xml(qq{<iq type='get' id='reg1'>
+                             <query xmlns='jabber:iq:register'/>
+                             </iq>});
+
+    my $res = $self->recv_xml;
+    die "No in-band reg instructions: $res" unless $res =~ qr/<instructions>/;
+
+    my $user = $self->username;
+    my $pass = $self->password;
+
+    warn "registering ($user / $pass)...\n";
+    $self->send_xml(qq{<iq type='set' id='reg1'>
+                             <query xmlns='jabber:iq:register'>
+                             <username>$user</username>
+                             <password>$pass</password>
+                             </query>
+                             </iq>});
+
+    $res = $self->recv_xml;
+    die "failed to reg account: $res" unless $res =~ qr/type=.result./;
+    warn "created account.\n";
+    $self->disconnect;
+    return 1;
+}
+
+sub disconnect {
+    my $self = shift;
+    $self->{sock} = undef;
+}
+
 sub connect {
     my $self = shift;
 
     my $sock;
     for (1..3) {
-        $sock = IO::Socket::INET->new(PeerAddr => "127.0.0.1:" . $self->server->clientport, Timeout => 1);
+        $sock = IO::Socket::INET->new(PeerAddr => join(':',
+                                                       $self->server->peeraddr,
+                                                       $self->server->clientport),
+                                      Timeout => 1);
         last if $sock;
         sleep 1;
     }
@@ -299,9 +433,12 @@ sub connect {
 
 sub login {
     my $self = shift;
-    my $password = shift || 'password';
+    my $password = shift || $self->password;
 
+    warn "connecting for login..\n";
     $self->connect or die "Failed to connect";
+
+    warn ".. connected after login.\n";
 
     my $ss = $self->{ss};
     my $sock = $self->{sock};
@@ -309,11 +446,14 @@ sub login {
 
     my $username = $self->{name};
 
-    print $sock "<iq type='get' to='$to' id='auth1'>
+    warn "getting auth types...\n";
+    print $sock "<iq type='get' id='auth1'>
   <query xmlns='jabber:iq:auth'/>
 </iq>";
 
     my $authreply = $self->recv_xml;
+    warn "auth reply for types: [$authreply]\n";
+
     die "didn't get reply" unless $authreply =~ /id=.auth1\b/;
     my $response = "";
     if ($authreply =~ /\bpassword\b/) {
@@ -336,8 +476,11 @@ sub login {
 </iq>";
 
     my $authreply2 = $self->recv_xml;
+    warn "auth reply post-login: [$authreply2]\n";
+
     die "no reply" unless $authreply2 =~ /id=.auth2\b/;
     die "bad password" unless $authreply2 =~ /type=.result\b/;
+    return 1;
 }
 
 sub get_roster {
