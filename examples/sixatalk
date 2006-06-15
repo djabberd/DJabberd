@@ -203,7 +203,7 @@ sub load_roster_item {
     $self->SUPER::load_roster_item($jid, $contact_jid, $cb);
 }
 
-
+package DB;
 no strict 'refs';
 no utf8;
 
