@@ -35,16 +35,19 @@ two_parties(sub {
                            $xml !~ /\bask\b/;
                    });
 
+    # pa requests subscription from pb
     $pa->send_xml(qq{<presence to='$pb' type='subscribe' />});
 
     my $xml = $pa->recv_xml;
-    like($xml, qr/\bask=.subscribe\b/, "subscribe is pending");
+    like($xml, qr/\bask=.subscribe\b/, "subscribe is pending (roster push)");
 
+    # pb gets the subscription request
     $xml = $pb->recv_xml_obj;
     is($xml->attr("{}to"), $pb->as_string, "to pb");
     is($xml->attr("{}from"), $pa->as_string, "from a");
     is($xml->attr("{}type"), "subscribe", "type subscribe");
 
+    # pb accepts it.
     $pb->send_xml(qq{<presence to='$pa' type='subscribed' />});
 
     # now PA gets a roster push and the subscribed packet
@@ -64,15 +67,13 @@ two_parties(sub {
                        $xml =~ /InitPres/;
                    });
 
-
     # now PA is subscribed to PB.  so let's make PB change its status
     $pb->send_xml(qq{<presence><status>PresVer2</status></presence>});
+    $xml = $pa->recv_xml;
+    like($xml, qr/<presence.+\bfrom=.$pb.+PresVer2/s, "partya got presver2 presence of pb");
 
     # let's pretend pa gets confused and asks again, pb's server should
     # reply immediately with the answer
-    $xml = $pa->recv_xml;
-    like($xml, qr/<presence.+\bfrom=.$pb.+PresVer2/s, "got presver2 presence of pb");
-
     $pb->send_xml(qq{<presence to='$pa' type='subscribe' />});
 
     $xml = $pa->recv_xml;

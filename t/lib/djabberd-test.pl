@@ -306,25 +306,36 @@ sub new {
 }
 
 sub get_event {
-    my $self = shift;
+    my ($self, $timeout) = @_;
+    $timeout ||= 10;
+
     while (! @{$self->{events}}) {
         my $byte;
+        my $rin = '';
+        vec($rin, fileno($self->{sock}), 1) = 1;
+        my $n = select($rin, undef, undef, $timeout)
+            or return undef;
         my $rv = sysread($self->{sock}, $byte, 1);
         $self->{parser}->parse_more($byte);
     }
     return shift @{$self->{events}};
 }
 
+# if using $timeout, you're declaring that you can expect nothing and
+# undef is returned.  otherwise must return XML.  (or die after 10 seconds)
 sub recv_xml {
-    my $self = shift;
-    my $ev = $self->get_event;
+    my ($self, $timeout) = @_;
+    my $ev = $self->get_event($timeout);
+    return undef if $timeout && !$ev;
     die unless UNIVERSAL::isa($ev, "DJabberd::XMLElement");
     return $ev->as_xml;
 }
 
+# if using $timeout, you're declaring that you can expect nothing and
+# undef is returned.  otherwise must return XML.  (or die after 10 seconds)
 sub recv_xml_obj {
-    my $self = shift;
-    my $ev = $self->get_event;
+    my ($self, $timeout) = @_;
+    my $ev = $self->get_event($timeout);
     die unless UNIVERSAL::isa($ev, "DJabberd::XMLElement");
     return $ev;
 }
@@ -351,9 +362,9 @@ sub send_xml {
 sub create_fresh_account {
     my $self = shift;
     eval {
-        warn "trying to login for " . $self->username . " ...\n";
+        warn "trying to login for " . $self->username . " ...\n" if $ENV{TESTDEBUG};
         if ($self->login) {
-            warn "  Logged in.\n";
+            warn "  Logged in.\n" if $ENV{TESTDEBUG};
             $self->send_xml(qq{<iq type='set' id='unreg1'>
                                    <query xmlns='jabber:iq:register'>
                                    <remove/>
@@ -361,16 +372,16 @@ sub create_fresh_account {
                                    </iq>});
             my $res = $self->recv_xml;
             die "Couldn't wipe our account: $res" unless $res =~ /type=.result./;
-            warn "  unregistered.\n";
+            warn "  unregistered.\n" if $ENV{TESTDEBUG};
         }
     };
-    warn "Error logging in: [$@]" if $@;
+    warn "Error logging in: [$@]" if $@ && $ENV{TESTDEBUG};
 
-    warn "Connecting...\n";
+    warn "Connecting...\n" if $ENV{TESTDEBUG};
     $self->connect
         or die "Couldn't connect to server";
 
-    warn "Connected, getting auth types..\n";
+    warn "Connected, getting auth types..\n" if $ENV{TESTDEBUG};
     $self->send_xml(qq{<iq type='get' id='reg1'>
                              <query xmlns='jabber:iq:register'/>
                              </iq>});
@@ -381,7 +392,7 @@ sub create_fresh_account {
     my $user = $self->username;
     my $pass = $self->password;
 
-    warn "registering ($user / $pass)...\n";
+    warn "registering ($user / $pass)...\n" if $ENV{TESTDEBUG};
     $self->send_xml(qq{<iq type='set' id='reg1'>
                              <query xmlns='jabber:iq:register'>
                              <username>$user</username>
@@ -391,7 +402,7 @@ sub create_fresh_account {
 
     $res = $self->recv_xml;
     die "failed to reg account: $res" unless $res =~ qr/type=.result./;
-    warn "created account.\n";
+    warn "created account.\n" if $ENV{TESTDEBUG};
     $self->disconnect;
     return 1;
 }
@@ -435,10 +446,10 @@ sub login {
     my $self = shift;
     my $password = shift || $self->password;
 
-    warn "connecting for login..\n";
+    warn "connecting for login..\n" if $ENV{TESTDEBUG};
     $self->connect or die "Failed to connect";
 
-    warn ".. connected after login.\n";
+    warn ".. connected after login.\n" if $ENV{TESTDEBUG};
 
     my $ss = $self->{ss};
     my $sock = $self->{sock};
@@ -446,13 +457,13 @@ sub login {
 
     my $username = $self->{name};
 
-    warn "getting auth types...\n";
+    warn "getting auth types...\n" if $ENV{TESTDEBUG};
     print $sock "<iq type='get' id='auth1'>
   <query xmlns='jabber:iq:auth'/>
 </iq>";
 
     my $authreply = $self->recv_xml;
-    warn "auth reply for types: [$authreply]\n";
+    warn "auth reply for types: [$authreply]\n" if $ENV{TESTDEBUG};
 
     die "didn't get reply" unless $authreply =~ /id=.auth1\b/;
     my $response = "";
@@ -476,7 +487,7 @@ sub login {
 </iq>";
 
     my $authreply2 = $self->recv_xml;
-    warn "auth reply post-login: [$authreply2]\n";
+    warn "auth reply post-login: [$authreply2]\n" if $ENV{TESTDEBUG};
 
     die "no reply" unless $authreply2 =~ /id=.auth2\b/;
     die "bad password" unless $authreply2 =~ /type=.result\b/;

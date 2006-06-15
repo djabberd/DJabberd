@@ -1,11 +1,9 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 4;
+use Test::More tests => 3;
 use lib 't/lib';
 BEGIN { $ENV{LOGLEVEL} ||= "OFF" };
 require 'djabberd-test.pl';
-
-
 
 $SIG{'ALRM'} = sub { die "alarm reached" };
 
@@ -23,34 +21,21 @@ $Test::DJabberd::Server::PLUGIN_CB = sub {
     return $plugins;
 };
 
-
 two_parties_s2s(sub {
-    alarm(3);
-    eval {
-        my ($pa, $pb) = @_;
-        #very much fake subdomain issue
-        $pa->login;
-        $pb->login;
+    my ($pa, $pb) = @_;
+    #very much fake subdomain issue
+    $pa->login;
+    $pb->login;
 
-        # PA to PB
+    # PA to PB
+    $pa->server->{hostname} = 'subdomain.' . $pa->server->hostname;
 
+    $pa->send_xml("<message type='chat' to='$pb'>Hello.  I am $pa.</message>");
+    like($pb->recv_xml, qr/type=.chat.*Hello.*I am \Q$pa\E/, "pb got pa's message");
 
-        $pa->server->{hostname} = 'subdomain.' . $pa->server->hostname;
-
-        $pa->send_xml("<message type='chat' to='$pb'>Hello.  I am $pa.</message>");
-        like($pb->recv_xml, qr/type=.chat.*Hello.*I am \Q$pa\E/, "pb got pa's message");
-
-        # PB to PA
-        $pb->send_xml("<message type='chat' to='$pa'>Hello back!</message>");
-        like($pa->recv_xml, qr/Hello back/, "pa got pb's message");
-    };
-    if($@ and $@ !~/alarm reached/) {
-        die $@;
-    } elsif($@) {
-        fail("3 seconds timeout, did not succeed");
-    } else {
-        pass("Did not timeout");
-    }
+    # PB to PA
+    $pb->send_xml("<message type='chat' to='$pa'>Hello back!</message>");
+    like($pa->recv_xml(3.0), qr/Hello back/, "pa got pb's message");
 });
 
 
