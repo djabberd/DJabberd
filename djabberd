@@ -1,5 +1,9 @@
 #!/usr/bin/perl
 
+BEGIN {
+    $^P |= 0x01 if $ENV{TRACE_DJABBERD};
+};
+
 use strict;
 use lib 'lib';
 use DJabberd;
@@ -26,3 +30,29 @@ my $server = DJabberd->new(
 $server->load_config($conffile);
 
 $server->run;
+
+package DB;
+no strict 'refs';
+no utf8;
+
+sub DB{};
+sub sub {
+    # localize CALL_DEPTH so that we don't need to decrement it after the sub
+    # is called
+    local $DB::CALL_DEPTH = $DB::CALL_DEPTH+1;
+    #my @foo = @_;
+    my $fileline = "";
+    if (ref $DB::sub eq "CODE") {
+        my @caller = caller;
+        my $pkg = $caller[0];
+        my $line = $caller[2];
+        $fileline = " called from $pkg, line $line";
+    }
+    warn ("." x $DB::CALL_DEPTH . " ($DB::CALL_DEPTH) $DB::sub$fileline\n");
+
+    # Call our subroutine. @_ gets passed on for us.
+    # by calling it last, we don't need to worry about "wantarray", etc
+    # by returning it like this, the caller's expectations are conveyed to
+    # the called routine
+    &{$DB::sub};
+}
