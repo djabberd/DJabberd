@@ -83,6 +83,10 @@ sub close {
 
     # send an unavailable presence broadcast if we've gone away
     if ($self->is_available) {
+        # TODO: set unavailable here, BEFORE we sent out unavailable stanzas,
+        # so if the stanzas 'bounce' or otherwise write back to our full JID,
+        # they'll either drop/bounce instead of writing to what will
+        # soon be a dead full JID.
         my $unavail = DJabberd::Presence->unavailable_stanza;
         $unavail->broadcast_from($self);
     }

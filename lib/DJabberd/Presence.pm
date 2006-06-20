@@ -321,15 +321,16 @@ sub broadcast_from {
     my $from_jid = $conn->bound_jid;
     my $vhost    = $conn->vhost;
 
-
     foreach my $to_jid ($conn->directed_presence) {
         my $dpres = $self->clone;
         $dpres->set_to($to_jid);
         $dpres->set_from($from_jid);
         # I think we only need to deliver and not procdeliver here
         # because we don't actually want to process it anymore -- sky
+        # TODO: not sure of that.  --brad
         $dpres->deliver($vhost);
     }
+    # TODO: you really clear directed presence after you broadcast? --brad
     $conn->clear_directed_presence;
 
     my $broadcast = sub {
