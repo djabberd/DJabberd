@@ -1,0 +1,22 @@
+DJabberd::Cluster
+  (abstract) @locations = ->find_barejid_locations($barejid)
+                  void    ->send_message($cluster_message, @locations)
+                     (has a default implementation that connects directly, star topology)
+
+   DJabberd::Cluster::Naive
+           find_barejid_locations doing polling the star
+
+   DJabberd::Cluster::LiveJournal
+         - override find_barejid_locations w/ database lookup (in subprocess/gearman)
+         - keep default start topology delivery
+
+   DJabberd::Cluster::Spread
+         - could do both lookup and delivery w/ spread
+
+
+DJabberd::ClusterMessage  (IQ-style tagged message/response)
+  -- must serialize itself to/from storable and Cluster's transport can choose to encode atop that.
+
+  DJabberd::ClusterMessage::RosterPush       response = OK
+  DJabberd::ClusterMessage::BareJIDLookup    response = @locations
+  DJabberd::ClusterMessage::StanzaDelivery   response = OK
