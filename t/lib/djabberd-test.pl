@@ -266,6 +266,11 @@ sub kill {
     CORE::kill(9, $self->{pid});
 }
 
+sub DESTROY {
+    my $self = shift;
+    $self->kill;
+}
+
 package Test::DJabberd::Client;
 use strict;
 
