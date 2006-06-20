@@ -20,7 +20,7 @@ my %last_bcast;   # barejidstring -> { full_jid_string -> $cloned_pres_stanza }
 sub is_directed {
     my $self = shift;
     return 0 unless $self->to_jid;
-    return 0 if $self->type eq "probe";
+    return 0 if ($self->type || "") eq "probe";
     return 1;
 }
 
