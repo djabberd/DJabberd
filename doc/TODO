@@ -7,9 +7,15 @@
 
 -- presence priority
 
--- no deliver if not available resources
+-- allow a fast path when bulk sending tons of messages (like hundreds of unavailable stanzas
+   on disconnect):  allow a means to, given a set of full/bare (at least bare) JIDs, filter out
+   the ones to be known not available.  (for instance, local/cluster
+   ones, where we're the authority on their presence).
 
-
+-- optimization:  when sending out presence to ourselves, we double-check the rosteritem
+   status for filtering reasons on its way back "in", when it loops back to ourselves in
+   procdeliver.  we should set an "its_us_so_trust_us" flag and then
+   we fast-path that, avoiding the lookup.
 
 -- can we reuse s2s connections in both directions?  Our code doesn't, but worse,
    I don't think it'd even allow other people to try and do it to us.  What does spec say?
