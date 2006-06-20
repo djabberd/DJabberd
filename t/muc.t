@@ -23,6 +23,8 @@ two_parties_one_server(sub {
     my ($pa, $pb) = @_;
 
     $pa->login;
+    $pa->send_xml("<presence/>");
+
     my $server = $pa->server;
 
     $pa->send_xml(qq{
@@ -36,6 +38,7 @@ two_parties_one_server(sub {
 
 
     $pb->login;
+    $pb->send_xml("<presence/>");
     $pb->send_xml(qq{
         <presence to='foobar\@conference.$server/pb'><x xmlns='http://jabber.org/protocol/muc'></x></presence>});
 

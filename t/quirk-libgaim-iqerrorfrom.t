@@ -31,6 +31,9 @@ sub run_test {
         my ($pa, $pb) = @_;
         $pa->login;
         $pb->login;
+        $pa->send_xml("<presence/>");
+        $pb->send_xml("<presence/>");
+
         my $xml;
 
         $pa->send_xml("<iq
