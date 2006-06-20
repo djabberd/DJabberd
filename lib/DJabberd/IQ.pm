@@ -268,6 +268,9 @@ sub process_iq_getregister {
     }
 
     # not authenticated, ask for their required fields
+    # NOTE: we send_result_raw here, which just writes, so they don't
+    # need to be an available resource (since they're not even authed
+    # yet) for this to work.  that's like most things in IQ anyway.
     $iq->send_result_raw(qq{<query xmlns='jabber:iq:register'>
                                 <instructions>
                                 Choose a username and password for use with this service.

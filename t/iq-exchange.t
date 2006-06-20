@@ -9,6 +9,9 @@ two_parties(sub {
     my ($pa, $pb) = @_;
     $pa->login;
     $pb->login;
+    $pa->send_xml("<presence/>");
+    $pb->send_xml("<presence/>");
+
     $pa->send_xml("<iq type='get' id='pa1' to='$pb'><x/></iq>");
     like($pb->recv_xml, qr/id=.pa./, "pb got pa's iq");
     $pb->send_xml("<iq type='get' id='pb1' to='$pa'><x/></iq>");
