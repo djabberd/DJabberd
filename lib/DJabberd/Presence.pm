@@ -16,9 +16,12 @@ use Carp qw(croak confess);
 # used by DJabberd::PresenceChecker::Local.
 my %last_bcast;   # barejidstring -> { full_jid_string -> $cloned_pres_stanza }
 
+# is this directed presence?  must be to a JID, and not a probe.
 sub is_directed {
     my $self = shift;
-    return $self->to_jid ? 1 : 0;
+    return 0 unless $self->to_jid;
+    return 0 if $self->type eq "probe";
+    return 1;
 }
 
 sub on_recv_from_server {
