@@ -44,6 +44,4 @@ eval {
 like($@, qr/does not exist/,  "File should not be here, ignore previous line");
 
 
-END { $server->kill }
-
 

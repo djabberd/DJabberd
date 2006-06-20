@@ -263,7 +263,7 @@ sub start {
 
 sub kill {
     my $self = shift;
-    CORE::kill(9, $self->{pid});
+    CORE::kill(9, $self->{pid}) if $self->{pid};
 }
 
 sub DESTROY {
