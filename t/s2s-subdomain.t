@@ -26,6 +26,8 @@ two_parties_s2s(sub {
     #very much fake subdomain issue
     $pa->login;
     $pb->login;
+    $pa->send_xml("<presence/>");
+    $pb->send_xml("<presence/>");
 
     # PA to PB
     $pa->server->{hostname} = 'subdomain.' . $pa->server->hostname;
