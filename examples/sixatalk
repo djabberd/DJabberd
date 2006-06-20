@@ -24,6 +24,8 @@ Getopt::Long::GetOptions(
                          'd|daemon'       => \$daemonize,
                          );
 
+$SixApart::LDAP_SERVER = "auth2.sfo.sixapart.com";
+
 my $rs = DJabberd::RosterStorage::SixApart->new;
 $rs->set_config_database("$Bin/roster.sqlite");
 $rs->finalize;
@@ -77,7 +79,7 @@ sub check_cleartext {
         return;
     }
 
-    my $ldap = Net::LDAP->new( 'ldap.sixapart.com' ) or die "$@";
+    my $ldap = Net::LDAP->new( $SixApart::LDAP_SERVER ) or die "$@";
     my $dn   = "uid=$user,ou=People,dc=sixapart,dc=com";
     my $msg  = $ldap->bind($dn, password => $pass, version => 3);
     if ($msg && !$msg->is_error) {
@@ -142,9 +144,17 @@ sub get_roster {
 }
 
 my $last_emp;
+my $last_emp_time = 0;  # unixtime of last ldap suck (ldap server is slow sometimes, so don't always poll)
 sub _employees {
+    my $now = time();
+
+    # don't get new employees more often than once an hour.... :-)
+    if ($last_emp && $last_emp_time > $now - 3600) {
+        return $last_emp;
+    }
+
     my $opts = "cn mailLocalAddress mail displayName";
-    my @lines = `ldapsearch -H ldap://ldap.sixapart.com -x -b ou=People,dc=SixApart,dc=com $opts`;
+    my @lines = `ldapsearch -H ldap://$SixApart::LDAP_SERVER -x -b ou=People,dc=SixApart,dc=com $opts`;
     my $line_ct = @lines;
     warn "Got employee lines from LDAP: $line_ct\n";
     if ($line_ct == 0) {
@@ -179,6 +189,8 @@ sub _employees {
     foreach my $uid (keys %info) {
         delete $info{$uid} unless $info{$uid}{mailLocalAddress} || $info{$uid}{mail};
     }
+
+    $last_emp_time = $now;
     return $last_emp = \%info;
 }
 
