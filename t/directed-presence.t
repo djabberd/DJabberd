@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 34;
+use Test::More tests => 28;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
@@ -10,6 +10,8 @@ two_parties(sub {
     $pb->login;
     $pa->send_xml("<presence/>");
     $pb->send_xml("<presence/>");
+
+    select(undef, undef, undef, 0.25);
 
     pass "Test case where we send directed presence, then broadcast out unavailable";
 
@@ -21,14 +23,9 @@ two_parties(sub {
     like($xml, qr{to=.$pb/testsuite});
     like($xml, qr{presence});
 
-    $pa->send_xml(qq{<presence><show>this should go to B too.</show></presence>});
-
-    $xml = $pb->recv_xml;
-
-    like($xml, qr{from=.$pa/testsuite});
-    like($xml, qr{to=.$pb/testsuite});
-    like($xml, qr{presence});
-    like($xml, qr{this should go to B too});
+    $pa->send_xml(qq{<presence><show>this should not go to B</show></presence>});
+    $pa->send_xml("<message type='chat' to='$pb'>Hello.  I am $pa.</message>");
+    like($pb->recv_xml, qr/type=.chat.*Hello.*I am \Q$pa\E/, "pb got pa's message");
 
     pass "Send a directed presence, then a directed unavailable, then verify we don't send broadcast out later";
 
