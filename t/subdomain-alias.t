@@ -36,6 +36,8 @@ two_parties_one_server(sub {
     my ($pa, $pb) = @_;
     $pa->login;
     $pb->login;
+    $pa->send_xml("<presence/>");
+    $pb->send_xml("<presence/>");
 
     # PA to PB
     $pa->send_xml("<message type='chat' to='$pb'>Hello.  I am $pa.</message>");
