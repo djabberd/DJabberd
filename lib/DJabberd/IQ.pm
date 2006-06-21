@@ -137,7 +137,7 @@ sub process_iq_getroster {
 
         # JIDs who want to subscribe to us, since we were offline
         foreach my $jid (map  { $_->jid }
-                         grep { $_->subscription->is_none_pending_in }
+                         grep { $_->subscription->pending_in }
                          $roster->items) {
             my $subpkt = DJabberd::Presence->make_subscribe(to   => $conn->bound_jid,
                                                             from => $jid);
