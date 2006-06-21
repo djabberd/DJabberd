@@ -17,6 +17,8 @@ use DJabberd::RosterStorage::Dummy;
 use DJabberd::RosterStorage::LiveJournal;
 use FindBin qw($Bin);
 
+my $client_port = 11001;
+
 my $roster = "$Bin/test-roster.dat";
 unlink($roster);
 
@@ -35,6 +37,10 @@ my $vhost = DJabberd::VHost->new(
                                  );
 
 my $server = DJabberd->new;
+
+$server->set_config_clientport($client_port);
+$server->set_config_serverport($client_port+1);
+
 $server->add_vhost($vhost);
 
 my $childpid = fork;
@@ -49,7 +55,7 @@ my $conn;
 
 foreach (1..3) {
     print "Connecting...\n";
-    $conn = IO::Socket::INET->new(PeerAddr => "127.0.0.1:5222", Timeout => 1);
+    $conn = IO::Socket::INET->new(PeerAddr => "127.0.0.1:$client_port", Timeout => 1);
     last if $conn;
     sleep 1;
 }
@@ -91,7 +97,7 @@ for my $n (1..500) {
     };
 
     diag("connect $n/500\n") if $n % 50 == 0;
-    $conn = IO::Socket::INET->new(PeerAddr => "127.0.0.1:5222", Timeout => 1);
+    $conn = IO::Socket::INET->new(PeerAddr => "127.0.0.1:$client_port", Timeout => 1);
 
     print $conn qq{
         <stream:stream
