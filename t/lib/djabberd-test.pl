@@ -204,6 +204,11 @@ sub roster_name {
 sub roster {
     my $self = shift;
     my $roster = $self->roster_name;
+
+    # We need to clear the cache so we can really unlink it, kind of ghetto
+    my $dbh = DBI->connect("dbi:SQLite:dbname=$roster","","", { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
+    my $CachedKids_hashref = $dbh->{Driver}->{CachedKids};
+    %$CachedKids_hashref = () if $CachedKids_hashref;
     unlink $roster;
     return $roster;
 }

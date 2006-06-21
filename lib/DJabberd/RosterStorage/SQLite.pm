@@ -20,7 +20,7 @@ sub finalize {
     my $self = shift;
     die "No 'Database' configured'" unless $self->{dbfile};
 
-    my $dbh = DBI->connect("dbi:SQLite:dbname=$self->{dbfile}","","", { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
+    my $dbh = DBI->connect_cached("dbi:SQLite:dbname=$self->{dbfile}","","", { RaiseError => 1, PrintError => 0, AutoCommit => 1 });
     $self->{dbh} = $dbh;
     $self->check_install_schema;
     return $self;
