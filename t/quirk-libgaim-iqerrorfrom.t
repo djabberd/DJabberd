@@ -36,6 +36,8 @@ sub run_test {
 
         my $xml;
 
+        select(undef,undef,undef,0.25);
+
         $pa->send_xml("<iq
     from='$pa/testsuite'
     to='$pb/testsuite'
