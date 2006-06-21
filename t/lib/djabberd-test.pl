@@ -9,6 +9,7 @@ use DJabberd::TestSAXHandler;
 use DJabberd::RosterStorage::SQLite;
 use DJabberd::RosterStorage::Dummy;
 use DJabberd::RosterStorage::LiveJournal;
+use DJabberd::Plugin::MUC;
 
 sub once_logged_in {
     my $cb = shift;
@@ -220,6 +221,9 @@ sub standard_plugins {
                                                 allowedusers => [qw(partya partyb)]),
             DJabberd::Authen::StaticPassword->new(password => "password"),
             DJabberd::RosterStorage::SQLite->new(database => $self->roster),
+            ($ENV{T_MUC_ENABLE} ? (DJabberd::Plugin::MUC->new(subdomain => 'conference')) : ()),
+            DJabberd::Delivery::Local->new,
+            DJabberd::Delivery::S2S->new,
             ];
 }
 

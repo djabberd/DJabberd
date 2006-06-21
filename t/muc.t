@@ -16,8 +16,7 @@ $Test::DJabberd::Server::PLUGIN_CB = sub {
     push @$plugins, DJabberd::Plugin::MUC->new(subdomain => 'conference');
     push @$plugins, DJabberd::Delivery::Local->new, DJabberd::Delivery::S2S->new; # these don't get pushed if someone else touches deliver
     return $plugins;
-};
-
+} unless $ENV{T_MUC_ENABLE}; # don't push it twice if we're enabling it globally
 
 two_parties_one_server(sub {
     my ($pa, $pb) = @_;
