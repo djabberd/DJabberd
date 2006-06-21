@@ -10,6 +10,7 @@ two_parties(sub {
     $pb->login;
     $pa->send_xml("<presence/>");
     $pb->send_xml("<presence/>");
+    select(undef,undef,undef,0.25);
 
     $pa->subscribe_successfully($pb);
 
