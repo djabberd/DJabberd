@@ -21,6 +21,7 @@ two_parties_s2s(sub {
     $server->kill;
     $server->start;
     $pa->login;
+    $pa->send_xml("<presence/>");
 
     $pa->send_xml("<message type='chat' to='$pb'>Hello.  I am $pa.</message>");
     like($pb->recv_xml, qr/type=.chat.*Hello.*I am \Q$pa\E/, "pb got pa's message");

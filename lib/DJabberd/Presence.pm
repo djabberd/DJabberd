@@ -16,11 +16,12 @@ use Carp qw(croak confess);
 # used by DJabberd::PresenceChecker::Local.
 my %last_bcast;   # barejidstring -> { full_jid_string -> $cloned_pres_stanza }
 
-# is this directed presence?  must be to a JID, and not a probe.
+# is this directed presence?  must be to a JID, and must be available/unavailable, not probe/subscribe/etc.
 sub is_directed {
     my $self = shift;
     return 0 unless $self->to_jid;
-    return 0 if ($self->type || "") eq "probe";
+    my $type = $self->type;
+    return 0 if $type && $type ne "unavailable";
     return 1;
 }
 
@@ -358,6 +359,7 @@ sub broadcast_from {
 
 sub _process_outbound_available {
     my ($self, $conn) = @_;
+
     if ($self->is_directed) {
         $conn->add_directed_presence($self->to_jid);
         $self->deliver;
@@ -367,11 +369,12 @@ sub _process_outbound_available {
     my $jid = $conn->bound_jid;
     $last_bcast{$jid->as_bare_string}{$jid->as_string} = $self->clone;
 
+    $conn->set_available(1);
+
     if ($conn->is_initial_presence) {
         $conn->send_presence_probes;
     }
 
-    $conn->set_available(1);
     $self->broadcast_from($conn);
 }
 

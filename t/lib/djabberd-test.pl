@@ -513,8 +513,6 @@ sub subscribe_successfully {
     my ($self, $other) = @_;
 
     $self->send_xml(qq{<presence to='$other' type='subscribe' />});
-    #$self->recv_xml =~ /\bask=.subscribe\b/
-    #    or die "didn't get subscription back";
 
     $other->recv_xml =~ /<pre.+\btype=.subscribe\b/
         or die "other party ($other) didn't get type='subscribe'\n";
@@ -522,6 +520,12 @@ sub subscribe_successfully {
     $other->send_xml(qq{<presence to='$self' type='subscribed' />});
 
     main::test_responses($self,
+                         "presence" => sub {
+                             my ($xo, $xml) = @_;
+                             return 0 if $xml =~ /\btype=/;
+                             return 0 unless $xml =~ /<presence\b/;
+                             return 1;
+                         },
                          "presence subscribed" => sub {
                              my ($xo, $xml) = @_;
                              return 0 unless $xml =~ /\btype=.subscribed\b/;

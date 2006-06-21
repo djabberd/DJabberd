@@ -59,8 +59,7 @@ sub send_presence_probes {
 
     my $send_probes = sub {
         my $roster = shift;
-        # go through rosteritems that are subscribed to our
-        # presence.  (XMPPIM-5.1.2-p2)
+        # go through rosteritems who we're subscribed to
         my $from_jid = $self->bound_jid;
         foreach my $it ($roster->to_items) {
             my $probe = DJabberd::Presence->probe(to => $it->jid, from => $from_jid);

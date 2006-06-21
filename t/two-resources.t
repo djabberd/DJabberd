@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 16;
+use Test::More tests => 20;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
@@ -8,21 +8,28 @@ two_parties(sub {
     my ($pa, $pb) = @_;
     $pa->login;
     $pb->login;
+    $pa->send_xml("<presence/>");
+    $pb->send_xml("<presence/>");
 
     $pa->subscribe_successfully($pb);
 
-    my $pa2 = Test::DJabberd::Client->new(server => $pa->server,
-                                          name => "partya",
+    my $xml;
+
+    my $pa2 = Test::DJabberd::Client->new(server   => $pa->server,
+                                          name     => "partya",
                                           resource => "conn2",
                                           );
     $pa2->login;
+    $pa2->send_xml("<presence/>");
+    $xml = $pa2->recv_xml;
+    like($xml, qr{^<presence.+from=.partyb}, "partya now also knows of partyb being online");
 
     $pb->send_xml(qq{<presence><status>BisHere</status></presence>});
 
     # both of A's resources should get it.
-    my $xml = $pa2->recv_xml;
-    like($xml, qr{BisHere}, "partya2 got B's presence");
     $xml = $pa->recv_xml;
+    like($xml, qr{BisHere}, "partya2 got B's presence");
+    $xml = $pa2->recv_xml;
     like($xml, qr{BisHere}, "partya1 got B's presence");
 
     # both of A's resources should get a message from pb to pa's bare JID
