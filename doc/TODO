@@ -1,3 +1,14 @@
+-- test what happens when two resources try to connect with same resource
+
+-- TODO: resource binding?
+
+-- TODO: IQ commands to server to get server load info:
+    o #/which connected users
+    o #/which connected s2s
+    o RAM
+    o uptime
+    o CPU user/system time
+
 -- shouldn't allow auth with no resource
 
 -- should send a 503 error here on bogus/unsupported IQ:
@@ -16,14 +27,6 @@
    status for filtering reasons on its way back "in", when it loops back to ourselves in
    procdeliver.  we should set an "its_us_so_trust_us" flag and then
    we fast-path that, avoiding the lookup.
-
--- recursion bug: (?)  one person's ssl write error or otherwise unavailability causes
-   unavailable stanzas broadcast to everybody (possibly themselves), and then the contact
-   (or themselves) is written to, but on the same socket that just had a write error,
-   causing another unavailable broadcast, forever.  solution:  mark socket as 'closing'
-   (not yet Danga::Socket 'closed') or something and prevent a closing/closed socket
-   from sending out storms.  or just rearranging the calling of SUPER::close from close
-   up the chain.
 
 -- can we reuse s2s connections in both directions?  Our code doesn't, but worse,
    I don't think it'd even allow other people to try and do it to us.  What does spec say?
