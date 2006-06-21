@@ -35,6 +35,8 @@ sub process {
         'get-{http://jabber.org/protocol/disco#items}query' => \&process_iq_disco_items_query,
         'get-{jabber:iq:register}query' => \&process_iq_getregister,
         'set-{jabber:iq:register}query' => \&process_iq_setregister,
+
+        'set-{djabberd:test}query' => \&process_iq_set_djabberd_test,
     };
 
     $conn->vhost->run_hook_chain(phase    => "c2s-iq",
@@ -91,9 +93,6 @@ sub send_reply {
     $conn->xmllog->info($xml);
     $conn->write(\$xml);
 }
-
-
-
 
 sub process_iq_disco_info_query {
     my ($conn, $iq) = @_;
@@ -480,6 +479,32 @@ sub process_iq_setauth {
     return 1;  # signal that we've handled it
 }
 
+sub process_iq_set_djabberd_test {
+    my ($conn, $iq) = @_;
+    # <iq type='set' id='foo'><query xmlns='djabberd:test'>some command</query></iq>
+    my $id = $iq->id;
+
+    unless ($ENV{DJABBERD_TEST_COMMANDS}) {
+        $iq->send_error;
+        return;
+    }
+
+    my $query = $iq->query
+        or die;
+    my $command = $query->first_child;
+
+    if ($command eq "write error") {
+        $conn->set_writer_func(sub {
+            my ($bref, $to_write, $offset) = @_;
+            $conn->close;
+            return 0;
+        });
+        $iq->send_result_raw("<wont_get_to_you_anyway/>");
+        return;
+    }
+
+    $iq->send_result_raw("<unknown-command/>");
+}
 
 sub id {
     return $_[0]->attr("{}id");

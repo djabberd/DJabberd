@@ -330,6 +330,9 @@ sub get_event {
         my $n = select($rin, undef, undef, $timeout)
             or return undef;
         my $rv = sysread($self->{sock}, $byte, 1);
+        if (!$rv) {
+            return undef;
+        }
         $self->{parser}->parse_more($byte);
     }
     return shift @{$self->{events}};
