@@ -1,4 +1,5 @@
--- test what happens when two resources try to connect with same resource
+-- test what happens when two resources try to connect with same resource?
+    -- it seems to allow it, and when one disconnects, the other is effectively dead.
 
 -- TODO: resource binding?
 
