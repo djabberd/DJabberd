@@ -1,17 +1,22 @@
 DJabberd::Cluster
+     void    ->send_message($barejid, $cluster_message)
+              - most important
+              (has a default implementation that connects directly to everybody found in star topology)
+
   (abstract) @locations = ->find_barejid_locations($barejid)
-                  void    ->send_message($cluster_message, @locations)
+                  void    ->send_message($barejid, $cluster_message)
                      (has a default implementation that connects directly, star topology)
 
    DJabberd::Cluster::Naive
            find_barejid_locations doing polling the star
+           or just send the message to all peers!
 
    DJabberd::Cluster::LiveJournal
          - override find_barejid_locations w/ database lookup (in subprocess/gearman)
          - keep default start topology delivery
 
    DJabberd::Cluster::Spread
-         - could do both lookup and delivery w/ spread
+         - probably only does send_message, with $barejid being the message group
 
 
 DJabberd::ClusterMessage  (IQ-style tagged message/response)

@@ -48,15 +48,19 @@ sub start_connecting {
     $self->watch_write(1);
 }
 
+sub on_connected {
+    my $self = shift;
+    $self->start_init_stream(extra_attr => "xmlns:db='jabber:server:dialback'",
+                             to         => $self->{queue}->{domain});
+    $self->watch_read(1);
+}
+
 sub event_write {
     my $self = shift;
 
     if ($self->{state} eq "connecting") {
         $self->{state} = "connected";
-
-        $self->start_init_stream(extra_attr => "xmlns:db='jabber:server:dialback'",
-                                 to         => $self->{queue}->{domain});
-        $self->watch_read(1);
+        $self->on_connected;
     } else {
         return $self->SUPER::event_write;
     }
