@@ -115,6 +115,23 @@ sub two_parties_s2s {
     $server2->kill;
 }
 
+sub two_parties_cluster {
+    my $cb = shift;
+
+    my $server1 = Test::DJabberd::Server->new(id => 1);
+    my $server2 = Test::DJabberd::Server->new(id => 2);
+    # TODO: configure these to know about each other.
+    $server1->start;
+    $server2->start;
+
+    my $pa = Test::DJabberd::Client->new(server => $server1, name => "partya");
+    my $pb = Test::DJabberd::Client->new(server => $server2, name => "partyb");
+    $cb->($pa, $pb);
+
+    $server1->kill;
+    $server2->kill;
+}
+
 sub test_responses {
     my ($client, %map) = @_;
     my $n = values %map;
