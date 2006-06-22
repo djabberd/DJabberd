@@ -290,6 +290,11 @@ sub resource {
     return $_[0]{resource} ||= ($ENV{UNICODE_RESOURCE} ? "test\xe2\x80\x99s computer" : "testsuite");
 }
 
+sub connected {
+    my $self = shift;
+    return $self->{sock} && getpeername($self->{sock});
+}
+
 sub username {
     my $self = shift;
     return $self->{name};

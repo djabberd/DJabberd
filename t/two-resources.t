@@ -17,13 +17,13 @@ two_parties(sub {
     my $xml;
 
     my $pa2 = Test::DJabberd::Client->new(server   => $pa->server,
-                                          name     => "partya",
+                                          name     => $pa->username,
                                           resource => "conn2",
                                           );
     $pa2->login;
     $pa2->send_xml("<presence/>");
     $xml = $pa2->recv_xml;
-    like($xml, qr{^<presence.+from=.partyb}, "partya now also knows of partyb being online");
+    like($xml, qr{^<presence.+from=.partyb}, "partya2 now also knows of partyb being online");
 
     $pb->send_xml(qq{<presence><status>BisHere</status></presence>});
 
@@ -44,6 +44,13 @@ two_parties(sub {
     $pb->send_xml("<message type='chat' to='$pa/conn2'>you are conn2</message>");
     like($pa->recv_xml,  qr{you are testsuite}, "pa got uniq message");
     like($pa2->recv_xml, qr{you are conn2}, "pb got uniq message");
+
+    # TODO: test that conn2 goes unavailable, then sending a message to /conn2 should
+    # really act as if it's to a barejid, and go to all available resources.
+    # -- we need the test and the implementation
+
+    # TODO: try connecting a third $pa, but with a dup resource, and
+    # watch it get bitch slapped
 
 
 });
