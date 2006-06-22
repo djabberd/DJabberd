@@ -186,6 +186,7 @@ sub set_vhost {
     my ($self, $vhost) = @_;
     Carp::croak("Not a DJabberd::VHost: $vhost") unless UNIVERSAL::isa($vhost, "DJabberd::VHost");
     $self->{vhost} = $vhost;
+    # FIXME: move the weak from above down here.
     return 1;
 }
 

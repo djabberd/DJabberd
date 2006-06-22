@@ -1,0 +1,15 @@
+incremental costs of making more objects.  was testing with 10,000 of them.
+
+799.5392 bytes per DJabberd::saxhandler created.
+8289.614 bytes more per DJabberd::XMLParser (libxml) parser created, on top of the saxhandler
+
+# my $sock; socket($sock, PF_INET, SOCK_STREAM, IPPROTO_TCP);
+# { sock => $sock }
+rss = 17846272 (gain of 6004736, 600.4736 each)
+
+# DJabberd::Connection::ClientIn->new($sock, $server);
+rss = 114565120 (gain of 102592512, 10259.2512 each)
+
+# $p->parse_chunk_scalarref(\ "<foo ");
+rss = 140451840 (gain of 128438272, 12843.8272 each)
+
