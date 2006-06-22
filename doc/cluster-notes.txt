@@ -20,3 +20,18 @@ DJabberd::ClusterMessage  (IQ-style tagged message/response)
   DJabberd::ClusterMessage::RosterPush       response = OK
   DJabberd::ClusterMessage::BareJIDLookup    response = @locations
   DJabberd::ClusterMessage::StanzaDelivery   response = OK
+
+
+CREATE TABLE jidmap (
+    barejid   VARCHAR,
+    resource  VARCHAR,
+    PRIMARY KEY (barejid, resource),
+    server    VARCHAR
+);
+
+# when logging off,
+delete from jidmap where bare=..., res=..., and server=....;  (delete all 3 fields)
+
+# when logging on,
+REPLACE INTO jidmap (..., ..., ...)  (insert all three, blowing away)
+
