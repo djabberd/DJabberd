@@ -55,13 +55,11 @@ two_parties(sub {
                                           );
     $pa3->login;
     $pa3->send_xml("<presence/>");
-    
-    is($pa2->get_event(2),"end-stream","got closed stream");
-    
-    ok(!$pa2->connected, "pa2 got booted");
-    
+
+    is($pa2->get_event(2),"end-stream", "got closed stream");
+
     # TODO: test that conn2 goes unavailable, then sending a message to /conn2 should
     # really act as if it's to a barejid, and go to all available resources.
     # -- we need the test and the implementation
-    
+
 });
