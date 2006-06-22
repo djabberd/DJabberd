@@ -2,6 +2,7 @@ package DJabberd::Connection::ClusterIn;
 use strict;
 use base 'DJabberd::Connection';
 use DJabberd::ClusterMessage;
+use DJabberd::ClusterMessage::DeliverStanza;
 use fields (
             'buf',
             );
