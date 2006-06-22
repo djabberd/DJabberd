@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 20;
+use Test::More tests => 22;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
