@@ -39,9 +39,24 @@ sub event_read {
 
         $self->{buf} =~ s/^DJAB....//s;
         my $payload = substr($self->{buf}, 0, $len, '');
-        my $cmsg = eval { DJabberd::ClusterMessage->thaw(\$payload) } || $payload;
+        my $cmsg = eval { DJabberd::ClusterMessage->thaw(\$payload) };
 
-        print "Got payload: [$cmsg]\n";
+        if (! $cmsg && $payload =~ /^vhost=(.+)/) {
+            my $hostname = $1;
+            my $vhost = $self->server->lookup_vhost($hostname)
+                or $self->close;
+            $self->{vhost} = $vhost;
+            next;
+        }
+
+        # need a vhost past this point
+        return $self->close unless $self->{vhost};
+
+        if ($cmsg) {
+            $cmsg->process($self->{vhost});
+        } else {
+            print "Got payload text: [$payload]\n";
+        }
     }
 }
 

@@ -23,4 +23,9 @@ sub as_packet {
     return "DJAB" . pack("N", length $freeze) . $freeze;
 }
 
+sub process {
+    my ($self, $vhost) = @_;
+    print "processing $self w/ vhost = $vhost\n";
+}
+
 1;
