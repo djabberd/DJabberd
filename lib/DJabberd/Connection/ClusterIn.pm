@@ -1,6 +1,7 @@
 package DJabberd::Connection::ClusterIn;
 use strict;
 use base 'DJabberd::Connection';
+use DJabberd::ClusterMessage;
 use fields (
             'buf',
             );
@@ -38,7 +39,9 @@ sub event_read {
 
         $self->{buf} =~ s/^DJAB....//s;
         my $payload = substr($self->{buf}, 0, $len, '');
-        print "Got payload: [$payload]\n";
+        my $cmsg = eval { DJabberd::ClusterMessage->thaw(\$payload) } || $payload;
+
+        print "Got payload: [$cmsg]\n";
     }
 }
 

@@ -1,29 +1,26 @@
 package DJabberd::ClusterMessage;
-
 use strict;
 use warnings;
 
 use Storable ();
-
 use fields ();
 
 sub new {
     my $self = shift;
-
     $self = fields::new($self) unless ref $self;
 
     return $self;
 }
 
-sub freeze {
-    my $self = shift;
-    
-    return Storable::nfreeze( $self );
+sub thaw {
+    my ($class, $dataref) = @_;
+    return Storable::thaw($$dataref);
 }
 
-sub thaw {
-    my $class = shift;
-    my $data = shift;
-   
-    return Storable::thaw( $data );
+sub as_packet {
+    my $self = shift;
+    my $freeze = Storable::nfreeze($self);
+    return "DJAB" . pack("N", length $freeze) . $freeze;
 }
+
+1;
