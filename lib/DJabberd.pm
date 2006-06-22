@@ -13,6 +13,7 @@ use DJabberd::HookDocs;
 use DJabberd::Connection;
 use DJabberd::Connection::ServerIn;
 use DJabberd::Connection::ClientIn;
+use DJabberd::Connection::ClusterIn;
 use DJabberd::Connection::OldSSLClientIn;
 
 use DJabberd::Stanza::StartTLS;
@@ -76,6 +77,11 @@ sub set_config_clientport {
 sub set_config_serverport {
     my ($self, $val) = @_;
     $self->{s2s_port} = as_num($val);
+}
+
+sub set_config_intradomainlisten {
+    my ($self, $val) = @_;
+    $self->{cluster_listen} = $val;
 }
 
 our %fake_peers;
@@ -185,14 +191,21 @@ sub run {
     # {=s2soptional}
     $self->start_s2s_server() if $self->{s2s_port};
 
+    $self->start_cluster_server() if $self->{cluster_listen};
+
     Danga::Socket->EventLoop();
 }
 
 sub _start_server {
-    my ($self, $port, $class) = @_;
+    my ($self, $localaddr, $class) = @_;
+
+    # assume it's a port if there's no colon
+    unless ($localaddr =~ /:/) {
+        $localaddr = "0.0.0.0:$localaddr";
+    }
 
     # establish SERVER socket, bind and listen.
-    my $server = IO::Socket::INET->new(LocalPort => $port,
+    my $server = IO::Socket::INET->new(LocalAddr => $localaddr,
                                        Type      => SOCK_STREAM,
                                        Proto     => IPPROTO_TCP,
                                        Blocking  => 0,
@@ -235,6 +248,12 @@ sub start_s2s_server {
     my $self = shift;
     $self->_start_server($self->{s2s_port},
                          "DJabberd::Connection::ServerIn");
+}
+
+sub start_cluster_server {
+    my $self = shift;
+    $self->_start_server($self->{cluster_listen},
+                         "DJabberd::Connection::ClusterIn");
 }
 
 sub start_simple_server {

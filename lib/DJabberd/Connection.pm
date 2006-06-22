@@ -572,7 +572,7 @@ sub close {
     # from inside an existint callback.  so schedule for a bit later.
     # this probably could be 0 seconds later, but who cares.
     Danga::Socket->AddTimer(1, sub {
-        $p->finish_push;
+        $p->finish_push if $p;
     });
 
     $self->SUPER::close;
