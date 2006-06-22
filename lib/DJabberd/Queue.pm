@@ -16,6 +16,8 @@ use fields (
 	    'endpoints',
 	    'to_deliver',
 	    'last_connect_fail',
+	    'state',
+	    'connection',
 	    );
 
 use constant NO_CONN    => \ "no connection";
@@ -74,10 +76,10 @@ sub vhost {
 sub enqueue {
     my ($self, $stanza, $cb) = @_;
 
-    $logger->debug("Queuing stanza (" . $stanza->as_summary . ") for $self->{domain}");
+    $logger->debug("Queuing stanza (" . $stanza . ") for");
 
     if ($self->{state} == NO_CONN) {
-        $logger->debug("  .. starting to connect to $self->{domain}");
+        $logger->debug("  .. starting to connect to");
         $self->start_connecting;
     }
 
@@ -96,7 +98,7 @@ sub failed_to_connect {
     $self->{state}             = NO_CONN;
     $self->{last_connect_fail} = time();
 
-    $logger->debug("Failed to connect queue to $self->{domain}");
+    $logger->debug("Failed to connect queue");
     while (my $qi = shift @{ $self->{to_deliver} }) {
         $qi->callback->error;
     }
@@ -105,7 +107,7 @@ sub failed_to_connect {
 # called by our connection when it's connected
 sub on_connection_connected {
     my ($self, $conn) = @_;
-    $logger->debug("connection $conn->{id} connected!  from ($self->{domain})  conn=$conn->{id}, selfcon=$self->{connection}->{id}");
+    $logger->debug("connection $conn->{id} connected!  conn=$conn->{id}, selfcon=$self->{connection}->{id}");
 
     # TODO why are we this checking here?
     return unless $conn == $self->{connection};
@@ -122,7 +124,7 @@ sub on_connection_connected {
 
 sub on_connection_failed {
    my ($self, $conn) = @_;
-   $logger->debug("s2s connection failed for queue '$self->{domain}'");
+   $logger->debug("connection failed for queue");
    return unless $conn == $self->{connection};
    $logger->debug("  .. match");
    return $self->failed_to_connect;
@@ -130,7 +132,7 @@ sub on_connection_failed {
 
 sub on_connection_error {
    my ($self, $conn) = @_;
-   $logger->debug("s2s connection error for queue '$self->{domain}'");
+   $logger->debug("connection error for queue");
    return unless $conn == $self->{connection};
    $logger->debug("  .. match");
    my $pre_state = $self->{state};
@@ -140,7 +142,7 @@ sub on_connection_error {
 
    if ($pre_state == CONNECTING) {
        # died while connecting:  no more luck
-       $logger->error("Connection error while connecting to '$self->{domain}', giving up");
+       $logger->error("Connection error while connecting, giving up");
        $self->on_final_error;
    } else {
        # died during an active connection, let's try again
@@ -160,7 +162,7 @@ sub on_final_error {
 
 sub start_connecting {
     my $self = shift;
-    $logger->debug("Starting connection to domain '$self->{domain}'");
+    $logger->debug("Starting connection");
     die unless $self->{state} == NO_CONN;
 
     my $endpoints = $self->{endpoints};
