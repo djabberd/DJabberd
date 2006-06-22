@@ -424,19 +424,24 @@ sub process_iq_setauth {
     my $vhost = $conn->vhost;
 
     my $accept = sub {
-        $conn->{authed}   = 1;
-        $conn->{username} = $username;
-        $conn->{resource} = $resource;
-
         # register
         my $sname = $vhost->name;
         my $jid = DJabberd::JID->new("$username\@$sname/$resource");
 
-        $vhost->register_jid($jid, $conn);
-        $conn->set_bound_jid($jid);
+        my $regcb = DJabberd::Callback->new({
+            registered => sub {
+                $conn->{authed}   = 1;
+                $conn->{username} = $username;
+                $conn->{resource} = $resource;
+                $conn->set_bound_jid($jid);
+                $iq->send_result;
+            },
+            error => sub {
+                $iq->send_error;
+            },
+        });
 
-        $iq->send_result;
-        return;
+        $vhost->register_jid($jid, $conn, $regcb);
     };
 
     my $reject = sub {

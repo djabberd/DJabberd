@@ -3,9 +3,9 @@ use strict;
 use base 'DJabberd::Plugin';
 
 sub register {
-    my ($self, $server) = @_;
+    my ($self, $vhost) = @_;
     if ($self->can_retrieve_cleartext) {
-        $server->register_hook("GetPassword", sub {
+        $vhost->register_hook("GetPassword", sub {
             my (undef, $cb, %args) = @_;
             # args as 'username' and 'conn';
             # cb can ->set or ->decline
@@ -13,13 +13,13 @@ sub register {
         });
     }
 
-    $server->register_hook("CheckCleartext", sub {
-        my ($conn, $cb, %args) = @_;
+    $vhost->register_hook("CheckCleartext", sub {
+        my (undef, $cb, %args) = @_;
         # args containing:  username, conn, password
         $self->check_cleartext($cb, %args);
     });
 
-    $server->register_hook("CheckJID", sub {
+    $vhost->register_hook("CheckJID", sub {
         my (undef, $cb, %args) = @_;
         # args contain: username and conn
         $self->check_jid($cb, %args);
@@ -27,7 +27,7 @@ sub register {
     });
 
     if ($self->can_register_jids) {
-        $server->register_hook("RegisterJID", sub {
+        $vhost->register_hook("RegisterJID", sub {
             my (undef, $cb, %args) = @_;
             # args containing:  username, password
             # cb can:
@@ -39,7 +39,7 @@ sub register {
     }
 
     if ($self->can_unregister_jids) {
-        $server->register_hook("UnregisterJID", sub {
+        $vhost->register_hook("UnregisterJID", sub {
             my (undef, $cb, %args) = @_;
             # args containing:  username
             # cb can:

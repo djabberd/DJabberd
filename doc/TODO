@@ -1,6 +1,3 @@
--- test what happens when two resources try to connect with same resource?
-    -- it seems to allow it, and when one disconnects, the other is effectively dead.
-
 -- SIG USR1 to do graceful shutdown, sending </stream:stream> to all clients.
 
 -- TODO: resource binding?

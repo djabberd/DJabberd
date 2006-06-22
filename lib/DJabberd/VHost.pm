@@ -286,14 +286,22 @@ sub find_jid {
 }
 
 sub register_jid {
-    my ($self, $jid, $sock) = @_;
-    $logger->info("Registering '$jid' to connection '$sock->{id}'");
+    my ($self, $jid, $conn, $cb) = @_;
+    # $cb can ->registered, ->error
+    $logger->info("Registering '$jid' to connection '$conn->{id}'");
 
     my $barestr = $jid->as_bare_string;
     my $fullstr = $jid->as_string;
-    $self->{jid2sock}{$fullstr} = $sock;
-    $self->{jid2sock}{$barestr} = $sock;
+
+    if (my $econn = $self->{jid2sock}{$fullstr}) {
+        $econn->stream_error("conflict");
+    }
+
+    $self->{jid2sock}{$fullstr} = $conn;
+    $self->{jid2sock}{$barestr} = $conn;
     ($self->{bare2fulls}{$barestr} ||= {})->{$fullstr} = 1;
+
+    $cb->registered;
 }
 
 # given a bare jid, find all local connections

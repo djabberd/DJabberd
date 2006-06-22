@@ -56,6 +56,7 @@ two_parties(sub {
     $pa3->login;
     $pa3->send_xml("<presence/>");
 
+    like($pa2->recv_xml, qr{conflict}, "got stream conflict error");
     is($pa2->get_event(2),"end-stream", "got closed stream");
 
     # TODO: test that conn2 goes unavailable, then sending a message to /conn2 should
