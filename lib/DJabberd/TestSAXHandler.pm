@@ -73,7 +73,7 @@ sub end_element {
 
     if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
         $data->{LocalName} eq "stream") {
-        push @{$self->{listref}}, undef;  # undef can mean stream end for now
+        push @{$self->{listref}}, "end-stream";
         return;
     }
 
