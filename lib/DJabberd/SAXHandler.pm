@@ -8,13 +8,23 @@ use Scalar::Util qw(weaken);
 sub new {
     my ($class, $client) = @_;
     my $self = $class->SUPER::new;
-    $self->{"ds_client"} = $client;
-    weaken($self->{ds_client});
+    $self->{"ds_conn"} = $client;
+    weaken($self->{ds_conn});
 
     $self->{"capture_depth"} = 0;  # on transition from 1 to 0, stop capturing
     $self->{"on_end_capture"} = undef;  # undef or $subref->($doc)
     $self->{"events"} = [];  # capturing events
     return $self;
+}
+
+sub set_connection {
+    my ($self, $conn) = @_;
+    $self->{ds_conn} = $conn;
+    weaken($self->{ds_conn});
+}
+
+sub depth {
+    return $_[0]{capture_depth};
 }
 
 use constant EVT_START_ELEMENT => 1;
@@ -24,15 +34,9 @@ use constant EVT_CHARS         => 3;
 sub start_element {
     my ($self, $data) = @_;
 
-    if ($self->{capture_depth}) {
-        push @{$self->{events}}, [EVT_START_ELEMENT, $data];
-        $self->{capture_depth}++;
-        return;
-    }
-
-    # if we don't have a ds_client (Connection object), then connection
+    # if we don't have a ds_conn (Connection object), then connection
     # is dead and events don't matter.
-    my $ds = $self->{ds_client} or
+    my $conn = $self->{ds_conn} or
         return;
 
     # {=xml-stream}
@@ -40,12 +44,23 @@ sub start_element {
         $data->{LocalName} eq "stream") {
 
         my $ss = DJabberd::StreamStart->new($data);
-        $ds->on_stream_start($ss);
+        $conn->on_stream_start($ss);
+        return;
+    }
+
+    if ($data->{LocalName} eq "djab-noop") {
+        # no-op.  this is sent by Connection.pm just to open up our root node.
+        return;
+    }
+
+    if ($self->{capture_depth}) {
+        push @{$self->{events}}, [EVT_START_ELEMENT, $data];
+        $self->{capture_depth}++;
         return;
     }
 
     # FIXME: close connection harshly if the first thing we get isn't a stream start.
-    # basically, ask the $ds client object if it's expecting an opening stream,
+    # basically, ask the $conn client object if it's expecting an opening stream,
     # then we also do the right thing after ssl/sasl
 
     my $start_capturing = sub {
@@ -65,7 +80,7 @@ sub start_element {
         my ($doc, $events) = @_;
         my $nodes = _nodes_from_events($events);
         # {=xml-stanza}
-        $ds->on_stanza_received($nodes->[0]);
+        $conn->on_stanza_received($nodes->[0]);
     });
 
 }
@@ -76,6 +91,11 @@ sub characters {
     if ($self->{capture_depth}) {
         push @{$self->{events}}, [EVT_CHARS, $data];
     }
+
+    # TODO: disconnect client if character data between stanzas?  as
+    # long as it's not whitespace, because that's permitted as a
+    # keep-alive.
+
 }
 
 sub end_element {
@@ -83,7 +103,7 @@ sub end_element {
 
     if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
         $data->{LocalName} eq "stream") {
-        $self->{ds_client}->end_stream if $self->{ds_client};
+        $self->{ds_conn}->end_stream if $self->{ds_conn};
         return;
     }
 
