@@ -43,6 +43,10 @@ sub new {
     return $self;
 }
 
+sub namespace {
+    return "jabber:server";
+}
+
 sub start_connecting {
     my $self = shift;
     $self->watch_write(1);

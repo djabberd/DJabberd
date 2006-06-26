@@ -21,7 +21,8 @@ sub peer_domain {
 
 sub on_stream_start {
     my ($self, $ss) = @_;
-    $self->{last_stream} = $ss;
+    $self->{in_stream} = 1;
+    return $self->close unless $ss->xmlns eq $self->namespace; # FIXME: should be stream error
 
     if ($ss->announced_dialback) {
         $self->{announced_dialback} = 1;

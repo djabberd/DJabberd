@@ -102,8 +102,9 @@ sub namespace {
 sub on_stream_start {
     my DJabberd::Connection $self = shift;
     my $ss = shift;
+    return $self->close unless $ss->xmlns eq $self->namespace; # FIXME: should be stream error
 
-    $self->{last_stream} = $ss;
+    $self->{in_stream} = 1;
 
     my $to_host = $ss->to;
     my $vhost = $self->server->lookup_vhost($to_host);

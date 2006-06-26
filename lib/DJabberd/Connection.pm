@@ -20,7 +20,7 @@ use fields (
             'write_when_readable',  # arrayref/bool, for SSL:  as boolean, we're only readable so we can write again.
                                     # but bool true is actually an arrayref of previous watch_read state
             'iqctr',          # iq counter.  incremented whenever we SEND an iq to the party (roster pushes, etc)
-            'last_stream',    # bool/obj: true (last StreamStart tag) if we're in a stream, undef if we're waiting for one.
+            'in_stream',      # bool:  true if we're in a stream tag
             );
 
 our $connection_id = 1;
@@ -136,10 +136,9 @@ my %free_parsers;  # $ns -> [ [parser,handler]* ]
 sub borrow_a_parser {
     my $self = $_[0];
 
-    my $ns;
     # get a parser off the freelist
-    if (my $ss = $self->{last_stream}) {
-        $ns = $ss->xmlns;
+    if ($self->{in_stream}) {
+        my $ns = $self->namespace;
         my $freelist = $free_parsers{$ns} || [];
         if (my $ent = pop @$freelist) {
             ($self->{parser}, $self->{jabberhandler}) = @$ent;
@@ -152,12 +151,13 @@ sub borrow_a_parser {
     my $handler = DJabberd::SAXHandler->new($self);
     my $p       = DJabberd::XMLParser->new(Handler => $handler);
 
-    if ($self->{last_stream}) {
+    if ($self->{in_stream}) {
         # gotta get it into stream-able state with an open root node
         # so client can send us multiple stanzas.  unless we're waiting for
         # the start stream, in which case it may also have an xml declaration
         # like <?xml ... ?> at top, which can only come at top, so we need
         # a virgin parser.
+        my $ns = $self->namespace;
         $p->parse_chunk_scalarref(\ "<djab-noop xmlns='$ns'>");
     }
 
@@ -172,9 +172,8 @@ sub return_parser {
     # TODO: provide an end-user configurable way to enable/disable this for
     # troubleshooting.
     return if 0;
-
-    my $ss = $self->{last_stream} or return;
-    my $ns = $ss->xmlns;
+    return unless $self->{in_stream};
+    my $ns = $self->namespace;
 
     my $freelist = $free_parsers{$ns} ||= [];
     # we'd verify $ns is only one of jabber:client or jabber:server,
@@ -357,7 +356,8 @@ sub write_stanza {
 }
 
 sub namespace {
-    return "";
+    my $self = shift;
+    Carp::confess("namespace called on $self which has no namespace");
 }
 
 # return SSL state object.  more useful as a boolean if conn is in SSL mode.
@@ -391,7 +391,7 @@ sub write_when_readable {
 
 sub restart_stream {
     my DJabberd::Connection $self = shift;
-    $self->{last_stream} = undef;
+    $self->{in_stream} = 0;
 }
 
 # DJabberd::Connection
