@@ -46,4 +46,11 @@ sub id {
     return $attr->{Value};
 }
 
+sub xmlns {
+    my $self = shift;
+    my $attr = $self->{saxdata}{Attributes}{"{}xmlns"} or
+        return "";
+    return $attr->{Value};
+}
+
 1;
