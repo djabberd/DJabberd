@@ -430,9 +430,6 @@ sub process_iq_setauth {
 
         my $regcb = DJabberd::Callback->new({
             registered => sub {
-                $conn->{authed}   = 1;
-                $conn->{username} = $username;
-                $conn->{resource} = $resource;
                 $conn->set_bound_jid($jid);
                 $iq->send_result;
             },

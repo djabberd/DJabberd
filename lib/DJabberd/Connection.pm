@@ -5,10 +5,9 @@ use base 'Danga::Socket';
 use fields (
             'jabberhandler',
             'parser',
-            'authed',         # bool, if authenticated
-            'username',       # username of user, once authenticated
-            'resource',       # resource of user, once authenticated
+
             'bound_jid',      # undef until resource binding - then DJabberd::JID object
+
             'vhost',          # DJabberd::VHost instance (undef until they send a stream start element)
             'server',         # our DJabberd server object, which we used to find the VHost
             'ssl',            # undef when not in ssl mode, else the $ssl object from Net::SSLeay
@@ -285,14 +284,6 @@ sub process_incoming_stanza_from_s2s_out {
 
     my $obj = $class->downbless($node, $self);
     $obj->on_recv_from_server($self);
-}
-
-sub jid {
-    my $self = shift;
-    # FIXME: this should probably bound_jid (resource binding)
-    my $jid = $self->{username} . '@' . $self->vhost->name;
-    $jid .= "/$self->{resource}" if $self->{resource};
-    return $jid;
 }
 
 sub send_stanza {
