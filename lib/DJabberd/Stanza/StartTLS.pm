@@ -47,7 +47,7 @@ sub process {
 
     my $ssl = Net::SSLeay::new($ctx) or die_now("Failed to create SSL $!");
     $conn->{ssl} = $ssl;
-    $conn->start_new_parser;
+    $conn->restart_stream;
 
 #    Net::SSLeay::set_verify($ssl, Net::SSLeay::VERIFY_PEER(), 0);
 

@@ -6,18 +6,21 @@ use XML::LibXML;
 use XML::SAX::Base;
 use base qw(XML::SAX::Base);
 use Carp;
+use Scalar::Util ();
+
+our $instance_count = 0;
 
 sub new {
     my ($class, @params) = @_;
     my $self = $class->SUPER::new(@params);
-
-#    my $saxhandler = $params[1]; # second param is handler.  lame.
 
     # libxml mode:
     if (1) {
         my $libxml = XML::LibXML->new;
         $libxml->set_handler($self);
         $self->{LibParser} = $libxml;
+        Scalar::Util::weaken($self->{LibParser});
+
         $libxml->init_push;
         $self->{CONTEXT} = $libxml->{CONTEXT};
     }
@@ -30,10 +33,7 @@ sub new {
         $parser->parse_start;
     }
 
-#    $self->{Methods}{characters} = sub {
-#        $saxhandler->characters(@_);
-#    };
-
+    $instance_count++;
     return $self;
 }
 
@@ -67,5 +67,13 @@ sub finish_push {
     return 1 unless $self->{LibParser};
     my $parser = delete $self->{LibParser};
     eval { $parser->finish_push };
+    delete $self->{Handler};
+    delete $self->{CONTEXT};
     return 1;
+}
+
+sub DESTROY {
+    my $self = shift;
+    $instance_count--;
+    bless $self, 'XML::SAX::Base';
 }

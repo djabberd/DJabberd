@@ -102,6 +102,9 @@ sub namespace {
 sub on_stream_start {
     my DJabberd::Connection $self = shift;
     my $ss = shift;
+
+    $self->{last_stream} = $ss;
+
     my $to_host = $ss->to;
     my $vhost = $self->server->lookup_vhost($to_host);
     return $self->close_no_vhost($to_host)

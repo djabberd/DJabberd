@@ -21,6 +21,7 @@ sub peer_domain {
 
 sub on_stream_start {
     my ($self, $ss) = @_;
+    $self->{last_stream} = $ss;
 
     if ($ss->announced_dialback) {
         $self->{announced_dialback} = 1;

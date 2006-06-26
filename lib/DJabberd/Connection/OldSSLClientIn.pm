@@ -38,7 +38,6 @@ sub new {
 
     my $ssl = Net::SSLeay::new($ctx) or die_now("Failed to create SSL $!");
     $self->{ssl} = $ssl;
-    $self->start_new_parser;
 
 #    Net::SSLeay::set_verify($ssl, Net::SSLeay::VERIFY_PEER(), 0);
 

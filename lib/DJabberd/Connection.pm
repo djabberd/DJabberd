@@ -4,7 +4,6 @@ use warnings;
 use base 'Danga::Socket';
 use fields (
             'jabberhandler',
-            'builder',
             'parser',
             'authed',         # bool, if authenticated
             'username',       # username of user, once authenticated
@@ -22,6 +21,7 @@ use fields (
             'write_when_readable',  # arrayref/bool, for SSL:  as boolean, we're only readable so we can write again.
                                     # but bool true is actually an arrayref of previous watch_read state
             'iqctr',          # iq counter.  incremented whenever we SEND an iq to the party (roster pushes, etc)
+            'last_stream',    # bool/obj: true (last StreamStart tag) if we're in a stream, undef if we're waiting for one.
             );
 
 our $connection_id = 1;
@@ -52,7 +52,6 @@ sub new {
     croak("Server param not a DJabberd (server) object, actually a '$server'")
         unless ref $server eq "DJabberd";
 
-    $self->start_new_parser;
     $self->{vhost}   = undef;  # set once we get a stream start header from them.
     $self->{server}  = $server;
     $self->{log}     = DJabberd::Log->get_logger($class);
@@ -76,6 +75,10 @@ sub log {
 
 sub xmllog {
     return $_[0]->{xmllog};
+}
+
+sub handler {
+    return $_[0]->{jabberhandler};
 }
 
 sub vhost {
@@ -119,19 +122,84 @@ sub log_incoming_data {
     }
 }
 
-sub start_new_parser {
+sub discard_parser {
     my $self = shift;
+    # TODOTEST: bunch of new connections speaking not-well-formed xml and getting booted, then watch for mem leaks
+    my $p = $self->{parser}   or return;
+    $self->{parser}        = undef;
+    $self->{jabberhandler} = undef;
+    Danga::Socket->AddTimer(0, sub {
+        $p->finish_push;
+    });
+}
 
-    if (my $oldp = $self->{parser}) {
-        # libxml reentrancy issue again.  see Connection close method comments.
-        Danga::Socket->AddTimer(1, sub {
-            $oldp->finish_push;
-        });;
+my %free_parsers;  # $ns -> [ [parser,handler]* ]
+sub borrow_a_parser {
+    my $self = $_[0];
+
+    my $ns;
+    # get a parser off the freelist
+    if (my $ss = $self->{last_stream}) {
+        $ns = $ss->xmlns;
+        my $freelist = $free_parsers{$ns} || [];
+        if (my $ent = pop @$freelist) {
+            ($self->{parser}, $self->{jabberhandler}) = @$ent;
+            $self->{jabberhandler}->set_connection($self);
+            return $self->{parser};
+        }
     }
 
-    my $jabberhandler = $self->{'jabberhandler'} = DJabberd::SAXHandler->new($self);
-    my $p = DJabberd::XMLParser->new( Handler => $jabberhandler );
+    # no parser?  gotta make one.
+    my $handler = DJabberd::SAXHandler->new($self);
+    my $p       = DJabberd::XMLParser->new(Handler => $handler);
+
+    if ($self->{last_stream}) {
+        # gotta get it into stream-able state with an open root node
+        # so client can send us multiple stanzas.  unless we're waiting for
+        # the start stream, in which case it may also have an xml declaration
+        # like <?xml ... ?> at top, which can only come at top, so we need
+        # a virgin parser.
+        $p->parse_chunk_scalarref(\ "<djab-noop xmlns='$ns'>");
+    }
+
+    $self->{jabberhandler} = $handler;
     $self->{parser} = $p;
+    return $p;
+}
+
+sub return_parser {
+    my $self = $_[0];
+
+    # TODO: provide an end-user configurable way to enable/disable this for
+    # troubleshooting.
+    return if 0;
+
+    my $ss = $self->{last_stream} or return;
+    my $ns = $ss->xmlns;
+
+    my $freelist = $free_parsers{$ns} ||= [];
+    # we'd verify $ns is only one of jabber:client or jabber:server,
+    # but that should be done when getting a streamstart, not here in
+    # a relatively hot path
+
+    # BIG FAT WARNING:  with fields objects, you can't do:
+    #   my $p = delete $self->{parser}.
+    # You'd think you could, but it leaves $self->{parser} with some magic fucked up undef/but not
+    # value and $p's refcount never goes down.  Some Perl bug due to fields, weakrefs, etc?  Who knows.
+    # This affects Perl 5.8.4, but not Perl 5.8.8.
+    my $p       = $self->{parser};  $self->{parser} = undef;
+    my $handler = $self->{jabberhandler}; $self->{jabberhandler} = undef;
+    $handler->set_connection(undef);
+
+    if (@$freelist < 5) {
+        push @$freelist, [$p, $handler];
+
+    } else {
+        $handler->set_connection(undef);
+        Danga::Socket->AddTimer(0, sub {
+            $p->finish_push;
+        });
+    }
 }
 
 # TODO: maybe this should be moved down only into ServerOut connections?
@@ -330,6 +398,11 @@ sub write_when_readable {
     $self->watch_write(0);
 }
 
+sub restart_stream {
+    my DJabberd::Connection $self = shift;
+    $self->{last_stream} = undef;
+}
+
 # DJabberd::Connection
 sub event_read {
     my DJabberd::Connection $self = shift;
@@ -367,21 +440,32 @@ sub event_read {
 
     return $self->close unless defined $bref;
 
-    my $p = $self->{parser};
-    my $len = length $$bref;
+    # clients send whitespace between stanzas as keep-alives.  let's just ignore those,
+    # not going through the bother to checkout a parser and all.
+    return if ! $self->{parser} && $$bref !~ /\S/;
 
+    my $p = $self->{parser} || $self->borrow_a_parser;
+    my $len = length $$bref;
     #$self->log->debug("$self->{id} parsing $len bytes...") unless $len == 1;
 
     eval {
         $p->parse_chunk_scalarref($bref);
     };
+
     if ($@) {
         # FIXME: give them stream error before closing them,
         # wait until they get the stream error written to them before closing
+        $self->discard_parser;
         $self->log->error("$self->{id} disconnected $self because: $@");
         $self->log->warn("$self->{id} parsing *****\n$$bref\n*******\n\n\n");
         $self->close;
         return;
+    }
+
+    my $depth = $self->handler->depth;
+    if ($depth == 0 && $$bref =~ m!>\s*$!) {
+        # if no errors and not inside a stanza, return our parser to save memory
+        $self->return_parser;
     }
 }
 
@@ -566,7 +650,6 @@ sub close {
     }
 
     my $p       = $self->{parser};
-    my $handler = $self->{jabberhandler};
 
     # libxml isn't reentrant apparently, so we can't finish_push
     # from inside an existint callback.  so schedule for a bit later.
