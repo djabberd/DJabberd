@@ -331,6 +331,7 @@ sub new {
     my $class = shift;
     my $self = bless {@_}, $class;
     $self->{events} = [];
+    $self->{readbuf} = '';
     die unless $self->{name};
     return $self;
 }
@@ -356,17 +357,31 @@ sub get_event {
     #$| = 1;
     #print "going to read...\n";
 
-    while (! @{$self->{events}}) {
+    my $get_byte;
+    $get_byte = sub {
+        if (length $self->{readbuf}) {
+            my $byte = substr($self->{readbuf}, 0, 1, '');
+            return $byte;
+        }
+
         my $byte;
         my $rin = '';
         vec($rin, fileno($self->{sock}), 1) = 1;
         my $n = select($rin, undef, undef, $timeout)
             or return $undef->("select timeout");
-        my $rv = sysread($self->{sock}, $byte, 1);
+
+        IO::Handle::blocking($self->{sock}, 0);
+        my $rv = sysread($self->{sock}, $self->{readbuf}, 4096);
+        IO::Handle::blocking($self->{sock}, 1);
         if (!$rv) {
-            return $undef->("sysread error: $!");
+            return $undef->("sysread no return");
         }
-        #print $byte;
+        $get_byte->();
+    };
+
+    while (! @{$self->{events}}) {
+        my $byte = $get_byte->();
+        return undef unless defined $byte;
         $parser->parse_more($byte);
     }
     my $ev = shift @{$self->{events}};
