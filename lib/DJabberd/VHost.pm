@@ -19,7 +19,6 @@ sub new {
 
         # local connections
         'jid2sock'      => {},  # bob@207.7.148.210/rez -> DJabberd::Connection
-                              # bob@207.7.148.210     -> DJabberd::Connection
         'bare2fulls'    => {},  # barejids -> { fulljid -> 1 }
 
         'quirksmode'    => 1,
