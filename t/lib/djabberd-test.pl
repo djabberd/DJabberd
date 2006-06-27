@@ -485,16 +485,17 @@ sub connect {
     my $self = shift;
 
     my $sock;
+    my $addr = join(':',
+                    $self->server->peeraddr,
+                    $self->server->clientport);
     for (1..3) {
-        $sock = IO::Socket::INET->new(PeerAddr => join(':',
-                                                       $self->server->peeraddr,
-                                                       $self->server->clientport),
+        $sock = IO::Socket::INET->new(PeerAddr => $addr,
                                       Timeout => 1);
         last if $sock;
         sleep 1;
     }
     $self->{sock} = $sock
-        or die "Cannot connect to server " . $self->server->id;
+        or die "Cannot connect to server " . $self->server->id . " ($addr)";
 
     my $to = $self->server->hostname;
 
