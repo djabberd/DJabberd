@@ -347,7 +347,7 @@ sub get_event {
     my $undef = sub {
         my $why = shift;
         $parser->finish_push;
-        warn "Returning undef because: $why\n";
+        #warn "Returning undef because: $why\n";
         return undef;
     };
 
