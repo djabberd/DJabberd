@@ -360,7 +360,7 @@ sub _process_outbound_available {
     $conn->set_available(1);
 
     if ($conn->is_initial_presence) {
-        $conn->send_presence_probes;
+        $conn->on_initial_presence;
     }
 
     $self->broadcast_from($conn);

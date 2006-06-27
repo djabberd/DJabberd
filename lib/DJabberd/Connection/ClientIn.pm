@@ -9,7 +9,19 @@ use fields (
             'got_initial_presence',  # bool: if user has already sent their initial presence
             'is_available',          # bool: is an "available resource"
             'directed_presence',     # the jids we have sent directed presence too
+            'pend_in_subscriptions', # undef or arrayref of presence type='subscribe' packets to be redelivered when we become available
             );
+
+sub note_pend_in_subscription {
+    my ($self, $pres_packet) = @_;
+    if ($self->is_available) {
+        # can send it now if we're online
+        $pres_packet->deliver($self->vhost);
+    } else {
+        # keep it on a list and deliver it later, when we get initial presence
+        push @{$self->{pend_in_subscriptions} ||= []}, $pres_packet;
+    }
+}
 
 sub directed_presence {
     my $self = shift;
@@ -54,6 +66,12 @@ sub is_initial_presence {
     return $self->{got_initial_presence} = 1;
 }
 
+sub on_initial_presence {
+    my $self = shift;
+    $self->send_presence_probes;
+    $self->send_pending_sub_requests;
+}
+
 sub send_presence_probes {
     my $self = shift;
 
@@ -75,6 +93,15 @@ sub send_presence_probes {
                                          $send_probes->($roster);
                                      },
                                  });
+}
+
+sub send_pending_sub_requests {
+    my $self = shift;
+    return unless $self->{pend_in_subscriptions};
+    foreach my $pkt (@{ $self->{pend_in_subscriptions} }) {
+        $pkt->deliver($self->vhost);
+    }
+    $self->{pend_in_subscriptions} = undef;
 }
 
 sub close {

@@ -140,9 +140,10 @@ sub process_iq_getroster {
                          $roster->items) {
             my $subpkt = DJabberd::Presence->make_subscribe(to   => $conn->bound_jid,
                                                             from => $jid);
-            # already in roster as pendin, we've already processed it, so just
-            # deliver it so user can reply with subscribed/unsubscribed:
-            $subpkt->deliver($conn->vhost);
+            # already in roster as pendin, we've already processed it,
+            # so just deliver it (or queue it) so user can reply with
+            # subscribed/unsubscribed:
+            $conn->note_pend_in_subscription($subpkt);
         }
     };
 
