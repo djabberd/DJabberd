@@ -339,7 +339,8 @@ sub get_event {
     my ($self, $timeout, $midstream) = @_;
     $timeout ||= 10;
 
-    my $parser = DJabberd::XMLParser->new( Handler => DJabberd::TestSAXHandler->new($self->{events}));
+    my $handler = DJabberd::TestSAXHandler->new($self->{events});
+    my $parser = DJabberd::XMLParser->new( Handler => $handler );
     $parser->parse_more("<djab-noop xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client'>") if $midstream;
     #warn "i'm midstream!\n" if $midstream;
 
@@ -371,7 +372,11 @@ sub get_event {
     #if (UNIVERSAL::isa($ev, "DJabberd::XMLElement")) {
     #    print "  looks like: " . $ev->as_xml . "\n";
     #}
-        $parser->finish_push;
+
+
+    $parser->finish_push;
+    $handler->{on_end_capture} = undef;
+
     return $ev;
 }
 
