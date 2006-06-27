@@ -22,8 +22,8 @@ sub new {
     }
 
     return bless [
-                  $major || 0,
-                  $minor || 0,
+                  int($major || 0),
+                  int($minor || 0),
                   $valid,
                   ($ver ne "" ? 1 : 0),
                   ], $class;
