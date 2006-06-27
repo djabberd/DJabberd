@@ -8,8 +8,12 @@ use Time::HiRes qw(time);
 use Data::Dumper;
 
 require 'djabberd-test.pl';
+my $uds = $ENV{TEST_NO_TCP} ? "/tmp/djabberd.sock" : "";
 
-my $server = Test::DJabberd::Server->new( id => 1 );
+my $server = Test::DJabberd::Server->new(
+                                         id => 1,
+                                         unixdomainsocket => $uds,
+                                         );
 
 unless ($ARGV[0] eq "--client") {
     $SIG{INT} = sub {
@@ -45,6 +49,7 @@ my $n = 0;
 while ($n++ < 100_000) {
     my $client = Test::DJabberd::Client->new(server => $server,
                                              name => gen_client_id(),
+                                             unixdomainsocket => $uds,
                                              resource => "conn$n");
     $client->login;
     $client->send_xml("<presence/>");
