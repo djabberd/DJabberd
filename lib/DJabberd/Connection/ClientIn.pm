@@ -92,6 +92,10 @@ sub close {
         $unavail->broadcast_from($self);
     }
 
+    if (my $jid = $self->bound_jid) {
+        $self->vhost->unregister_jid($jid, $self);
+    }
+
     $self->SUPER::close;
 }
 
