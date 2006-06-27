@@ -330,36 +330,56 @@ sub server {
 sub new {
     my $class = shift;
     my $self = bless {@_}, $class;
+    $self->{events} = [];
     die unless $self->{name};
-
-    $self->start_new_parser;
     return $self;
 }
 
 sub get_event {
-    my ($self, $timeout) = @_;
+    my ($self, $timeout, $midstream) = @_;
     $timeout ||= 10;
+
+    my $parser = DJabberd::XMLParser->new( Handler => DJabberd::TestSAXHandler->new($self->{events}));
+    $parser->parse_more("<djab-noop xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client'>") if $midstream;
+    #warn "i'm midstream!\n" if $midstream;
+
+    my $undef = sub {
+        my $why = shift;
+        $parser->finish_push;
+        warn "Returning undef because: $why\n";
+        return undef;
+    };
+
+    #$| = 1;
+    #print "going to read...\n";
 
     while (! @{$self->{events}}) {
         my $byte;
         my $rin = '';
         vec($rin, fileno($self->{sock}), 1) = 1;
         my $n = select($rin, undef, undef, $timeout)
-            or return undef;
+            or return $undef->("select timeout");
         my $rv = sysread($self->{sock}, $byte, 1);
         if (!$rv) {
-            return undef;
+            return $undef->("sysread error: $!");
         }
-        $self->{parser}->parse_more($byte);
+        #print STDERR $byte;
+        $parser->parse_more($byte);
     }
-    return shift @{$self->{events}};
+    my $ev = shift @{$self->{events}};
+    #print "\ngot event: [$ev]\n";
+    #if (UNIVERSAL::isa($ev, "DJabberd::XMLElement")) {
+    #    print "  looks like: " . $ev->as_xml . "\n";
+    #}
+        $parser->finish_push;
+    return $ev;
 }
 
 # if using $timeout, you're declaring that you can expect nothing and
 # undef is returned.  otherwise must return XML.  (or die after 10 seconds)
 sub recv_xml {
     my ($self, $timeout) = @_;
-    my $ev = $self->get_event($timeout);
+    my $ev = $self->get_event($timeout, 1);
     return undef if $timeout && !$ev;
     die unless UNIVERSAL::isa($ev, "DJabberd::XMLElement");
     return $ev->as_xml;
@@ -369,7 +389,7 @@ sub recv_xml {
 # undef is returned.  otherwise must return XML.  (or die after 10 seconds)
 sub recv_xml_obj {
     my ($self, $timeout) = @_;
-    my $ev = $self->get_event($timeout);
+    my $ev = $self->get_event($timeout, 1);
     die unless UNIVERSAL::isa($ev, "DJabberd::XMLElement");
     return $ev;
 }
@@ -379,12 +399,6 @@ sub get_stream_start {
     my $ev = $self->get_event();
     die unless $ev && $ev->isa("DJabberd::StreamStart");
     return $ev;
-}
-
-sub start_new_parser {
-    my $self = shift;
-    $self->{events} = [];
-    $self->{parser} = DJabberd::XMLParser->new( Handler => DJabberd::TestSAXHandler->new($self->{events}) );
 }
 
 sub send_xml {
@@ -462,7 +476,6 @@ sub connect {
         or die "Cannot connect to server " . $self->server->id;
 
     my $to = $self->server->hostname;
-    $self->start_new_parser;
 
     print $sock "
    <stream:stream
@@ -525,6 +538,10 @@ sub login {
 
     die "no reply" unless $authreply2 =~ /id=.auth2\b/;
     die "bad password" unless $authreply2 =~ /type=.result\b/;
+
+    $self->{ss} = undef;
+    delete $self->{ss};
+
     return 1;
 }
 
