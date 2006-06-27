@@ -6,23 +6,27 @@ use lib 't/lib';
 use GTop;
 use Time::HiRes qw(time);
 use Data::Dumper;
-$SIG{INT} = sub {
-#    warn Dumper(\%Danga::Socket::DescriptorMap);
-    warn "xmlparsers existing = $DJabberd::XMLParser::instance_count\n";
-    exit (0);
-};
 
 require 'djabberd-test.pl';
 
 my $server = Test::DJabberd::Server->new( id => 1 );
-$server->start;
-sleep 1;
-delete $SIG{INT};
+
+unless ($ARGV[0] eq "--client") {
+    $SIG{INT} = sub {
+        #    warn Dumper(\%Danga::Socket::DescriptorMap);
+        warn "xmlparsers existing = $DJabberd::XMLParser::instance_count\n";
+        exit (0);
+    };
+    $server->start;
+    sleep 1;
+    delete $SIG{INT};
+}
 
 print "server pid = $server->{pid}\n";
 
 my $gtop = GTop->new;
 my $gdump = sub {
+    return unless $server->{pid};
     my $proc_mem = $gtop->proc_mem( $server->{pid} );
     printf( "Flags:%s Size:%s VSize:%s Resident:%s Share:%s RSS:%s RSSLimit:%s\n",
             $proc_mem->flags,
