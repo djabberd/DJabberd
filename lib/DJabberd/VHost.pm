@@ -274,17 +274,10 @@ sub register_hook {
     push @{ $self->{hooks}{$phase} ||= [] }, $subref;
 }
 
-# FIXME: audit all callers of find_jid and see if they actually use
-# the barejid lookup.  if so, they're probably buggy and this function
-# should be documented as only working with fulljid, then we can
-# remove the jid2sock lookup based on barejid, because we already have
-# bare2fulls, and then the 'find_conns_of_bare' API.
+# lookup a local user by fulljid
 sub find_jid {
     my ($self, $jid) = @_;
-    if (ref $jid) {
-        return $self->find_jid($jid->as_string) ||
-               $self->find_jid($jid->as_bare_string);
-    }
+    return $self->find_jid($jid->as_string) if ref $jid;
     my $sock = $self->{jid2sock}{$jid} or return undef;
     return undef if $sock->{closed};
     return $sock;
@@ -303,7 +296,6 @@ sub register_jid {
     }
 
     $self->{jid2sock}{$fullstr} = $conn;
-    $self->{jid2sock}{$barestr} = $conn;    # FIXME: this is crap.  see note above sub find_jid
     ($self->{bare2fulls}{$barestr} ||= {})->{$fullstr} = 1;  # TODO: this should be the connection, not a 1, saves work in unregister JID?
 
     $cb->registered;
@@ -321,11 +313,6 @@ sub unregister_jid {
             delete $self->{jid2sock}{$fullstr};
             $deleted_fulljid = 1;
         }
-    }
-
-    # FIXME: this is crap.  see note above sub find_jid
-    if (my $exist = $self->{jid2sock}{$barestr}) {
-        delete $self->{jid2sock}{$barestr} if $exist == $conn;
     }
 
     if ($deleted_fulljid) {
