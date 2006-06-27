@@ -341,8 +341,10 @@ sub get_event {
 
     my $handler = DJabberd::TestSAXHandler->new($self->{events});
     my $parser = DJabberd::XMLParser->new( Handler => $handler );
-    $parser->parse_more("<djab-noop xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client'>") if $midstream;
-    #warn "i'm midstream!\n" if $midstream;
+    if ($midstream) {
+        $parser->parse_more("<stream:stream xmlns:stream='http://etherx.jabber.org/streams' xmlns='jabber:client'>");
+        pop @{$self->{events}};
+    }
 
     my $undef = sub {
         my $why = shift;
@@ -364,7 +366,7 @@ sub get_event {
         if (!$rv) {
             return $undef->("sysread error: $!");
         }
-        #print STDERR $byte;
+        #print $byte;
         $parser->parse_more($byte);
     }
     my $ev = shift @{$self->{events}};
@@ -372,7 +374,6 @@ sub get_event {
     #if (UNIVERSAL::isa($ev, "DJabberd::XMLElement")) {
     #    print "  looks like: " . $ev->as_xml . "\n";
     #}
-
 
     $parser->finish_push;
     $handler->{on_end_capture} = undef;

@@ -171,7 +171,7 @@ sub return_parser {
 
     # TODO: provide an end-user configurable way to enable/disable this for
     # troubleshooting.
-    return if 0;
+    return if 1;
     return unless $self->{in_stream};
     my $ns = $self->namespace;
 

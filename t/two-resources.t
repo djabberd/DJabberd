@@ -46,7 +46,6 @@ two_parties(sub {
     like($pa->recv_xml,  qr{you are testsuite}, "pa got uniq message");
     like($pa2->recv_xml, qr{you are conn2}, "pb got uniq message");
 
-
     # TODO: try connecting a third $pa, but with a dup resource, and
     # watch it get bitch slapped
 
@@ -58,7 +57,7 @@ two_parties(sub {
     $pa3->send_xml("<presence/>");
 
     like($pa2->recv_xml, qr{conflict}, "got stream conflict error");
-    is($pa2->get_event(2),"end-stream", "got closed stream");
+    is($pa2->get_event(2, 1),"end-stream", "got closed stream");
 
     # TODO: test that conn2 goes unavailable, then sending a message to /conn2 should
     # really act as if it's to a barejid, and go to all available resources.
