@@ -10,6 +10,7 @@ use DJabberd::RosterStorage::SQLite;
 use DJabberd::RosterStorage::Dummy;
 use DJabberd::RosterStorage::LiveJournal;
 use DJabberd::Plugin::MUC;
+use IO::Socket::UNIX;
 
 sub once_logged_in {
     my $cb = shift;
@@ -257,6 +258,7 @@ sub start {
                                          plugins     => $plugins,
                                          );
         my $server = DJabberd->new;
+        $server->set_config_unixdomainsocket($self->{unixdomainsocket}) if $self->{unixdomainsocket};
 
         foreach my $peer (@{$self->{peers} || []}){
             $server->set_fake_s2s_peer($peer->hostname => DJabberd::IPEndPoint->new($peer->peeraddr, $peer->serverport));
@@ -485,15 +487,21 @@ sub connect {
     my $self = shift;
 
     my $sock;
-    my $addr = join(':',
-                    $self->server->peeraddr,
-                    $self->server->clientport);
-    for (1..3) {
-        $sock = IO::Socket::INET->new(PeerAddr => $addr,
-                                      Timeout => 1);
-        last if $sock;
-        sleep 1;
+    my $addr;
+    if ($addr = $self->{unixdomainsocket}) {
+        $sock = IO::Socket::UNIX->new(Peer => $addr);
+    } else {
+        $addr = join(':',
+                     $self->server->peeraddr,
+                     $self->server->clientport);
+        for (1..3) {
+            $sock = IO::Socket::INET->new(PeerAddr => $addr,
+                                          Timeout => 1);
+            last if $sock;
+            sleep 1;
+        }
     }
+
     $self->{sock} = $sock
         or die "Cannot connect to server " . $self->server->id . " ($addr)";
 
