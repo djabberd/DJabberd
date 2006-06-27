@@ -4,6 +4,7 @@ use strict;
 use Carp;
 use Danga::Socket 1.51;
 use IO::Socket::INET;
+use IO::Socket::UNIX;
 use POSIX ();
 
 use DJabberd::VHost;
@@ -67,6 +68,11 @@ sub new {
 sub set_config_oldssl {
     my ($self, $val) = @_;
     $self->{old_ssl} = as_bool($val);
+}
+
+sub set_config_unixdomainsocket {
+    my ($self, $val) = @_;
+    $self->{unixdomainsocket} = $val;
 }
 
 sub set_config_clientport {
@@ -199,19 +205,29 @@ sub run {
 sub _start_server {
     my ($self, $localaddr, $class) = @_;
 
-    # assume it's a port if there's no colon
-    unless ($localaddr =~ /:/) {
-        $localaddr = "0.0.0.0:$localaddr";
-    }
-
     # establish SERVER socket, bind and listen.
-    my $server = IO::Socket::INET->new(LocalAddr => $localaddr,
-                                       Type      => SOCK_STREAM,
-                                       Proto     => IPPROTO_TCP,
-                                       Blocking  => 0,
-                                       Reuse     => 1,
-                                       Listen    => 10 )
-        or die "Error creating socket: $@\n";
+    my $server;
+    my $not_tcp = 0;
+    if ($localaddr =~ m!^/!) {
+        $not_tcp = 1;
+        $server = IO::Socket::UNIX->new(Type   => SOCK_STREAM,
+                                        Local  => $localaddr,
+                                        Listen => 10)
+            or die "Error creating unix domain socket: $@\n";
+    } else {
+        # assume it's a port if there's no colon
+        unless ($localaddr =~ /:/) {
+            $localaddr = "0.0.0.0:$localaddr";
+        }
+
+        $server = IO::Socket::INET->new(LocalAddr => $localaddr,
+                                        Type      => SOCK_STREAM,
+                                        Proto     => IPPROTO_TCP,
+                                        Blocking  => 0,
+                                        Reuse     => 1,
+                                        Listen    => 10 )
+            or die "Error creating socket: $@\n";
+    }
 
     # Not sure if I'm crazy or not, but I can't see in strace where/how
     # Perl 5.6 sets blocking to 0 without this.  In Perl 5.8, IO::Socket::INET
@@ -225,7 +241,9 @@ sub _start_server {
         $self->debug("Listen child making a DJabberd::Connection for %d.\n", fileno($csock));
 
         IO::Handle::blocking($csock, 0);
-        setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or die;
+        unless ($not_tcp) {
+            setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or die;
+        }
 
         my $client = $class->new($csock, $self);
         $client->watch_read(1);
@@ -241,6 +259,10 @@ sub start_c2s_server {
 
     if ($self->{old_ssl}) {
         $self->_start_server(5223, "DJabberd::Connection::OldSSLClientIn");
+    }
+
+    if ($self->{unixdomainsocket}) {
+        $self->_start_server($self->{unixdomainsocket}, "DJabberd::Connection::ClientIn");
     }
 }
 
