@@ -29,6 +29,10 @@ sub start_element {
         return;
     }
 
+    if ($data->{LocalName} eq "djab-noop") {
+        return;
+    }
+
     # {=xml-stream}
     if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
         $data->{LocalName} eq "stream") {
