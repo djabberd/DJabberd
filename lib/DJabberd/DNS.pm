@@ -94,8 +94,10 @@ sub event_read {
     my $self = shift;
 
     if ($self->{srv}) {
+        $logger->debug("DNS socket $self->{sock} became readable for 'srv'");
         return $self->event_read_srv;
     } else {
+        $logger->debug("DNS socket $self->{sock} became readable for 'a'");
         return $self->event_read_a;
     }
 }
@@ -162,6 +164,7 @@ sub event_read_srv {
     unless (@targets) {
         # no result, fallback to an A lookup
         $self->close;
+        $logger->debug("DNS socket $sock for 'srv' had nothing, falling back to 'a' lookup");
         DJabberd::DNS->new(hostname => $self->{hostname},
                            port     => $self->{port},
                            callback => $cb);
@@ -169,6 +172,7 @@ sub event_read_srv {
     }
 
     # FIXME:  we only do the first target now.  should do a chain.
+    $logger->debug("DNS socket $sock for 'srv' found stuff, now doing hostname lookup on " . $targets[0]->target);
     DJabberd::DNS->new(hostname => $targets[0]->target,
                        port     => $targets[0]->port,
                        callback => $cb);
