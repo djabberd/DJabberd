@@ -69,7 +69,7 @@ sub srv {
         $callback->();
     });
 
-    #$self->watch_read(1);
+    $self->watch_read(1);
 }
 
 sub new {
