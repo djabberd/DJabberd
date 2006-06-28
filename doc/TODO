@@ -1,3 +1,9 @@
+-- (10:51:43) matt@sergeant.org: I noticed a problem with DJabberd::DNS
+   (10:51:49) matt@sergeant.org: you're using a socket per DNS query
+   (10:55:08) matt@sergeant.org: it means your responses end up overlapping if you do more than 65k concurrent queries, and sometimes before then.
+   (10:55:48) matt@sergeant.org: there's a long protracted discussion of this in the SpamAssassin archives.
+   (10:55:58) matt@sergeant.org: no it often happens way before that many queries
+
 -- SIG USR1 to do graceful shutdown, sending </stream:stream> to all clients.
 
 -- TODO: resource binding?
