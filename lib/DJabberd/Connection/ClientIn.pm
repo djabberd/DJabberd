@@ -183,9 +183,11 @@ sub on_stanza_received {
 
 sub is_authenticated_jid {
     my ($self, $jid) = @_;
-    return $jid->eq($self->bound_jid);
+    my $bj = $self->bound_jid;
+    return 0 unless $jid && $bj;
+    return $bj->as_bare_string eq $jid->as_bare_string if $jid->is_bare;
+    return $bj->as_string      eq $jid->as_string;
 }
-
 
 # This is not really a method, but gets invoked as a hookchain item
 # so if you subclass this class, this will still get called
