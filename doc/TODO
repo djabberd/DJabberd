@@ -3,6 +3,7 @@
    (10:55:08) matt@sergeant.org: it means your responses end up overlapping if you do more than 65k concurrent queries, and sometimes before then.
    (10:55:48) matt@sergeant.org: there's a long protracted discussion of this in the SpamAssassin archives.
    (10:55:58) matt@sergeant.org: no it often happens way before that many queries
+   (10:58:12) matt@sergeant.org: anyhow, feel free to steal qpsmtpd's Danga::DNS
 
 -- SIG USR1 to do graceful shutdown, sending </stream:stream> to all clients.
 
