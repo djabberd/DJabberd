@@ -41,7 +41,7 @@ $muc->finalize;
 my $vhost = DJabberd::VHost->new(
                                  server_name => 'sixapart.com',
                                  require_ssl => 1,
-                                 s2s       => 0,
+                                 s2s       => 1,
                                  plugins   => [
                                                DJabberd::Authen::SixApart->new,
                                                $rs,
