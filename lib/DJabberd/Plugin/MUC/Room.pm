@@ -2,7 +2,7 @@
 package DJabberd::Plugin::MUC::Room;
 use strict;
 use warnings;
-
+use Carp;
 
 sub new {
     my $class = shift;
@@ -14,6 +14,13 @@ sub new {
     return $self;
 }
 
+sub new_from_config {
+    my ($class, $name, $domain, $vhost, $arg) = @_;
+
+    croak "DJabberd::Plugin::MUC::Room takes no arguments" if $arg;
+
+    return $class->new($name, $domain, $vhost);
+}
 
 sub add {
     my ($self, $nickname, $jid) = @_;
