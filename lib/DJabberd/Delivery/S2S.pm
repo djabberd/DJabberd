@@ -29,14 +29,13 @@ sub deliver {
     my $to = $stanza->to_jid
         or return $cb->declined;
 
-    $logger->debug("s2s delivery attempt for $to");
-
     # don't initiate outgoing connections back to ourself
     my $domain = $to->domain;
     if ($vhost->handles_domain($domain)) {
-        $logger->debug("Not doing s2s to ourself");
         return $cb->declined;
     }
+
+    $logger->debug("s2s delivery attempt for $to");
 
     # FIXME: let get_conn_for_domain return an error code or something
     # which we can then pass along smarter to the callback, so client gets
