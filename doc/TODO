@@ -1,3 +1,8 @@
+-- we don't slap serverin (and presumably clientin) connections early enough for opening up
+   a start tag that's not a stream start.  currently you can connect and type <foo> and then
+   speak stanzas forever that are just ignored.  we should slap client at first bogus open tag
+   when we're expecting a stream to start.
+
 -- (10:51:43) matt@sergeant.org: I noticed a problem with DJabberd::DNS
    (10:51:49) matt@sergeant.org: you're using a socket per DNS query
    (10:55:08) matt@sergeant.org: it means your responses end up overlapping if you do more than 65k concurrent queries, and sometimes before then.
