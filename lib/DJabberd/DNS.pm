@@ -7,6 +7,8 @@ use fields (
             'srv',
             'port',
             'recurse_count',
+            'became_readable',  # bool
+            'timed_out',        # bool
             );
 use Carp qw(croak);
 
