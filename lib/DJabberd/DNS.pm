@@ -56,10 +56,18 @@ sub srv {
     $self->{port}     = $port;
     $self->{recurse_count} = $recurse_count;
 
-    # TODO: set a timer to fire with lookup error in, say, 5 seconds
-    # or whatever caller wants
-    $self->watch_read(1);
+    $self->{became_readable} = 0;
+    $self->{timed_out}       = 0;
 
+    # TODO: make DNS timeout configurable
+    Danga::Socket->AddTimer(5.0, sub {
+        return if $self->{became_readable};
+        $self->{timed_out} = 1;
+        $logger->debug("DNS lookup for '$hostname' timed out");
+        $callback->();
+    });
+
+    #$self->watch_read(1);
 }
 
 sub new {
@@ -83,8 +91,17 @@ sub new {
     $self->{port}     = $port;
     $self->{recurse_count} = $recurse_count;
 
-    # TODO: set a timer to fire with lookup error in, say, 5 seconds
-    # or whatever caller wants
+    $self->{became_readable} = 0;
+    $self->{timed_out}       = 0;
+
+    # TODO: make DNS timeout configurable, remove duplicate code
+    Danga::Socket->AddTimer(5.0, sub {
+        return if $self->{became_readable};
+        $self->{timed_out} = 1;
+        $logger->debug("DNS lookup for '$hostname' timed out");
+        $callback->();
+    });
+
     $self->watch_read(1);
 }
 
@@ -92,6 +109,9 @@ sub new {
 # TODO: lots of other stuff.
 sub event_read {
     my $self = shift;
+
+    return if $self->{timed_out};
+    $self->{became_readable} = 1;
 
     if ($self->{srv}) {
         $logger->debug("DNS socket $self->{sock} became readable for 'srv'");
