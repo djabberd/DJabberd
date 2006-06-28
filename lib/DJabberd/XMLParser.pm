@@ -19,7 +19,6 @@ sub new {
         my $libxml = XML::LibXML->new;
         $libxml->set_handler($self);
         $self->{LibParser} = $libxml;
-        Scalar::Util::weaken($self->{LibParser});
 
         $libxml->init_push;
         $self->{CONTEXT} = $libxml->{CONTEXT};
