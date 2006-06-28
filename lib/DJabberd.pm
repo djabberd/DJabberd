@@ -90,6 +90,13 @@ sub set_config_intradomainlisten {
     $self->{cluster_listen} = $val;
 }
 
+sub set_config_pidfile {
+    my ($self, $val) = @_;
+    open(PIDFILE,'>',$val) or croak("Can't open pidfile $val for writing");
+    print PIDFILE "$$\n";
+    close(PIDFILE);
+}
+
 our %fake_peers;
 sub set_fake_s2s_peer {
     my ($self, $host, $ipendpt) = @_;
