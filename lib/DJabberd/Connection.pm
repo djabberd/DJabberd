@@ -173,12 +173,8 @@ sub return_parser {
     # troubleshooting.
     return if 0;
     return unless $self->{in_stream};
-    my $ns = $self->namespace;
 
-    my $freelist = $free_parsers{$ns} ||= [];
-    # we'd verify $ns is only one of jabber:client or jabber:server,
-    # but that should be done when getting a streamstart, not here in
-    # a relatively hot path
+    my $freelist = $free_parsers{$self->namespace} ||= [];
 
     # BIG FAT WARNING:  with fields objects, you can't do:
     #   my $p = delete $self->{parser}.
@@ -200,7 +196,6 @@ sub return_parser {
     }
 }
 
-# TODO: maybe this should be moved down only into ServerOut connections?
 sub set_rcvd_features {
     my ($self, $feat_stanza) = @_;
     $self->{rcvd_features} = $feat_stanza;
