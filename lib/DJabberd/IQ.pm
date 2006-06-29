@@ -26,6 +26,11 @@ sub process {
     # FIXME: handle 'result'/'error' IQs from when we send IQs
     # out, like in roster pushes
 
+    # Trillian Jabber 3.1 is stupid and sends a lot of IQs (but non-important ones)
+    # without ids.  If we respond to them (also without ids, or with id='', rather),
+    # then Trillian crashes.  So let's just ignore them.
+    return unless length ($self->id || '');
+
     my $handler = {
         'get-{jabber:iq:roster}query' => \&process_iq_getroster,
         'set-{jabber:iq:roster}query' => \&process_iq_setroster,
