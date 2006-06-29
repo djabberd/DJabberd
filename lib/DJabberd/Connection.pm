@@ -3,7 +3,7 @@ use strict;
 use warnings;
 use base 'Danga::Socket';
 use fields (
-            'jabberhandler',
+            'saxhandler',
             'parser',
 
             'bound_jid',      # undef until resource binding - then DJabberd::JID object
@@ -77,7 +77,7 @@ sub xmllog {
 }
 
 sub handler {
-    return $_[0]->{jabberhandler};
+    return $_[0]->{saxhandler};
 }
 
 sub vhost {
@@ -126,7 +126,7 @@ sub discard_parser {
     # TODOTEST: bunch of new connections speaking not-well-formed xml and getting booted, then watch for mem leaks
     my $p = $self->{parser}   or return;
     $self->{parser}        = undef;
-    $self->{jabberhandler} = undef;
+    $self->{saxhandler} = undef;
     Danga::Socket->AddTimer(0, sub {
         $p->finish_push;
     });
@@ -141,8 +141,8 @@ sub borrow_a_parser {
         my $ns = $self->namespace;
         my $freelist = $free_parsers{$ns} || [];
         if (my $ent = pop @$freelist) {
-            ($self->{parser}, $self->{jabberhandler}) = @$ent;
-            $self->{jabberhandler}->set_connection($self);
+            ($self->{parser}, $self->{saxhandler}) = @$ent;
+            $self->{saxhandler}->set_connection($self);
             return $self->{parser};
         }
     }
@@ -161,7 +161,7 @@ sub borrow_a_parser {
         $p->parse_chunk_scalarref(\ "<djab-noop xmlns='$ns'>");
     }
 
-    $self->{jabberhandler} = $handler;
+    $self->{saxhandler} = $handler;
     $self->{parser} = $p;
     return $p;
 }
@@ -185,8 +185,8 @@ sub return_parser {
     # You'd think you could, but it leaves $self->{parser} with some magic fucked up undef/but not
     # value and $p's refcount never goes down.  Some Perl bug due to fields, weakrefs, etc?  Who knows.
     # This affects Perl 5.8.4, but not Perl 5.8.8.
-    my $p       = $self->{parser};  $self->{parser} = undef;
-    my $handler = $self->{jabberhandler}; $self->{jabberhandler} = undef;
+    my $p       = $self->{parser};     $self->{parser} = undef;
+    my $handler = $self->{saxhandler}; $self->{saxhandler} = undef;
     $handler->set_connection(undef);
 
     if (@$freelist < 5) {
