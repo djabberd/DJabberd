@@ -48,7 +48,7 @@ sub register {
 
             my $loaded = eval "use $class; 1;";
             croak "Failed to load room class $class: $@" if $@;
-            $self->{rooms}->{$name} = $class->new_from_config($name, $self->{domain}, $self->{vhost}, $args);
+            $self->{rooms}->{$name} = $class->new_from_config($name, $self->{domain}, $vhost, $args);
         }
 
         $self->{conf_rooms} = undef; # Don't need this anymore
