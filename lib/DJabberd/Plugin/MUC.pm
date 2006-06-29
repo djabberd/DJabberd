@@ -82,22 +82,128 @@ sub register {
             return;
         }
 
+        if ($stanza->isa("DJabberd::IQ") && $stanza->to_jid->domain eq $self->{domain}) {
+
+            if ($self->handle_iq($stanza)) {
+
+                $cb->delivered;
+                return;
+            }
+            else {
+                $logger->debug("Not responding to IQ ".$stanza->signature." to ".$stanza->to_jid->as_string);
+            }
+
+        }
 
         if ($stanza->element_name ne 'message'
             || $stanza->to_jid->domain ne $self->{domain}) {
             return $cb->decline;
         }
         my $node = $stanza->to_jid->node;
-        my $room = $self->{rooms}->{$node} || die "No room name $node";
 
-        $room->send_message($stanza);
-        $cb->delivered;
+        if ($node) {
+            if (my $room = $self->{rooms}->{$node}) {
+                $room->send_message($stanza);
+                $cb->delivered;
+            }
+        }
 
     };
 
     $vhost->register_hook('deliver',$deliver);
 
 
+}
+
+sub handle_iq {
+    my ($self, $stanza) = @_;
+
+    my $signature = $stanza->signature;
+    my $to = $stanza->to_jid;
+    my $response_xml = undef;
+
+    unless ($to->resource) { # We can't disco users
+
+        if ($signature eq 'get-{http://jabber.org/protocol/disco#info}query') {
+
+            if ($to->node && defined $self->{rooms}->{$to->node}) { # It's to a room
+
+                $logger->debug("Info query for room ".$to->as_string);
+
+                $response_xml = qq{
+                    <query xmlns='http://jabber.org/protocol/disco#info'>
+                        <identity
+                            category='conference'
+                            type='text'
+                            name='}.$to->node.qq{'
+                        />
+                        <feature var='http://jabber.org/protocol/disco#info'/>
+                        <feature var='http://jabber.org/protocol/muc'/>
+                        <feature var='muc-open'/>
+                        <feature var='muc-unmoderated'/>
+                    </query>
+                };
+
+            }
+            else { # It's to the chat host itself
+
+                $logger->debug("Info query for host ".$to->as_string);
+
+                $response_xml = qq{
+                    <query xmlns='http://jabber.org/protocol/disco#info'>
+                        <identity
+                            category='conference'
+                            type='text'
+                            name='$self->{domain}'
+                        />
+                        <feature var='http://jabber.org/protocol/muc'/>
+                        <feature var='http://jabber.org/protocol/disco#info'/>
+                        <feature var='http://jabber.org/protocol/disco#items'/>
+                    </query>
+                };
+
+            }
+
+            unless ($response_xml) {
+                # Send a "404"
+
+                $response_xml = qq{
+                    <query xmlns='http://jabber.org/protocol/disco#info'/>
+                    <error code='404' type='cancel'>
+                        <item-not-found xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>
+                    </error>
+                };
+
+            }
+
+        }
+        elsif ($signature eq 'get-{http://jabber.org/protocol/disco#items}query') {
+
+            unless ($to->node) { # We don't do #items on chatrooms yet
+
+                $logger->debug("Items query for host ".$to->as_string);
+
+                $response_xml = qq{<query xmlns='http://jabber.org/protocol/disco#items'>};
+
+                foreach my $roomname (sort keys %{$self->{rooms}}) {
+                    $response_xml .= "<item jid='".$roomname."\@".$self->{domain}."' name='$roomname'/>";
+                }
+
+                $response_xml .= "</query>";
+
+            }
+
+        }
+
+    }
+
+    if (defined($response_xml)) {
+        $stanza->send_reply('result', $response_xml);
+        return 1;
+    }
+    else {
+        return 0;
+    }
 }
 
 sub join_room {

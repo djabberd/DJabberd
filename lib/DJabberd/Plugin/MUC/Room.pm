@@ -3,6 +3,7 @@ package DJabberd::Plugin::MUC::Room;
 use strict;
 use warnings;
 use Carp;
+our $logger = DJabberd::Log->get_logger();
 
 sub new {
     my $class = shift;
@@ -85,7 +86,12 @@ sub make_response {
 sub send_message {
     my ($self, $stanza) = @_;
     my $message_template = $stanza->clone;
-    my $nickname = $self->{jid2nick}->{$stanza->from} || die "User @{[$stanza->from]} is not a member of room $self->{name}";
+    my $nickname = $self->{jid2nick}->{$stanza->from};
+
+    unless ($nickname) {
+        $logger->error("User @{[$stanza->from]} is not a member of room $self->{name}; dropping message.");
+        return;
+    }
     $message_template->set_from("$self->{name}\@$self->{domain}/$nickname");
     foreach my $member (keys %{$self->{members}}) {
         my $message = $message_template->clone;
