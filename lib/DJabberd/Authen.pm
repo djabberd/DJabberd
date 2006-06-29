@@ -4,12 +4,26 @@ use base 'DJabberd::Plugin';
 
 sub register {
     my ($self, $vhost) = @_;
+
+#    my $which;
+#    if (($which = $self->can('foo')) && $which != &base_class_one) {
+#    }
+
     if ($self->can_retrieve_cleartext) {
         $vhost->register_hook("GetPassword", sub {
             my (undef, $cb, %args) = @_;
             # args as 'username' and 'conn';
             # cb can ->set or ->decline
             $self->get_password($cb, %args);
+        });
+    }
+
+    if ($self->can_check_digest) {
+        $vhost->register_hook("CheckDigest", sub {
+            my (undef, $cb, %args) = @_;
+            # args as 'username', 'conn', 'digest'
+            # cb can ->accept or ->reject
+            $self->check_digest($cb, %args);
         });
     }
 
@@ -64,8 +78,16 @@ sub can_retrieve_cleartext {
     0;
 }
 
+sub can_check_digest {
+    0;
+}
 
 sub check_jid {
+    my ($self, $cb, %args) = @_;
+    return 0;
+}
+
+sub unregister_jid {
     my ($self, $cb, %args) = @_;
     return 0;
 }
@@ -75,9 +97,10 @@ sub check_cleartext {
     $cb->reject;
 }
 
-sub check_auth {
-    my ($self, $djs, $auth_info, $cb) = @_;
-    return 0;
+sub check_digest {
+    my ($self, $cb, %args) = @_;
+    $cb->reject;
 }
+
 
 1;

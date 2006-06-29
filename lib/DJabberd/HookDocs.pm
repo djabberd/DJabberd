@@ -37,6 +37,15 @@ $hook{'CheckCleartext'} = {
     },
 };
 
+$hook{'CheckDigest'} = {
+    des => "Check the non-SASL-auth digest field to see if it matches digest of password+streamid",
+    args => [ "username" => '$username', "conn" => 'Connection', 'digest' => '$digest', ],
+    callbacks => {
+        accept => [],
+        reject => [],
+    },
+};
+
 $hook{'CheckJID'} = {
     des => "Check if this knows about this JID",
     args => [ "username" => '$username', "conn" => 'Connection', ],

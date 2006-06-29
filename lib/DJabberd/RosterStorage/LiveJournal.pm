@@ -6,7 +6,7 @@ use LWP::Simple;
 sub blocking { 1 }
 
 sub get_roster {
-    my ($self, $cb, $conn, $jid) = @_;
+    my ($self, $cb, $jid) = @_;
 
     my $user = $jid->node;
     my $roster = DJabberd::Roster->new;
@@ -15,22 +15,24 @@ sub get_roster {
     my %relation;  # user -> to (1) / both (2)
 
     # we depend on all the ">" to edges before the "<" from edges:
-    foreach my $line (sort split(/\n/, $friends)) {
-        if ($line =~ m!> (\w+)!) {
+    foreach my $line (split(/\r?\n/, $friends)) {
+        if ($line =~ /^\> (\w+)/) {
             $relation{$1} = 1;  # to
-        } elsif ($line =~ m!< (\w+)! && $relation{$1} == 1) {
+        } elsif ($line =~ /^\< (\w+)/ && $relation{$1} == 1) {
             $relation{$1} = 2;  # both
         }
     }
 
     foreach my $user (sort keys %relation) {
         my $ri = DJabberd::RosterItem->new(
-                                           jid => "$user\@" . $conn->vhost->name,
+                                           jid => "$user\@livejournal.com",
                                            name => $user,
                                            );
-        $ri->subscription->set_to;
         if ($relation{$user} == 2) {
+            $ri->subscription->set_to;
             $ri->subscription->set_from;
+        } else {
+            $ri->subscription->set_pending_out;
         }
         $ri->add_group("LiveJournal");
         $roster->add($ri);

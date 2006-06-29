@@ -391,12 +391,13 @@ sub process_iq_getauth {
         die "Element in username field?" if ref $username;
     }
 
-    my $id = $iq->id;
+    # FIXME:  use nodeprep or whatever, not \w+
+    $username = '' unless $username =~ /^\w+$/;
 
-    my $type = $conn->vhost->are_hooks("GetPassword") ? "<digest/>" : "<password/>";
+    my $type = ($conn->vhost->are_hooks("GetPassword") ||
+                $conn->vhost->are_hooks("CheckDigest")) ? "<digest/>" : "<password/>";
 
-    $conn->write("<iq id='$id' type='result'><query xmlns='jabber:iq:auth'><username>$username</username>$type<resource/></query></iq>");
-
+    $iq->send_result_raw("<query xmlns='jabber:iq:auth'><username>$username</username>$type<resource/></query>");
     return 1;
 }
 
@@ -475,6 +476,13 @@ sub process_iq_setauth {
                                   },
                               },
                               fallback => $reject);
+    } elsif ($vhost->are_hooks("CheckDigest")) {
+        $vhost->run_hook_chain(phase => "CheckDigest",
+                              args => [ username => $username, conn => $conn, digest => $digest ],
+                              methods => {
+                                  accept => $accept,
+                                  reject => $reject,
+                              });
     } else {
         $vhost->run_hook_chain(phase => "CheckCleartext",
                               args => [ username => $username, conn => $conn, password => $password ],

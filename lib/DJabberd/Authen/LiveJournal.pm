@@ -3,23 +3,30 @@ use strict;
 use base 'DJabberd::Authen';
 use LWP::Simple;
 
-sub new {
-    my ($class, %opts) = @_;
-    return bless {
-        server  => delete $opts{'server'},
-    }, $class;
-}
+sub can_check_digest { 1 }
 
-sub check_auth {
-    my ($self, $conn, $auth_info, $cb) = @_;
+sub check_digest {
+    my ($self, $cb, %args) = @_;
 
-#    my $password_is_livejournal = sub {
-#        my $good = LWP::Simple::get("http://www.livejournal.com/misc/jabber_digest.bml?user=" . $username . "&stream=" . $self->{stream_id});
-#        chomp $good;
-#        return $good eq $digest;
+    my $conn    = delete $args{'conn'}     or die;
+    my $digest  = delete $args{'digest'};
+    my $user    = delete $args{'username'} or die;
+    my $streamid = $conn->stream_id;
 
-    my $good = Digest::SHA1::sha1_hex($conn->{stream_id} . $self->{password});
-    return $good eq $auth_info->{'digest'} ? 1 : 0;
+    unless ($digest =~ /^\w+$/) {
+        $cb->reject;
+        return;
+    }
+
+    my $is_good = LWP::Simple::get("http://www.livejournal.com/misc/jabber_digest.bml?user=$user" .
+                                   "&stream=$self->{stream_id}" .
+                                   "&digest=$digest");
+
+    if ($is_good) {
+        $cb->accept;
+    } else {
+        $cb->reject;
+    }
 }
 
 1;
