@@ -73,6 +73,7 @@ sub event_write {
 sub on_stream_start {
     my ($self, $ss) = @_;
 
+    $self->{in_stream} = 1;
     $self->log->debug("We got a stream back from connection $self->{id}!\n");
     unless ($ss->announced_dialback) {
         $self->log->warn("Connection $self->{id} doesn't support dialbacl, failing");

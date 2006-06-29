@@ -64,9 +64,12 @@ sub event_write {
     }
 }
 
+sub namespace { 'jabber:server' }
+
 sub on_stream_start {
     my ($self, $ss) = @_;
 
+    $self->{in_stream} = 1;
     my $orig_server = $self->{db_result}->orig_server;
     my $recv_server = $self->{db_result}->recv_server;
 

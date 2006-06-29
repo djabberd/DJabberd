@@ -6,10 +6,13 @@ use DJabberd::StreamStart;
 use Scalar::Util qw(weaken);
 
 sub new {
-    my ($class, $client) = @_;
+    my ($class, $conn) = @_;
     my $self = $class->SUPER::new;
-    $self->{"ds_conn"} = $client;
-    weaken($self->{ds_conn});
+
+    if ($conn) {
+        $self->{"ds_conn"} = $conn;
+        weaken($self->{ds_conn});
+    }
 
     $self->{"capture_depth"} = 0;  # on transition from 1 to 0, stop capturing
     $self->{"on_end_capture"} = undef;  # undef or $subref->($doc)
@@ -33,23 +36,26 @@ use constant EVT_CHARS         => 3;
 
 sub start_element {
     my ($self, $data) = @_;
-
-    # if we don't have a ds_conn (Connection object), then connection
-    # is dead and events don't matter.
-    my $conn = $self->{ds_conn} or
-        return;
+    my $conn = $self->{ds_conn};
 
     # {=xml-stream}
     if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
         $data->{LocalName} eq "stream") {
 
         my $ss = DJabberd::StreamStart->new($data);
-        $conn->on_stream_start($ss);
+
+        # when Connection.pm is prepping a new dummy root node, we legitimately
+        # get here without a connection, so we need to test for it:
+        $conn->on_stream_start($ss) if $conn;
         return;
     }
 
-    if ($data->{LocalName} eq "djab-noop") {
-        # no-op.  this is sent by Connection.pm just to open up our root node.
+    # need a connection past this point.
+    return unless $conn;
+
+    # if they're not in a stream yet, bail.
+    unless ($conn->{in_stream}) {
+        $conn->stream_error('invalid-namespace');
         return;
     }
 
@@ -58,10 +64,6 @@ sub start_element {
         $self->{capture_depth}++;
         return;
     }
-
-    # FIXME: close connection harshly if the first thing we get isn't a stream start.
-    # basically, ask the $conn client object if it's expecting an opening stream,
-    # then we also do the right thing after ssl/sasl
 
     my $start_capturing = sub {
         my $cb = shift;

@@ -1,7 +1,5 @@
--- we don't slap serverin (and presumably clientin) connections early enough for opening up
-   a start tag that's not a stream start.  currently you can connect and type <foo> and then
-   speak stanzas forever that are just ignored.  we should slap client at first bogus open tag
-   when we're expecting a stream to start.
+-- before authenticated (and ever after authenticated) only capture data when people XML nodes
+   for a fixed amount of bytes/time before disconnecting client as possibly malicious
 
 -- (10:51:43) matt@sergeant.org: I noticed a problem with DJabberd::DNS
    (10:51:49) matt@sergeant.org: you're using a socket per DNS query

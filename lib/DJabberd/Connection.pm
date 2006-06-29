@@ -147,7 +147,7 @@ sub borrow_a_parser {
     }
 
     # no parser?  gotta make one.
-    my $handler = DJabberd::SAXHandler->new($self);
+    my $handler = DJabberd::SAXHandler->new;
     my $p       = DJabberd::XMLParser->new(Handler => $handler);
 
     if ($self->{in_stream}) {
@@ -157,9 +157,18 @@ sub borrow_a_parser {
         # like <?xml ... ?> at top, which can only come at top, so we need
         # a virgin parser.
         my $ns = $self->namespace;
-        $p->parse_chunk_scalarref(\ "<djab-noop xmlns='$ns'>");
+        # this is kinda a hack, in that it hard-codes the namespace
+        # prefixes 'db' and 'stream',...  however, RFC 3920 seection
+        # 11.2.1, 11.2.3, etc say it's okay for historical reasons to
+        # force the prefixes for both 'stream' and 'db'
+        my $other = $ns eq "jabber:server" ? "xmlns:db='jabber:server:dialback'" : "";
+        $p->parse_chunk_scalarref(\ qq{<stream:stream
+                                           xmlns='$ns'
+                                           xmlns:stream='http://etherx.jabber.org/streams'
+                                           $other>});
     }
 
+    $handler->set_connection($self);
     $self->{saxhandler} = $handler;
     $self->{parser} = $p;
     return $p;
@@ -382,7 +391,14 @@ sub write_when_readable {
 
 sub restart_stream {
     my DJabberd::Connection $self = shift;
+
     $self->{in_stream} = 0;
+
+    # to be safe, we just discard the parser, as they might've sent,
+    # say, "<starttls/><attack", knowing the next user will get that
+    # parser with "<attack" open and get a parser error and be
+    # disconnected.
+    $self->discard_parser;
 }
 
 # DJabberd::Connection
@@ -444,10 +460,12 @@ sub event_read {
         return;
     }
 
-    my $depth = $self->handler->depth;
-    if ($depth == 0 && $$bref =~ m!>\s*$!) {
-        # if no errors and not inside a stanza, return our parser to save memory
-        $self->return_parser;
+    if (my $handler = $self->handler) {
+        my $depth = $handler;
+        if ($depth == 0 && $$bref =~ m!>\s*$!) {
+            # if no errors and not inside a stanza, return our parser to save memory
+            $self->return_parser;
+        }
     }
 }
 
@@ -580,6 +598,10 @@ sub stream_error {
     if ($info) {
         $infoxml = "<text xmlns='urn:ietf:params:xml:ns:xmpp-streams'>" . exml($info) . "</text>";
     }
+    unless ($self->{in_stream}) {
+        $self->write(qq{<?xml version='1.0'?><stream:stream xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams' id='bye' xml:lang='en'>});
+    }
+
     $self->write("<stream:error><$err xmlns='urn:ietf:params:xml:ns:xmpp-streams'/>$infoxml</stream:error>");
     # {=error-must-close-stream}
     $self->close_stream;
