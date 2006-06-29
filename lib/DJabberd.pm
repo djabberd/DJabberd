@@ -51,6 +51,7 @@ sub new {
         'old_ssl'     => delete $opts{old_ssl},
         'vhosts'      => {},
         'fake_peers'  => {}, # for s2s testing.  $hostname => "ip:port"
+        'share_parsers' => 1,
     };
 
     # if they set s2s_port to explicitly 0, it's disabled for all vhosts
@@ -63,6 +64,13 @@ sub new {
 
     bless $self, $class;
     return $self;
+}
+
+sub share_parsers { $_[0]{share_parsers} };
+
+sub set_config_shareparsers {
+    my ($self, $val) = @_;
+    $self->{share_parsers} = as_bool($val);
 }
 
 sub set_config_oldssl {

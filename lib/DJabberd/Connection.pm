@@ -62,7 +62,6 @@ sub new {
 
     $self->{id}      = $connection_id++;
 
-    Scalar::Util::weaken($self->{vhost});
     $self->log->debug("New connection '$self->{id}' from " . ($self->peer_ip_string || "<undef>"));
 
     return $self;
@@ -96,7 +95,7 @@ sub bound_jid {
 }
 
 sub new_iq_id {
-    my $self = shift;
+    my DJabberd::Connection $self = shift;
     $self->{iqctr}++;
     return "iq$self->{iqctr}";
 }
@@ -122,7 +121,7 @@ sub log_incoming_data {
 }
 
 sub discard_parser {
-    my $self = shift;
+    my DJabberd::Connection $self = shift;
     # TODOTEST: bunch of new connections speaking not-well-formed xml and getting booted, then watch for mem leaks
     my $p = $self->{parser}   or return;
     $self->{parser}        = undef;
@@ -134,7 +133,7 @@ sub discard_parser {
 
 my %free_parsers;  # $ns -> [ [parser,handler]* ]
 sub borrow_a_parser {
-    my $self = $_[0];
+    my DJabberd::Connection $self = $_[0];
 
     # get a parser off the freelist
     if ($self->{in_stream}) {
@@ -167,11 +166,8 @@ sub borrow_a_parser {
 }
 
 sub return_parser {
-    my $self = $_[0];
-
-    # TODO: provide an end-user configurable way to enable/disable this for
-    # troubleshooting.
-    return if 0;
+    my DJabberd::Connection $self = $_[0];
+    return unless $self->{server}->share_parsers;
     return unless $self->{in_stream};
 
     my $freelist = $free_parsers{$self->namespace} ||= [];
@@ -247,7 +243,7 @@ sub set_vhost {
     my ($self, $vhost) = @_;
     Carp::croak("Not a DJabberd::VHost: $vhost") unless UNIVERSAL::isa($vhost, "DJabberd::VHost");
     $self->{vhost} = $vhost;
-    # FIXME: move the weak from above down here.
+    Scalar::Util::weaken($self->{vhost});
     return 1;
 }
 
@@ -566,7 +562,6 @@ sub end_stream {
     my DJabberd::Connection $self = shift;
     $self->write("</stream:stream>");
     $self->write(sub { $self->close; });
-    # TODO: unregister client from %jid2sock
 }
 
 sub event_write {
