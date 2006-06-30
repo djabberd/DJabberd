@@ -196,6 +196,7 @@ sub process_inbound {
     # load the roster item (because it's probably a trusted probe)
     if ($self->{dont_load_rosteritem}) {
         $call_method->(undef);
+        return;
     }
 
     # find the RosterItem corresponding to this sender, and only once we have
