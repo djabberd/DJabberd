@@ -24,12 +24,13 @@ sub get_roster {
     }
 
     my $domain = $jid->domain;
-    foreach my $user (sort keys %relation) {
+    foreach my $fuser (sort keys %relation) {
+        next if $fuser eq $user;
         my $ri = DJabberd::RosterItem->new(
-                                           jid => "$user\@$domain",
-                                           name => $user,
+                                           jid => "$fuser\@$domain",
+                                           name => $fuser,
                                            );
-        if ($relation{$user} == 2) {
+        if ($relation{$fuser} == 2) {
             $ri->subscription->set_to;
             $ri->subscription->set_from;
         } else {
