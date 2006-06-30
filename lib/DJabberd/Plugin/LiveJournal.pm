@@ -38,7 +38,6 @@ sub register {
     $vhost->register_hook("switch_incoming_client", $vcard_cb);
     $vhost->register_hook("switch_incoming_server", $vcard_cb);
 
-    warn "Registering hook!\n";
     $vhost->register_hook("AlterPresenceAvailable", sub {
         my (undef, $cb, $conn, $pkt) = @_;
 
@@ -49,7 +48,7 @@ sub register {
         }
 
         foreach my $ele ($pkt->children_elements) {
-            next unless $ele->inner_ns eq "vcard-temp:x:update" && $ele->element_name eq "x";
+            next unless ($ele->inner_ns || '') eq "vcard-temp:x:update" && $ele->element_name eq "x";
             $pkt->remove_child($ele);
             last;
         }
