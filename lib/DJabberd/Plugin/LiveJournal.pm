@@ -2,7 +2,6 @@ package DJabberd::Plugin::LiveJournal;
 use strict;
 use base 'DJabberd::Plugin';
 use warnings;
-use DBI;
 use Digest::SHA1 qw(sha1_hex);
 use MIME::Base64;
 use LWP::Simple;
