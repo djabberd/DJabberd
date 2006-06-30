@@ -139,4 +139,8 @@ sub set_to {
     $self->{attrs}{"{}to"} = ref $_[1] ? $_[1]->as_string : $_[1];
 }
 
+sub deliver_when_unavailable {
+    0;
+}
+
 1;

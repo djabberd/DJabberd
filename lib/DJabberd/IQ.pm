@@ -542,4 +542,10 @@ sub query {
     return $child;
 }
 
+sub deliver_when_unavailable {
+    my $self = shift;
+    return $self->type eq "result" ||
+        $self->type eq "error";
+}
+
 1;
