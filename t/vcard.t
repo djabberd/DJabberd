@@ -2,7 +2,7 @@
 
 
 use strict;
-use Test::More tests => 11;
+use Test::More tests => 13;
 use lib 't/lib';
 #BEGIN {  $ENV{LOGLEVEL} ||= "FATAL" }
 BEGIN { require 'djabberd-test.pl' }
@@ -81,6 +81,21 @@ two_parties( sub {
 
     $xml = $pb->recv_xml;
     like($xml, qr{Test User}, "Got the vcard back to user pb from pa");
+
+    # some clients send iqs before presence, they should get responses even when they are unavailable
+
+    $pa->send_xml("<presence type='unavailable'/>");
+    $pa->send_xml("<iq
+    from='$pa/testsuite'
+    type='get'
+    id='v1'>
+  <vCard xmlns='vcard-temp'/>
+</iq>");
+
+
+    $xml = $pa->recv_xml(2);
+    like($xml, qr{Test User}, "Got the vcard back even when unavailable");
+
 });
 
 
