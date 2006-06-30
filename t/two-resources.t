@@ -30,9 +30,9 @@ two_parties(sub {
 
     # both of A's resources should get it.
     $xml = $pa->recv_xml;
-    like($xml, qr{BisHere}, "partya2 got B's presence");
-    $xml = $pa2->recv_xml;
     like($xml, qr{BisHere}, "partya1 got B's presence");
+    $xml = $pa2->recv_xml;
+    like($xml, qr{BisHere}, "partya2 got B's presence");
 
     # both of A's resources should get a message from pb to pa's bare JID
     unlike("$pa", qr!/!, "stringification of pa doesn't include a resource");

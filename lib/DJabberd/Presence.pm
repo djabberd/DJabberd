@@ -6,6 +6,14 @@ use fields (
             'dont_load_rosteritem',  # bool: if set, don't load roster item for this probe.  it's a trusted probe.  (internally generated)
             );
 
+
+sub clone {
+    my $self = shift;
+    my $clone = $self->SUPER::clone;
+    $clone->{dont_load_rosteritem} = $self->{dont_load_rosteritem};
+    return $clone;
+}
+
 # TODO:  _process_outbound_invisible   -- seen in wild.  not in spec, but how to handle?
 #  Wildfire crew says:
 #    Presences of type invisible are not XMPP compliant. That was the
