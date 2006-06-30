@@ -23,9 +23,10 @@ sub get_roster {
         }
     }
 
+    my $domain = $jid->domain;
     foreach my $user (sort keys %relation) {
         my $ri = DJabberd::RosterItem->new(
-                                           jid => "$user\@livejournal.com",
+                                           jid => "$user\@$domain",
                                            name => $user,
                                            );
         if ($relation{$user} == 2) {
