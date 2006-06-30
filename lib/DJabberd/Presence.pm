@@ -120,6 +120,14 @@ sub procdeliver {
         $vhost = $vhost->vhost;
     }
 
+    # TODO: this needs some re-thinking for the cluster case, as
+    # "handles_jid" means one of two things in general: 1) I'm the
+    # sole handler of this JID (the below interpretation), vs 2) I can
+    # handle at least some of this vhost's domain, at least I don't
+    # handle none of it.
+    # The fear is that in the cluster case you'd have to always deliver,
+    # which we want to avoid.
+    # We should have another API that's like ->handles_jid_and_shes_online_here($jid)
     my $contact_jid = $self->to_jid or die;
     if ($vhost->handles_jid($contact_jid)) {
         my $clone = $self->clone;

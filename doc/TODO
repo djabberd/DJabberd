@@ -1,3 +1,20 @@
+-- hold Roster in connection object for 10 seconds before clearing it.  otherwise there are
+   always gonna be dups from initial loading of roster and presence probes on initial presence
+
+-- make "sub send_presence_probes" in Connection/ClientIn a hook so the whole thing can be
+   bypassed:  then LiveJournal can do this all in web land, looking up all contacts, looking
+   at all presence status/locations in databases, and injecting the presence replies back
+   into djabberd at once from webland.  then we bypass all the rosteritem loading and cluster-wide
+   probe delivery
+
+-- hook on successfully bound JID / unbound JID to register in database where somebody is
+
+-- field in Presence.pm packet that is 'trusted' that can bypass some of the double-roster-itme
+   loading in Presence.pm, especially 'sub process_incoming'
+
+-- RosterLoadItem hook optional:  by default maybe just do LoadRoster and get it from there?
+   inefficient, though.
+
 -- before authenticated (and ever after authenticated) only capture data when people XML nodes
    for a fixed amount of bytes/time before disconnecting client as possibly malicious
 
