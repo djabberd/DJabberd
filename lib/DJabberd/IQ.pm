@@ -31,6 +31,8 @@ sub process {
     # then Trillian crashes.  So let's just ignore them.
     return unless length ($self->id || '');
 
+    # FIXME: why do we make this hash on every call? also I want to hook into it -- sky
+
     my $handler = {
         'get-{jabber:iq:roster}query' => \&process_iq_getroster,
         'set-{jabber:iq:roster}query' => \&process_iq_setroster,
