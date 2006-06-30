@@ -9,13 +9,13 @@ BEGIN { require 'djabberd-test.pl' }
 
 
 
-use_ok("DJabberd::Plugin::VCard");
+use_ok("DJabberd::Plugin::VCard::SQLite");
 
 
 $Test::DJabberd::Server::PLUGIN_CB = sub {
     my $self = shift;
     my $plugins = $self->standard_plugins();
-    push @$plugins, DJabberd::Plugin::VCard->new(storage => $self->roster_name);
+    push @$plugins, DJabberd::Plugin::VCard::SQLite->new(storage => $self->roster_name);
     return $plugins;
 };
 

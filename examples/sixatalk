@@ -18,7 +18,7 @@ use DJabberd::Delivery::S2S;
 use DJabberd::PresenceChecker::Local;
 use DJabberd::RosterStorage::SQLite;
 use DJabberd::Plugin::MUC;
-use DJabberd::Plugin::VCard;
+use DJabberd::Plugin::VCard::SQLite;
 my $daemonize;
 Getopt::Long::GetOptions(
                          'd|daemon'       => \$daemonize,
@@ -30,7 +30,7 @@ my $rs = DJabberd::RosterStorage::SixApart->new;
 $rs->set_config_database("$Bin/roster.sqlite");
 $rs->finalize;
 
-my $vcard = DJabberd::Plugin::VCard->new;
+my $vcard = DJabberd::Plugin::VCard::SQLite->new;
 $vcard->set_config_storage("$Bin/roster.sqlite");
 $vcard->finalize;
 
