@@ -139,4 +139,12 @@ $hook{'RosterWipe'} = {
     des => "Wipe a user's roster",
 };
 
+$hook{'AlterPresenceAvailable'} = {
+    args => ['Connection', 'Presence'],
+    callback => {
+        done => {},
+    },
+    des => "Place to alter outgoing presence available packets from users, in-place.  Just modify the provided second argument",
+};
+
 1;

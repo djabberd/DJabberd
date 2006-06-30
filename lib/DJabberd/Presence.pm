@@ -383,7 +383,20 @@ sub broadcast_from {
 }
 
 sub _process_outbound_available {
-    my ($self, $conn) = @_;
+    my ($self, $conn, $skip_alter) = @_;
+
+    my $vhost = $conn->vhost;
+    if (!$skip_alter && $vhost->are_hooks("AlterPresenceAvailable")) {
+        $vhost->run_hook_chain(phase => "AlterPresenceAvailable",
+                               args  => [ $conn, $self ],
+                               methods => {
+                                   done => sub {
+                                       $self->_process_outbound_available($conn, 1);
+                                   },
+                               },
+                               );
+        return;
+    }
 
     if ($self->is_directed) {
         $conn->add_directed_presence($self->to_jid);

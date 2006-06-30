@@ -36,6 +36,11 @@ sub new {
 #    DJabberd->track_destroyed_obj($self);
 #}
 
+sub push_child {
+    my DJabberd::XMLElement $self = $_[0];
+    push @{$self->{children}}, $_[1]; # $node
+}
+
 sub set_raw {
     my DJabberd::XMLElement $self = shift;
     $self->{raw} = shift;
@@ -45,6 +50,11 @@ sub set_raw {
 sub children_elements {
     my DJabberd::XMLElement $self = $_[0];
     return grep { ref $_ } @{ $self->{children} };
+}
+
+sub remove_child {
+    my DJabberd::XMLElement $self = $_[0];
+    @{$self->{children}} = grep { $_ != $_[1] } @{$self->{children}};
 }
 
 sub children {
@@ -63,6 +73,10 @@ sub first_element {
         return $c if ref $c;
     }
     return undef;
+}
+
+sub inner_ns {
+    return $_[0]->{attrs}{'{}xmlns'};
 }
 
 sub attr {
