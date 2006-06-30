@@ -102,11 +102,10 @@ sub get_vcard {
 
     $logger->info("Getting vcard for user '$user'");
     my $vcard = qq{<vCard xmlns='vcard-temp'>
+    <N><GIVEN>$username</GIVEN></N>
     <PHOTO>
       <TYPE>$mimetype</TYPE>
-      <BINVAL>
-       $b64
-      </BINVAL>
+      <BINVAL>$b64</BINVAL>
     </PHOTO>
     </vCard>};
 
