@@ -12,9 +12,6 @@
 
 -- hook on successfully bound JID / unbound JID to register in database where somebody is
 
--- field in Presence.pm packet that is 'trusted' that can bypass some of the double-roster-itme
-   loading in Presence.pm, especially 'sub process_incoming'
-
 -- RosterLoadItem hook optional:  by default maybe just do LoadRoster and get it from there?
    inefficient, though.
 

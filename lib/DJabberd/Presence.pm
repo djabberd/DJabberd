@@ -2,6 +2,9 @@ package DJabberd::Presence;
 use strict;
 use base qw(DJabberd::Stanza);
 use Carp qw(croak confess);
+use fields (
+            'dont_load_rosteritem',  # bool: if set, don't load roster item for this probe.  it's a trusted probe.  (internally generated)
+            );
 
 # TODO:  _process_outbound_invisible   -- seen in wild.  not in spec, but how to handle?
 #  Wildfire crew says:
@@ -172,6 +175,21 @@ sub process_inbound {
     my $from_jid  = $self->from_jid
         or return $self->fail($vhost, "no/invalid 'from' attribute");
 
+    my $call_method = sub {
+        my $ritem = shift;
+        my $meth = "_process_inbound_$type";
+        eval { $self->$meth($vhost, $ritem, $from_jid) };
+        if ($@) {
+            warn "  ... ERROR: [$@].\n";
+        }
+    };
+
+    # the presence packet is flagged as internally-generated and not wanting us to
+    # load the roster item (because it's probably a trusted probe)
+    if ($self->{dont_load_rosteritem}) {
+        $call_method->(undef);
+    }
+
     # find the RosterItem corresponding to this sender, and only once we have
     # it, invoke the next handler
     $vhost->run_hook_chain(phase => "RosterLoadItem",
@@ -183,12 +201,7 @@ sub process_inbound {
                                },
                                set => sub {
                                    my ($cb, $ritem) = @_;
-
-                                   my $meth = "_process_inbound_$type";
-                                   eval { $self->$meth($vhost, $ritem, $from_jid) };
-                                   if ($@) {
-                                       warn "  ... ERROR: [$@].\n";
-                                   }
+                                   $call_method->($ritem);
                                },
                            });
 }
@@ -280,7 +293,9 @@ sub _process_inbound_subscribed {
 
 sub _process_inbound_probe {
     my ($self, $vhost, $ritem, $from_jid) = @_;
-    return unless $ritem && $ritem->subscription->sub_from;
+    unless ($self->{dont_load_rosteritem}) {
+        return unless $ritem && $ritem->subscription->sub_from;
+    }
 
     my $jid = $self->to_jid;
 

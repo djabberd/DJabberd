@@ -81,6 +81,7 @@ sub send_presence_probes {
         my $from_jid = $self->bound_jid;
         foreach my $it ($roster->to_items) {
             my $probe = DJabberd::Presence->probe(to => $it->jid, from => $from_jid);
+            $probe->{dont_load_rosteritem} = 1;
             $probe->procdeliver($self->vhost);
         }
     };
