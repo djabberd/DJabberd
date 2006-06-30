@@ -54,7 +54,7 @@ sub register {
         }
 
         my $user = $bj->node;
-        my $sha1_hex = get("http://www.livejournal.com/misc/jabber_userpic.bml?user=${user}&want=sha1");
+        my $sha1_hex = get("http://www.livejournal.com/misc/jabber_avatar.bml?user=${user}&want=sha1");
 
         # append our fake one
         my $avatar = DJabberd::XMLElement->new("vcard-temp:x:update",
@@ -86,7 +86,7 @@ sub get_vcard {
     my ($username) = $user =~ /^(\w+)\@/;
 
     my $mimetype;
-    my $data = get("http://www.livejournal.com/misc/jabber_userpic.bml?user=${username}");
+    my $data = get("http://www.livejournal.com/misc/jabber_avatar.bml?user=${username}");
     die "No data for $user" unless $data;
     warn "Data length for $user = " . length($data) . "\n";
 
