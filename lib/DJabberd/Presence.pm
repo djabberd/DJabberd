@@ -192,9 +192,14 @@ sub process_inbound {
         }
     };
 
-    # the presence packet is flagged as internally-generated and not wanting us to
-    # load the roster item (because it's probably a trusted probe)
-    if ($self->{dont_load_rosteritem}) {
+    # the presence packet is flagged as internally-generated and not
+    # wanting us to load the roster item (because it's probably a
+    # trusted probe).  also, for available/unavailable directed
+    # presence don't load ritem because those handlers don't need it:
+    # they just deliver.
+    if ($self->{dont_load_rosteritem} ||
+        $type eq "available" || $type eq "unavailable")
+    {
         $call_method->(undef);
         return;
     }
@@ -216,12 +221,12 @@ sub process_inbound {
 }
 
 sub _process_inbound_available {
-    my ($self, $vhost, $ritem) = @_;
+    my ($self, $vhost) = @_;
     $self->deliver($vhost);
 }
 
 sub _process_inbound_unavailable {
-    my ($self, $vhost, $ritem) = @_;
+    my ($self, $vhost) = @_;
     $self->deliver($vhost);
 }
 
