@@ -10,8 +10,8 @@ use constant SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER => 2;
 use constant SSL_MODE_AUTO_RETRY                 => 4;
 
 sub new {
-    my ($class, $sock, $vhost) = @_;
-    my $self = $class->SUPER::new($sock, $vhost);
+    my ($class, $sock, $server) = @_;
+    my $self = $class->SUPER::new($sock, $server);
 
     my $ctx = Net::SSLeay::CTX_new()
         or die("Failed to create SSL_CTX $!");
@@ -27,11 +27,11 @@ sub new {
         and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
 
     # Following will ask password unless private key is not encrypted
-    Net::SSLeay::CTX_use_RSAPrivateKey_file ($ctx, 'server-key.pem',
+    Net::SSLeay::CTX_use_RSAPrivateKey_file ($ctx, $server->ssl_private_key_file, #  server-key.pem',
                                              &Net::SSLeay::FILETYPE_PEM);
     Net::SSLeay::die_if_ssl_error("private key");
 
-    Net::SSLeay::CTX_use_certificate_file ($ctx, 'server-cert.pem',
+    Net::SSLeay::CTX_use_certificate_file ($ctx, $server->ssl_cert_file, # 'server-cert.pem',
                                            &Net::SSLeay::FILETYPE_PEM);
     Net::SSLeay::die_if_ssl_error("certificate");
 
@@ -46,8 +46,6 @@ sub new {
     Net::SSLeay::set_fd($ssl, $fileno);
 
     $Net::SSLeay::trace = 2;
-
-    #Net::SSLeay::connect($ssl) or Net::SSLeay::die_now("Failed SSL connect ($!)");
 
     my $rv = Net::SSLeay::accept($ssl);
     if (!$rv) {

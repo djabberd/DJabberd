@@ -67,9 +67,6 @@
 
 -- debian packaging
 
--- make SSL configuration easier:  configurable locations of keys,
-   and bitch if configured and not configured
-
 -- $stanza->process and $stanza->deliver take a $conn, but
    now that stanzas always know their connection, that
    parameter is kinda useless.  remove them all?

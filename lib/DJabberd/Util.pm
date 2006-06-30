@@ -2,7 +2,7 @@ package DJabberd::Util;
 use strict;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(exml tsub as_bool as_num);
+our @EXPORT_OK = qw(exml tsub as_bool as_num as_abs_path);
 
 sub as_bool {
     my $val = shift;
@@ -15,6 +15,13 @@ sub as_num {
     my $val = shift;
     return $val if $val =~ /^\d+$/;
     die "Not a number\n";
+}
+
+sub as_abs_path {
+    my $val = shift;
+    die "Path isn't absolute" unless $val =~ m!^/!;
+    die "File doesn't exist" unless -f $val;
+    return $val;
 }
 
 sub exml

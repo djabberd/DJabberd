@@ -36,7 +36,7 @@ package DJabberd;
 use strict;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
 use Carp qw(croak);
-use DJabberd::Util qw(tsub as_bool as_num);
+use DJabberd::Util qw(tsub as_bool as_num as_abs_path);
 
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
@@ -72,6 +72,21 @@ sub set_config_shareparsers {
     my ($self, $val) = @_;
     $self->{share_parsers} = as_bool($val);
 }
+
+# mimicing Apache's SSLCertificateKeyFile config
+sub set_config_sslcertificatekeyfile {
+    my ($self, $val) = @_;
+    $self->{ssl_private_key_file} = as_abs_path($val);
+}
+
+# mimicing Apache's SSLCertificateFile
+sub set_config_sslcertificatefile {
+    my ($self, $val) = @_;
+    $self->{ssl_cert_file} = as_abs_path($val);
+}
+
+sub ssl_private_key_file { return $_[0]{ssl_private_key_file} }
+sub ssl_cert_file        { return $_[0]{ssl_cert_file}        }
 
 sub set_config_oldssl {
     my ($self, $val) = @_;

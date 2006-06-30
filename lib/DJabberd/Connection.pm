@@ -544,7 +544,7 @@ sub start_stream_back {
         # {=must-send-features-on-1.0}
         my $tls = "";
         if (!$self->{ssl}
-            && DJabberd::Stanza::StartTLS->can_do_ssl
+            && $self->server->ssl_cert_file
             && !$self->isa("DJabberd::Connection::ServerIn")) {
             $tls = "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls' />";
         }

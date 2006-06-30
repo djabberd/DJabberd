@@ -10,10 +10,6 @@ Net::SSLeay::randomize();
 use constant SSL_ERROR_WANT_READ     => 2;
 use constant SSL_ERROR_WANT_WRITE    => 3;
 
-sub can_do_ssl {
-    return -e 'server-key.pem' && -e 'server-cert.pem';
-}
-
 sub on_recv_from_server { &process }
 sub on_recv_from_client { &process }
 
@@ -36,11 +32,11 @@ sub process {
         and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
 
     # Following will ask password unless private key is not encrypted
-    Net::SSLeay::CTX_use_RSAPrivateKey_file ($ctx, 'server-key.pem',
+    Net::SSLeay::CTX_use_RSAPrivateKey_file ($ctx,  $conn->vhost->server->ssl_private_key_file,
                                              &Net::SSLeay::FILETYPE_PEM);
     Net::SSLeay::die_if_ssl_error("private key");
 
-    Net::SSLeay::CTX_use_certificate_file ($ctx, 'server-cert.pem',
+    Net::SSLeay::CTX_use_certificate_file ($ctx, $conn->vhost->server->ssl_cert_file,
                                            &Net::SSLeay::FILETYPE_PEM);
     Net::SSLeay::die_if_ssl_error("certificate");
 
