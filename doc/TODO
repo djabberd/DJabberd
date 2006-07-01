@@ -15,6 +15,8 @@ DEBUG DJabberd.Connection.ClientIn             DISCONNECT: 16963
 DEBUG DJabberd.Connection.ServerIn             New connection '16964' from 10.0.0.115 
 DEBUG DJabberd.Connection.ServerIn             DISCONNECT: 16964
 
+-- No resolved IP at lib/DJabberd/Stanza/DialbackResult.pm line 56.  shouldn't kill the server
+
 
 -- connecting to port 5223 (old SSL, and presumably StartTLS) and doing something bogus
    causes server to die (not just connection) with:
