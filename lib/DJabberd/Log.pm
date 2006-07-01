@@ -19,15 +19,18 @@ our $logger;
 unless ($has_run) {
 
     my $used_file;
-    my @locations = ("/etc/djabberd/log.conf",
-                     "etc/djabberd.log",
-                     "etc/djabberd.log.default");
+    my @locations = (
+        "etc/log.conf",
+        "/etc/djabberd/log.conf",
+        "etc/log.conf.default"
+    );
     @locations = () if $ENV{LOGLEVEL};
     foreach my $conffile (@locations) {
         next unless -e $conffile;
         Log::Log4perl->init_and_watch($conffile, 1);
         $logger = Log::Log4perl->get_logger();
         $used_file = $conffile;
+        last;
     }
 
     my $loglevel = $ENV{LOGLEVEL} || "WARN";
