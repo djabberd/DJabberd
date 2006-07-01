@@ -52,8 +52,8 @@ sub process {
                        callback => sub {
                            my @endpts = @_;
                            unless (@endpts) {
-                               # FIXME: send something better
-                               die "No resolved IP";
+                               $final_cb->fail("no resolved IP");
+                               return;
                            }
 
                            my $endpt = shift @endpts;
