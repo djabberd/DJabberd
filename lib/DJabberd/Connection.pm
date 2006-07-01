@@ -60,9 +60,14 @@ sub new {
     $xml_category =~ s/Connection::/Connection::XML::/;
     $self->{xmllog}  = DJabberd::Log->get_logger($xml_category);
 
-    $self->{id}      = $connection_id++;
+    my $fromip = $self->peer_ip_string || "<undef>";
 
-    $self->log->debug("New connection '$self->{id}' from " . ($self->peer_ip_string || "<undef>"));
+    # a health check monitor doesn't get an id assigned/wasted on it, and doesn't log
+    # so it's less annoying to look at:
+    unless ($server->is_monitor_host($fromip)) {
+        $self->{id}      = $connection_id++;
+        $self->log->debug("New connection '$self->{id}' from $fromip");
+    }
 
     return $self;
 }
@@ -646,7 +651,7 @@ sub close_stream {
 
 sub close {
     my DJabberd::Connection $self = shift;
-    $self->log->debug("DISCONNECT: $self->{id}\n");
+    $self->log->debug("DISCONNECT: $self->{id}\n") if $self->{id};
 
     if (my $ssl = $self->{ssl}) {
         Net::SSLeay::free($ssl);

@@ -52,6 +52,7 @@ sub new {
         'vhosts'      => {},
         'fake_peers'  => {}, # for s2s testing.  $hostname => "ip:port"
         'share_parsers' => 1,
+        'monitor_host' => {},
     };
 
     # if they set s2s_port to explicitly 0, it's disabled for all vhosts
@@ -71,6 +72,11 @@ sub share_parsers { $_[0]{share_parsers} };
 sub set_config_shareparsers {
     my ($self, $val) = @_;
     $self->{share_parsers} = as_bool($val);
+}
+
+sub set_config_declaremonitor {
+    my ($self, $val) = @_;
+    $self->{monitor_host}{$val} = 1;
 }
 
 # mimicing Apache's SSLCertificateKeyFile config
@@ -313,6 +319,11 @@ sub start_simple_server {
     eval "use DJabberd::Connection::SimpleIn; 1"
         or die "Failed to load DJabberd::Connection::SimpleIn: $@\n";
     $self->_start_server($port, "DJabberd::Connection::SimpleIn");
+}
+
+sub is_monitor_host {
+    my ($self, $host) = @_;
+    return $self->{monitor_host}{$host};
 }
 
 sub load_config {
