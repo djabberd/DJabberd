@@ -1,7 +1,3 @@
--- connecting to port 5223 (old SSL, and presumably StartTLS) and doing something bogus
-   causes server to die (not just connection) with:
-     7390: private key
-
 -- on connect, set clientin 'cached_roster' field to '1' or something,
    then first caller (get roster IQ or initial presence) that
    loads roster sets it in cached_roster, registers a timer for 10 seconds to

@@ -281,8 +281,12 @@ sub _start_server {
             setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or die;
         }
 
-        my $client = $class->new($csock, $self);
-        $client->watch_read(1);
+        if (my $client = eval { $class->new($csock, $self) }) {
+            $client->watch_read(1);
+            return;
+        } else {
+            $logger->error("Error creating new $class: $@");
+        }
     };
 
     Danga::Socket->AddOtherFds(fileno($server) => $accept_handler);
