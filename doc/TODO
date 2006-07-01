@@ -27,6 +27,13 @@
 
 -- SIG USR1 to do graceful shutdown, sending </stream:stream> to all clients.
 
+-- speed up XMLElement as_xml ... try to reuse the original scalarref
+   read from the network, if
+   we can align the boundaries of XML stanzas to network reads, as we do reusing parsers from libxml
+
+-- speed up:  when sending a ton of broadcast packets, only stringify it once (before/after to address)
+   and then blast away at everybody.  works well on a single node, at least.
+
 -- TODO: resource binding?
 
 -- TODO: IQ commands to server to get server load info:
@@ -82,13 +89,6 @@
      http://psi-im.org/wiki/Jingle_branch
    So think we could do the Jingle stuff Jabber-server-side and get the Psi
    client connecting to Asterisk over SIP or something?
-
--- speed up XMLElement as_xml ... try to reuse the original scalarref read from the network, if
-   we can align the boundaries of XML stanzas to network reads.  XML::Parser::Expat can help
-   us:  (where $self->{parser} is our incremental parser), but we're using LibXML now.
-
-    print Dumper("eobj = " . eval { $self->{parser}->_expat_obj->current_byte });
-    $VAR1 = 'eobj = 22';
 
 -- <not-authorized/> -- the sender must provide proper credentials
       before being allowed to perform the action, or has provided
