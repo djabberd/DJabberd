@@ -7,12 +7,11 @@ use DBI;
 
 our $logger = DJabberd::Log->get_logger();
 
-our %vcards;
-
 sub load_vcard {
     my ($self, $user) = @_;
-    if (exists $vcards{$user}) {
-        return $vcards{$user};
+    $self->{vcards} ||= {};
+    if (exists $self->{vcards}{$user}) {
+        return $self->{vcards}{$user};
     } else {
         return undef;
     }
@@ -20,7 +19,8 @@ sub load_vcard {
 
 sub store_vcard {
     my ($self, $user, $vcard) = @_;
-    $vcards{$user} = $vcard->as_xml;
+    $self->{vcards} ||= {};
+    $self->{vcards}{$user} = $vcard->as_xml;
 }
 
 1;
