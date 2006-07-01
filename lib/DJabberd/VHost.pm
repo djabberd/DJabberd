@@ -394,6 +394,22 @@ sub get_secret_key_by_handle {
     }
 }
 
+sub get_roster {
+    my ($self, $jid, %meth) = @_;
+    my $good_cb = delete $meth{'on_success'};
+    my $bad_cb  = delete $meth{'on_fail'};
+    Carp::croak("unknown args") if %meth;
+
+    $self->run_hook_chain(phase => "RosterGet",
+                          args  => [ $jid ],
+                          methods => {
+                              set_roster => sub {
+                                  $good_cb->($_[1]);
+                              },
+                          },
+                          fallback => $bad_cb);
+}
+
 sub debug {
     my $self = shift;
     return unless $self->{debug};

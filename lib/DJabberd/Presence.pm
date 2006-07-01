@@ -372,14 +372,7 @@ sub broadcast_from {
         }
     };
 
-    $vhost->run_hook_chain(phase => "RosterGet",
-                           args  => [ $from_jid ],
-                           methods => {
-                               set_roster => sub {
-                                   my (undef, $roster) = @_;
-                                   $broadcast->($roster);
-                               },
-                           });
+    $vhost->get_roster($from_jid, on_success => $broadcast);
 }
 
 sub _process_outbound_available {

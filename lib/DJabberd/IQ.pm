@@ -155,19 +155,12 @@ sub process_iq_getroster {
         }
     };
 
-    $conn->vhost->run_hook_chain(phase => "RosterGet",
-                                 args  => [ $conn->bound_jid ],
-                                 methods => {
-                                     set_roster => sub {
-                                         my ($self, $roster) = @_;
-                                         $logger->debug("set_roster called in process_iq_getroster");
-                                         $send_roster->($roster);
-                                     },
-                                 },
-                                 fallback => sub {
-                                     $logger->debug("Fallback RosterGet invoked");
-                                     $send_roster->(DJabberd::Roster->new()),
-                                 });
+    $conn->vhost->get_roster($conn->bound_jid,
+                             on_success => $send_roster,
+                             on_fail => sub {
+                                 $send_roster->(DJabberd::Roster->new);
+                             });
+
     return 1;
 }
 

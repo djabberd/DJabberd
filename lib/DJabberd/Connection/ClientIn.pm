@@ -93,14 +93,7 @@ sub send_presence_probes {
         }
     };
 
-    $self->vhost->run_hook_chain(phase => "RosterGet",
-                                 args  => [ $self->bound_jid ],
-                                 methods => {
-                                     set_roster => sub {
-                                         my (undef, $roster) = @_;
-                                         $send_probes->($roster);
-                                     },
-                                 });
+    $self->vhost->get_roster($self->bound_jid, on_success => $send_probes);
 }
 
 sub send_pending_sub_requests {
