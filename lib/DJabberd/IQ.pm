@@ -2,6 +2,7 @@ package DJabberd::IQ;
 use strict;
 use base qw(DJabberd::Stanza);
 use DJabberd::Util qw(exml);
+use DJabberd::Roster;
 
 use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger();
