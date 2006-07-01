@@ -36,9 +36,9 @@ body<=
 
 <ul class='spaced'>
 <li>Is async/event-based.</li>
-<li>Uses epoll on Linux 2.6, enabling tens to hundreds of thousands of connections in a single process, limited only by memory.  (but new connections use signifigantly less memory than a threaded server)</li>
+<li>Uses epoll on Linux 2.6, enabling hundreds of thousands of connections in a single process, limited only by memory.  (but new connections use signifigantly less memory than a threaded server).  A recent test had 300k connections in 1GB of RAM.</li>
 <li>All the aforementioned plugins can operate asynchronously.  (If you're lazy, you can block in them, for low-traffic servers...)</li>
-<li>Uses expat (implemented in C) for the XML processing.</li>
+<li>Uses libxml (implemented in C) for the XML processing.</li>
 </ul>
 
 <a name='scalable'></a><h2>Scalable</h2>
