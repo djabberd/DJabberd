@@ -121,6 +121,20 @@ sub CMD_list {
 sub CMD_stats {
     my $self = shift;
 
+    my $connections = $DJabberd::Stats::counter{connect} - $DJabberd::Stats::counter{disconnect};
+    $self->write("connections\t$connections connections");
+    if ($^O eq'linux') {
+        my ($mem) = `cat /proc/\`pidof -x djabberd\`/status | grep ^VmRSS` =~ /(\d+)/;
+        $self->write("mem_app\t$mem kb");
+        $self->write("mem_connection\t". ($mem / $connections ) . " kb");
+    }
+
+    $self->end;
+}
+
+sub CMD_counters {
+    my $self = shift;
+
     foreach my $name (sort keys %DJabberd::Stats::counter) {
         $self->write("$name\t$DJabberd::Stats::counter{$name}");
     }

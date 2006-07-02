@@ -31,7 +31,7 @@ like($line, qr/$server/, "Get the vhost back");
 
 like($sock->getline, qr/\./, "And a terminator" );
 
-$sock->write("stats\r\n");
+$sock->write("counters\r\n");
 
 my $buffer;
 while (my $line = $sock->getline) {

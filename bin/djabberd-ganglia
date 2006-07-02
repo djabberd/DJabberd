@@ -32,7 +32,7 @@ MAIN: while(1) {
     my %stats;
     my %output;
     while(1) {
-        $sock->write("stats\r\n") || next MAIN;
+        $sock->write("counters\r\n") || next MAIN;
 
 
         while (my $line = $sock->getline || next MAIN) {
