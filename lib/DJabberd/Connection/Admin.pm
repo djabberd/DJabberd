@@ -126,6 +126,20 @@ sub CMD_stats {
     $self->end;
 }
 
+sub CMD_users {
+    my $self = shift;
+
+    foreach my $server (values %DJabberd::server) {
+        foreach my $vhost (values %{$server->{vhosts}}) {
+            $self->write("$vhost->{server_name}");
+            foreach my $jid (keys %{$vhost->{jid2sock}}) {
+                $self->write("\t$jid");
+            }
+        }
+    }
+    $self->end;
+}
+
 sub CMD_version {
     $_[0]->write($DJabberd::VERSION);
 }
