@@ -43,6 +43,7 @@ sub deliver {
     my $out_queue = $self->get_queue_for_domain($domain) or
         return $cb->declined;
 
+    $DJabberd::Stats::counter{deliver_s2s}++;
     $out_queue->queue_stanza($stanza, $cb);
 }
 

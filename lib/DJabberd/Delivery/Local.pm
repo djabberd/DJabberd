@@ -27,6 +27,8 @@ sub deliver {
 
     return $cb->declined unless @dconns;
 
+    $DJabberd::Stats::counter{deliver_local}++;
+
     foreach my $c (@dconns) {
         $c->send_stanza($stanza);
     }
