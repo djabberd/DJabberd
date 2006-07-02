@@ -35,6 +35,18 @@ sub register {
         $cb->decline;
     };
 
+    $vhost->register_hook("OnInitialPresence", sub {
+        my (undef, $cb, $conn) = @_;
+        my $bj = $conn->bound_jid;
+        my $how_much = $bj->node =~ /^whitaker|revmischa|brad|crucially|supersat|mart|scsi|evan$/ ?
+            "more than Whitaker's mom" :
+            "a lot";
+
+        $conn->write("<message to='$bj' from='livejournal.com' type='headline'><body>LJ Talk is currently a pre-alpha service lacking tons of features and probably with a bunch of bugs.
+
+We're actively developing it, constantly restarting it with new stuff.  So just don't be surprised if the service goes up and down $how_much.</body></message>");
+    });
+
     $vhost->register_hook("switch_incoming_client", $vcard_cb);
     $vhost->register_hook("switch_incoming_server", $vcard_cb);
 

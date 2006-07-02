@@ -178,7 +178,7 @@ sub hook_chain_fast {
                         stop_chain => $dummy_sub,
                         %$methods,
                     }),
-                    @$args);
+                    @$args) if $fallback;
         return;
     }
 

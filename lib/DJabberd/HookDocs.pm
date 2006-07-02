@@ -147,4 +147,11 @@ $hook{'AlterPresenceAvailable'} = {
     des => "Place to alter outgoing presence available packets from users, in-place.  Just modify the provided second argument",
 };
 
+$hook{'OnInitialPresence'} = {
+    args => ['Connection'],
+    callback => {
+    },
+    des => "Called when a client first comes online and becomes present.",
+};
+
 1;

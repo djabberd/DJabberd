@@ -70,6 +70,9 @@ sub on_initial_presence {
     my $self = shift;
     $self->send_presence_probes;
     $self->send_pending_sub_requests;
+
+    $self->vhost->hook_chain_fast('OnInitialPresence',
+                                  [ $self ], {});
 }
 
 sub send_presence_probes {
