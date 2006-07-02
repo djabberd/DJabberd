@@ -22,7 +22,7 @@ sub check_digest {
                                    "&stream=$self->{stream_id}" .
                                    "&digest=$digest");
 
-    if ($is_good) {
+    if ($is_good eq "GOOD") {
         $cb->accept;
     } else {
         $cb->reject;
