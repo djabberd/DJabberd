@@ -199,6 +199,11 @@ sub clientport {
     return $self->{clientport} || "1000$self->{id}";
 }
 
+sub adminport {
+    my $self = shift;
+    return $self->{adminport} || 0;
+}
+
 sub id {
     my $self = shift;
     return $self->{id};
@@ -272,6 +277,7 @@ sub start {
         $server->add_vhost($vhost);
         $server->set_config_serverport($self->serverport);
         $server->set_config_clientport($self->clientport);
+        $server->set_config_adminport($self->adminport) if $self->adminport;
 
         my $childpid = fork;
         if (!$childpid) {

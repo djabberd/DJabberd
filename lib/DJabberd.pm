@@ -16,6 +16,7 @@ use DJabberd::Connection::ServerIn;
 use DJabberd::Connection::ClientIn;
 use DJabberd::Connection::ClusterIn;
 use DJabberd::Connection::OldSSLClientIn;
+use DJabberd::Connection::Admin;
 
 use DJabberd::Stanza::StartTLS;
 use DJabberd::Stanza::StreamFeatures;
@@ -37,6 +38,8 @@ use strict;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
 use Carp qw(croak);
 use DJabberd::Util qw(tsub as_bool as_num as_abs_path);
+
+our $VERSION = 0.1;
 
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
@@ -112,6 +115,11 @@ sub set_config_clientport {
 sub set_config_serverport {
     my ($self, $val) = @_;
     $self->{s2s_port} = as_num($val);
+}
+
+sub set_config_adminport {
+    my ($self, $val) = @_;
+    $self->{admin_port} = as_num($val);
 }
 
 sub set_config_intradomainlisten {
@@ -228,12 +236,15 @@ sub run {
     daemonize() if $self->{daemonize};
     local $SIG{'PIPE'} = "IGNORE";  # handled manually
 
+
     $self->start_c2s_server();
 
     # {=s2soptional}
     $self->start_s2s_server() if $self->{s2s_port};
 
     $self->start_cluster_server() if $self->{cluster_listen};
+
+    $self->_start_server($self->{admin_port}, "DJabberd::Connection::Admin") if $self->{admin_port};
 
     Danga::Socket->EventLoop();
 }
