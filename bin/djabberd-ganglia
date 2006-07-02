@@ -46,7 +46,7 @@ MAIN: while(1) {
 	foreach my $key (keys %output) {
 	    my $metric_key = $key;
 	    $metric_key =~ s/\W/_/g;
-	    system("gmetric","-n","dj-$metric_key", "-v" ,"$output{$key}", "-t", "int32","-u", "sec", "-p$mcastport") and die;
+	    system("gmetric","-n","dj-$metric_key", "-v" ,"$output{$key}", "-t", "int32","-u", "per sec", "-p$mcastport") and die;
 	}
 	# special case connections
 	system("gmetric","-n","dj-connections", "-v" ,$stats{connect} - $stats{disconnect}, "-t", "int32","-u", "current", "-p$mcastport") and die;
