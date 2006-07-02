@@ -7,6 +7,19 @@ use IO::Socket::INET;
 my $adminport = 5200;
 my $mcastport = 8650;
 my $sleep_time = 5;
+
+our $dry_run = 0;
+our $daemonize = 0;
+
+use GetOpt::Long;
+
+Getopt::Long::GetOptions(
+                         'd|daemon'     => \$daemonize,
+                         'dry-run'      => \$dry_run,
+                         'sleep=i'      => \$sleep_time,
+                         );
+
+
 MAIN: while(1) {
 
     my $addr = "127.0.0.1:$adminport";
@@ -46,11 +59,20 @@ MAIN: while(1) {
         foreach my $key (keys %output) {
             my $metric_key = $key;
             $metric_key =~ s/\W/_/g;
-            system("gmetric","-n","dj-$metric_key", "-v" ,"$output{$key}", "-t", "int32","-u", "per sec", "-p$mcastport") and die;
+            run_command("gmetric","-n","dj-$metric_key", "-v" ,"$output{$key}", "-t", "int32","-u", "per sec", "-p$mcastport");
         }
         # special case connections
-        system("gmetric","-n","dj-connections", "-v" ,$stats{connect} - $stats{disconnect}, "-t", "int32","-u", "current", "-p$mcastport") and die;
+        run_command("gmetric","-n","dj-connections", "-v" ,$stats{connect} - $stats{disconnect}, "-t", "int32","-u", "current", "-p$mcastport");
         sleep $sleep_time;
     }
  #   exit;
+}
+
+sub run_command {
+
+    if($dry_run) {
+        print "Would execute: . " . join(" ", @_) . "\n";
+    } else {
+        system(@_) and die;
+    }
 }
