@@ -44,6 +44,23 @@ sub CMD_close { $_[0]->close }
 sub CMD_quit { $_[0]->close }
 sub CMD_exit { $_[0]->close }
 
+*CMD_conns = \&CMD_connections;
+sub CMD_connections {
+    my ($self, $filter) = @_;
+
+    my $map = Danga::Socket->DescriptorMap;
+    my @list;
+    foreach (keys %$map) {
+        my $obj = $map->{$_};
+        next if $filter eq "clients" && ref $obj ne "DJabberd::Connection::ClientIn";
+        next if $filter eq "servers" && ref $obj ne "DJabberd::Connection::ServerIn" &&
+            ref $obj ne "DJabberd::Connection::ServerOut";
+        push @list, $_;
+    }
+    my $conns = join(' ', @list);
+    $self->write($conns);
+}
+
 sub CMD_help {
     my $self = shift;
     $self->write($_) foreach split(/\n/, <<EOC);
@@ -62,7 +79,7 @@ sub CMD_list {
 
     if ($type =~ /^vhosts?/) {
         $self->write($_) foreach keys %{$self->{server}->{vhosts}};
-        $self->end;;
+        $self->end;
     } else {
         $self->write("Cannot list '$type'");
     }
