@@ -27,6 +27,6 @@ my $sock = IO::Socket::INET->new(PeerAddr => "$addr",
 $sock->write("list vhosts\n");
 
 my $line = $sock->getline;
-like($line, qr/Welcome to DJabberd/, "Get a hello back");
+like($line, qr/$server/, "Get the vhost back");
 
-like($sock->getline, qr/$server/, "Got the vhost back" );
+like($sock->getline, qr/\./, "And a terminator" );
