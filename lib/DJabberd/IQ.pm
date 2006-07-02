@@ -19,6 +19,18 @@ sub on_recv_from_client {
     $self->deliver;
 }
 
+my $iq_handler = {
+    'get-{jabber:iq:roster}query' => \&process_iq_getroster,
+    'set-{jabber:iq:roster}query' => \&process_iq_setroster,
+    'get-{jabber:iq:auth}query' => \&process_iq_getauth,
+    'set-{jabber:iq:auth}query' => \&process_iq_setauth,
+    'get-{http://jabber.org/protocol/disco#info}query'  => \&process_iq_disco_info_query,
+    'get-{http://jabber.org/protocol/disco#items}query' => \&process_iq_disco_items_query,
+    'get-{jabber:iq:register}query' => \&process_iq_getregister,
+    'set-{jabber:iq:register}query' => \&process_iq_setregister,
+    'set-{djabberd:test}query' => \&process_iq_set_djabberd_test,
+};
+
 # DO NOT OVERRIDE THIS
 sub process {
     my DJabberd::IQ $self = shift;
@@ -32,31 +44,18 @@ sub process {
     # then Trillian crashes.  So let's just ignore them.
     return unless length ($self->id || '');
 
-    # FIXME: why do we make this hash on every call? also I want to hook into it -- sky
-
-    my $handler = {
-        'get-{jabber:iq:roster}query' => \&process_iq_getroster,
-        'set-{jabber:iq:roster}query' => \&process_iq_setroster,
-        'get-{jabber:iq:auth}query' => \&process_iq_getauth,
-        'set-{jabber:iq:auth}query' => \&process_iq_setauth,
-        'get-{http://jabber.org/protocol/disco#info}query'  => \&process_iq_disco_info_query,
-        'get-{http://jabber.org/protocol/disco#items}query' => \&process_iq_disco_items_query,
-        'get-{jabber:iq:register}query' => \&process_iq_getregister,
-        'set-{jabber:iq:register}query' => \&process_iq_setregister,
-
-        'set-{djabberd:test}query' => \&process_iq_set_djabberd_test,
-    };
-
     $conn->vhost->run_hook_chain(phase    => "c2s-iq",
                                  args     => [ $self ],
                                  fallback => sub {
                                      my $sig = $self->signature;
-                                     my $meth = $handler->{$sig};
+                                     my $meth = $iq_handler->{$sig};
                                      unless ($meth) {
                                          $self->send_error;
                                          $logger->warn("Unknown IQ packet: $sig");
                                          return;
                                      }
+
+                                     $DJabberd::Stats::counter{"InIQ:$sig"}++;
                                      $meth->($conn, $self);
                                  });
 }

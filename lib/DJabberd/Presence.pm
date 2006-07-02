@@ -38,11 +38,13 @@ sub is_directed {
 
 sub on_recv_from_server {
     my ($self, $conn) = @_;
+    $DJabberd::Stats::counter{"s2si-Presence"}++;
     $self->process_inbound($conn->vhost);
 }
 
 sub on_recv_from_client {
     my ($self, $conn) = @_;
+    $DJabberd::Stats::counter{"c2s-Presence"}++;
     $self->process_outbound($conn);
 }
 

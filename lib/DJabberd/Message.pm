@@ -13,6 +13,7 @@ sub on_recv_from_client {
         return;
     }
 
+    $DJabberd::Stats::counter{"c2s-Message"}++;
     $self->deliver;
 }
 

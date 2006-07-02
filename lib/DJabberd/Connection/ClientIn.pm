@@ -170,6 +170,8 @@ sub on_stanza_received {
     my $class = $element2class{$node->element} or
         return $self->stream_error("unsupported-stanza-type");
 
+    $DJabberd::Stats::counter{"ClientIn:$class"}++;
+
     # same variable as $node, but down(specific)-classed.
     my $stanza = $class->downbless($node, $self);
 

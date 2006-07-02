@@ -1,8 +1,6 @@
 package DJabberd::Stats;
 use strict;
 use warnings;
-use Hash::Util qw(lock_keys);
-
 
 our %counter = (
                  iq_get => 0,
@@ -14,6 +12,4 @@ our %counter = (
                  s2s_deliver => 0,
                  );
 
-
-lock_keys(%counter);
 1;
