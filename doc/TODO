@@ -1,9 +1,3 @@
--- on connect, set clientin 'cached_roster' field to '1' or something,
-   then first caller (get roster IQ or initial presence) that
-   loads roster sets it in cached_roster, registers a timer for 10 seconds to
-   then wipe it.  the idea being that the other caller gets it for free in those
-   10 seconds, then it's wiped and we go back to using less memory.
-
 -- make "sub send_presence_probes" in Connection/ClientIn a hook so the whole thing can be
    bypassed:  then LiveJournal can do this all in web land, looking up all contacts, looking
    at all presence status/locations in databases, and injecting the presence replies back

@@ -3,6 +3,7 @@ use strict;
 use Carp qw(croak);
 use DJabberd::Util qw(tsub as_bool);
 use DJabberd::Log;
+use DJabberd::Roster;
 
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
@@ -31,6 +32,10 @@ sub new {
         subdomain       => {},  # subdomain => plugin mapping of subdomains we should accept
 
         inband_reg      => 0,   # bool: inband registration
+
+        roster_cache    => {},  # $barejid_str -> DJabberd::Roster
+
+        roster_wanters  => {},  # $barejid_str -> [ [$on_success, $on_fail]+ ]
     };
 
     croak("Missing/invalid vhost name") unless
@@ -357,6 +362,10 @@ sub roster_push {
     my ($self, $jid, $ritem) = @_;
     croak("no ritem") unless $ritem;
 
+    # kill cache if roster checked;
+    my $barestr = $jid->as_bare_string;
+    delete $self->{roster_cache}{$barestr};
+
     # XMPP-IM: howwever a server SHOULD NOT push or deliver roster items
     # in that state to the contact. (None + Pending In)
     return if $ritem->subscription->is_none_pending_in;
@@ -400,14 +409,61 @@ sub get_roster {
     my $bad_cb  = delete $meth{'on_fail'};
     Carp::croak("unknown args") if %meth;
 
+    my $barestr = $jid->as_bare_string;
+
+    # see if it's cached.
+    if (my $roster = $self->{roster_cache}{$barestr}) {
+        $good_cb->($roster);
+        return;
+    }
+
+    # upon connect there are three immediate requests of a user's
+    # roster, then pretty much never again, but those three can,
+    # depending on the client's preference between sending initial
+    # presence vs. roster get first, be 3 loads in parallel, or 1,
+    # then 2 in parallel.  in any case, multiple async loads can be in
+    # flight at once, so let's keep a list of roster-wanters and only
+    # do one request, then send the answer to everybody.  the
+    # $kick_off_load is to keep track of whether or not this is the
+    # first request that actually has to start loading it, or we're a
+    # 2nd/3rd caller.
+    my $kick_off_load = 0;
+
+    my $list = $self->{roster_wanters}{$barestr} ||= [];
+    $kick_off_load = 1 unless @$list;
+    push @$list, [$good_cb, $bad_cb];
+    return unless $kick_off_load;
+
     $self->run_hook_chain(phase => "RosterGet",
                           args  => [ $jid ],
                           methods => {
                               set_roster => sub {
-                                  $good_cb->($_[1]);
+                                  my $roster = $_[1];
+                                  $self->{roster_cache}{$barestr} = $roster;
+
+                                  # upon connect there are three immediate requests of a user's
+                                  # roster, then pretty much never again, so we keep it cached 5 seconds,
+                                  # then discard it.
+                                  Danga::Socket->AddTimer(5.0, sub {
+                                      delete $self->{roster_cache}{$barestr};
+                                  });
+
+                                  # call all the on-success items, but deleting the current list
+                                  # first, lest any of the callbacks load more roster items
+                                  delete $self->{roster_wanters}{$barestr};
+                                  foreach my $li (@$list) {
+                                      $li->[0]->($roster);
+                                  }
                               },
                           },
-                          fallback => $bad_cb);
+                          fallback => sub {
+                              # call all the on-fail items, but deleting the current list
+                              # first, lest any of the callbacks load more roster items
+                              delete $self->{roster_wanters}{$barestr};
+                              foreach my $li (@$list) {
+                                  $li->[1]->();
+                              }
+                          });
 }
 
 sub debug {
