@@ -651,6 +651,7 @@ sub close_stream {
 
 sub close {
     my DJabberd::Connection $self = shift;
+    $DJabberd::Stats::counter{disconnect}++;
     $self->log->debug("DISCONNECT: $self->{id}\n") if $self->{id};
 
     if (my $ssl = $self->{ssl}) {

@@ -2,7 +2,7 @@
 
 
 use strict;
-use Test::More tests => 2;
+use Test::More tests => 4;
 use lib 't/lib';
 BEGIN {  $ENV{LOGLEVEL} ||= "FATAL" }
 BEGIN { require 'djabberd-test.pl' }
@@ -30,3 +30,15 @@ my $line = $sock->getline;
 like($line, qr/$server/, "Get the vhost back");
 
 like($sock->getline, qr/\./, "And a terminator" );
+
+$sock->write("stats\r\n");
+
+my $buffer;
+while (my $line = $sock->getline) {
+    last if $line =~ /^\./;
+    $buffer .= $line;
+
+}
+
+like($buffer, qr/connect/, "got the number of connectors");
+like($buffer, qr/disconnect/, "got the number of disconnects");

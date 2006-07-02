@@ -33,6 +33,8 @@ use DJabberd::Delivery::Local;
 use DJabberd::Delivery::S2S;
 use DJabberd::PresenceChecker::Local;
 
+use DJabberd::Stats;
+
 package DJabberd;
 use strict;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
@@ -293,6 +295,7 @@ sub _start_server {
         }
 
         if (my $client = eval { $class->new($csock, $self) }) {
+            $DJabberd::Stats::counter{connect}++;
             $client->watch_read(1);
             return;
         } else {

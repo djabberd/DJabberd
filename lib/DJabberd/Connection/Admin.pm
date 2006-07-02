@@ -62,15 +62,28 @@ sub CMD_list {
 
     if ($type =~ /^vhosts?/) {
         $self->write($_) foreach keys %{$self->{server}->{vhosts}};
-        $self->write(".");
+        $self->end;;
     } else {
         $self->write("Cannot list '$type'");
     }
 
 }
 
+sub CMD_stats {
+    my $self = shift;
+
+    foreach my $name (sort keys %DJabberd::Stats::counter) {
+        $self->write("$name\t$DJabberd::Stats::counter{$name}");
+    }
+    $self->end;
+}
+
 sub CMD_version {
     $_[0]->write($DJabberd::VERSION);
+}
+
+sub end {
+    $_[0]->write('.');
 }
 
 sub write {
@@ -79,5 +92,10 @@ sub write {
     $self->SUPER::write($string . "\r\n");
 }
 
+sub close {
+    my $self = shift;
+    $DJabberd::Stats::counter{disconnect}++;
+    $self->SUPER::close(@_);
+}
 
 1;
