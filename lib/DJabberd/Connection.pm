@@ -451,6 +451,14 @@ sub event_read {
     my $len = length $$bref;
     #$self->log->debug("$self->{id} parsing $len bytes...") unless $len == 1;
 
+    # remove invalid low unicode code points which aren't allowed in XML,
+    # but both iChat and gaim have been observed to send in the wild, often
+    # when copy/pasting from bizarre sources.  this probably isn't compliant,
+    # and there's a speed hit, so only regexp them out in quirks mode:
+    if ($self->{vhost} && $self->{vhost}{quirksmode}) {
+        $$bref =~ s/&\#([\da-f]{0,8});/DJabberd::Util::numeric_entity_clean($1)/ieg;
+    }
+
     eval {
         $p->parse_chunk_scalarref($bref);
     };

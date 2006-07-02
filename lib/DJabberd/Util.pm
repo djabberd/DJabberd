@@ -48,6 +48,18 @@ sub tsub (&) {
     return $subref;
 }
 
+sub numeric_entity_clean {
+    my $hex = $_[0];
+    my $val = hex $hex;
+
+    # under a space, only \n, \r, and \t are allowed.
+    if ($val < 32 && ($val != 13 && $val != 10 && $val != 9)) {
+        return "";
+    }
+
+    return "&#$hex;";
+}
+
 package DJabberd::TrackedSub;
 
 sub DESTROY {

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 8;
+use Test::More tests => 10;
 use lib 't/lib';
 
 require 'djabberd-test.pl';
@@ -25,6 +25,15 @@ two_parties(sub {
     # PB to PA
     $pb->send_xml("<message type='chat' to='$pa'>Hello back!</message>");
     like($pa->recv_xml, qr/Hello back/, "pa got pb's message");
+
+    # PB to PA with some gibberish that iChat made
+    $pb->send_xml(qq{<message to="$pa" type="chat" id="iChat_3B808FAB">
+<body>so many&#16; say &quot;seconds&quot;</body>
+<html xmlns="http://jabber.org/protocol/xhtml-im"><body xmlns="http://www.w3.org/1999/xhtml" style="background-color:#EBEBEB;color:#000000"><span style="font-family:Helvetica">so many&#16; say &quot;seconds&quot;</span></body></html><x xmlns="jabber:x:event">
+<composing/>
+</x>
+</message>});
+    like($pa->recv_xml, qr/so many/, "pa got pb's iChat-made message");
 
     # PA to self
     $pa->send_xml("<message type='chat' to='$pa'>Hello myself!</message>");
