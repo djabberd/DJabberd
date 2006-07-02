@@ -61,8 +61,22 @@ MAIN: while(1) {
             $metric_key =~ s/\W/_/g;
             run_command("gmetric","-n","dj-$metric_key", "-v" ,"$output{$key}", "-t", "int32","-u", "per sec", "-p$mcastport");
         }
+
+
+        $sock->write("stats\r\n") || next MAIN;
+
+        while (my $line = $sock->getline || next MAIN) {
+            last if $line =~ /^\./;
+            $line =~ /^\s*(.+?)\s+(\d+)\s+(\w+)/;
+            my ($key, $val, $unit) = ($1, $2, $3);
+            my $metric_key = $key;
+            $metric_key =~ s/\W/_/g;
+            run_command("gmetric","-n","dj-stat-$metric_key", "-v" ,"$val", "-t", "int32","-u", "$unit", "-p$mcastport");
+        }
+
+
         # special case connections
-        run_command("gmetric","-n","dj-connections", "-v" ,$stats{connect} - $stats{disconnect}, "-t", "int32","-u", "current", "-p$mcastport");
+#        run_command("gmetric","-n","dj-connections", "-v" ,$stats{connect} - $stats{disconnect}, "-t", "int32","-u", "current", "-p$mcastport");
         sleep $sleep_time;
     }
  #   exit;
