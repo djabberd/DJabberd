@@ -19,9 +19,7 @@ sub check_digest {
     }
 
     my $is_good = LWP::Simple::get("http://www.livejournal.com/misc/jabber_digest.bml?user=$user" .
-                                   "&stream=$self->{stream_id}" .
-                                   "&digest=$digest");
-
+                                   "&stream=$streamid&digest=$digest");
     if ($is_good =~ /^GOOD/) {
         $cb->accept;
     } else {
