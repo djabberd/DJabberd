@@ -1,0 +1,56 @@
+#!/usr/bin/perl
+
+use strict;
+use warnings;
+use IO::Socket::INET;
+
+my $adminport = 5200;
+my $mcastport = 8650;
+my $sleep_time = 5;
+MAIN: while(1) {
+    
+    my $addr = "127.0.0.1:$adminport";
+    
+    my $sock = IO::Socket::INET->new(PeerAddr => "$addr",
+				     Timeout => 10)
+
+	or die "Cannot connect to server ($addr)";
+    
+    my %stats;
+    my %output;
+    while(1) {
+	$sock->write("stats\r\n") || next MAIN;
+	
+    
+	while (my $line = $sock->getline || next MAIN) {
+	    last if $line =~ /^\./;
+	    $line =~ /^\s*(.+?)\s+(\d+)/;
+	    my ($key, $val) = ($1, $2);
+	    next unless($key);
+	    if (exists $stats{$key}) {
+		if ($stats{$key} >= $val) {
+		    # someone reset a counter
+		    # or there where was no change
+		    $output{$key} = 0 if exists $output{$key};
+		} else {
+		    $output{$key} = (($val - $stats{$key}) / $sleep_time);
+		    $stats{$key}  = $val;
+		}
+	    } 
+	    $stats{$key}  = $val;
+	}
+	
+	use Data::Dumper;
+    
+	print Dumper(\%output);
+	foreach my $key (keys %output) {
+	    my $metric_key = $key;
+	    $metric_key =~ s/\W/_/g;
+	    system("gmetric","-n","dj-$metric_key", "-v" ,"$output{$key}", "-t", "int32","-u", "sec", "-p$mcastport") and die;
+	}
+	# special case connections
+	system("gmetric","-n","dj-connections", "-v" ,$stats{connect} - $stats{disconnect}, "-t", "int32","-u", "current", "-p$mcastport") and die;
+	sleep $sleep_time;
+    }
+ #   exit;
+}
