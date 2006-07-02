@@ -4,6 +4,7 @@ use base qw(XML::SAX::Base);
 use DJabberd::XMLElement;
 use DJabberd::StreamStart;
 use Scalar::Util qw(weaken);
+use Time::HiRes ();
 
 sub new {
     my ($class, $conn) = @_;
@@ -82,7 +83,14 @@ sub start_element {
         my ($doc, $events) = @_;
         my $nodes = _nodes_from_events($events);
         # {=xml-stanza}
+        my $t1 = Time::HiRes::time();
         $conn->on_stanza_received($nodes->[0]);
+        my $td = Time::HiRes::time() - $t1;
+
+        # ring buffer for latency stats:
+        $DJabberd::Stats::stanza_process_latency[ $DJabberd::Stats::latency_index =
+                                                  ($DJabberd::Stats::latency_index + 1) % $DJabberd::Stats::latency_max_size
+                                                  ] = $td;
     });
 
 }

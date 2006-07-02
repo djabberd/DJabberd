@@ -61,6 +61,32 @@ sub CMD_connections {
     $self->write($conns);
 }
 
+sub CMD_latency {
+    my $self = shift;
+    my %hist;
+    my @buckets = (
+                   '0.0005',
+                   '0.001', '0.002', '0.005',
+                   '0.01',  '0.02',  '0.05',
+                   '0.1',   '0.2',
+                   '1.0', '2.0', '10.0',
+                   );
+    foreach my $td (@DJabberd::Stats::stanza_process_latency) {
+        next unless defined $td;
+        foreach my $bk (@buckets) {
+            if ($td < $bk) {
+                $hist{$bk}++;
+                last;
+            }
+        }
+    }
+    foreach my $bk (@buckets) {
+        next unless $hist{$bk};
+        $self->write("-$bk\t$hist{$bk}");
+    }
+    $self->end;
+}
+
 sub CMD_help {
     my $self = shift;
     $self->write($_) foreach split(/\n/, <<EOC);
@@ -69,6 +95,11 @@ Available commands:
    help
    list vhosts
    quit
+   connections
+   conns
+   conns servers
+   conns clients
+   latency
 .
 EOC
 }
