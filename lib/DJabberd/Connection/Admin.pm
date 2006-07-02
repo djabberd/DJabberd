@@ -100,6 +100,7 @@ Available commands:
    conns servers
    conns clients
    latency
+   users
 .
 EOC
 }
@@ -129,14 +130,13 @@ sub CMD_stats {
 sub CMD_users {
     my $self = shift;
 
-    foreach my $server (values %DJabberd::server) {
-        foreach my $vhost (values %{$server->{vhosts}}) {
-            $self->write("$vhost->{server_name}");
-            foreach my $jid (keys %{$vhost->{jid2sock}}) {
-                $self->write("\t$jid");
-            }
+    DJabberd->foreach_vhost(sub {
+        my $vhost = shift;
+        $self->write("$vhost->{server_name}");
+        foreach my $jid (keys %{$vhost->{jid2sock}}) {
+            $self->write("\t$jid");
         }
-    }
+    });
     $self->end;
 }
 

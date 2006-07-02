@@ -81,6 +81,16 @@ sub DESTROY {
     delete $server{$_[0]};
 }
 
+# class method
+sub foreach_vhost {
+    my (undef, $cb) = @_;
+    foreach my $server (values %DJabberd::server) {
+        foreach my $vhost (values %{$server->{vhosts}}) {
+            $cb->($vhost);
+        }
+    }
+}
+
 sub share_parsers { $_[0]{share_parsers} };
 
 sub set_config_shareparsers {
