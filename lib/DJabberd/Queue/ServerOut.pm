@@ -5,9 +5,9 @@ use warnings;
 use base 'DJabberd::Queue';
 use DJabberd::Queue qw(NO_CONN RESOLVING);
 use fields (
-	    'domain',
-	    'del_source',
-	    );
+            'domain',
+            'del_source',
+            );
 
 use DJabberd::Connection::ServerOut;
 
@@ -20,7 +20,7 @@ sub new {
 
 #    warn( join ",", keys %opts );
 #    warn( $opts{domain});
-				  
+
     my $domain = delete $opts{domain}
         or Carp::confess "domain required";
     my $del_source = delete $opts{source}
@@ -62,8 +62,8 @@ sub start_connecting {
                        callback => sub {
                            $self->endpoints(@_);
                            $logger->debug("Resolver callback for '$self->{domain}': [@_]");
-			   $self->{state} = NO_CONN;
-			   $self->SUPER::start_connecting;
+                           $self->{state} = NO_CONN;
+                           $self->SUPER::start_connecting;
                        });
 }
 
