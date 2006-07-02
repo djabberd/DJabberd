@@ -46,6 +46,8 @@ our $VERSION = 0.1;
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
 
+our %server;
+
 sub new {
     my ($class, %opts) = @_;
 
@@ -69,7 +71,14 @@ sub new {
     croak("Unknown server parameters: " . join(", ", keys %opts)) if %opts;
 
     bless $self, $class;
+    $server{$self} = $self;
+    Scalar::Util::weaken($server{$self});
+
     return $self;
+}
+
+sub DESTROY {
+    delete $server{$_[0]};
 }
 
 sub share_parsers { $_[0]{share_parsers} };
