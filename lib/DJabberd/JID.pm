@@ -14,12 +14,17 @@ use constant AS_BSTRING => 4;
 sub new {
     #my ($class, $jidstring) = @_;
 
-    # {=jidformat}, {=jidsizes}
+    # The following regex is loosely based on the EBNF grammar in
+    # JEP-0029. This JEP has actually been retracted, but seems to be
+    # the only reasonable spec for JID syntax.
+
+    # NOTE: Currently this only supports US-ASCII characters.
+
     return undef unless $_[1] && $_[1] =~
-        m!^(?: ([\w\.]{1,1023}) \@)?    # $1: optional node
-           ([^/]{1,1023})               # $2: domain
-           (?: /(.{1,1023})   )?        # $3: optional resource
-           !x;
+        m!^(?: ([\x29\x23-\x25\x28-\x2E\x30-\x39\x3B\x3D\x3F\x41-\x7E]{1,1023}) \@)? # $1: optional node
+           ([a-zA-Z0-9\.\-]{1,1023})                                                 # $2: domain
+           (?: /([\x21-\x7e]{1,1023})   )?                                           # $3: optional resource
+           $!x;
 
     return bless [ $1, $2, $3 ], $_[0];
 }
