@@ -382,8 +382,8 @@ sub _load_config_ref {
     foreach my $line (split(/\n/, $$configref)) {
         $linenum++;
 
-        next if $line =~ /^\#/;
         $line =~ s/^\s+//;
+        next if $line =~ /^\#/;
         $line =~ s/\s+$//;
         next unless $line =~ /\S/;
 
