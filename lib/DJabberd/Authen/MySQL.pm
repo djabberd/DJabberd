@@ -161,4 +161,13 @@ sub check_cleartext {
     }
 }
 
+=head1 COPYRIGHT & LICENSE
+
+Copyright 2006 Alexander Karelas, Martin Atkins and Brad Fitzpatrick. All rights reserved.
+
+This program is free software; you can redistribute it and/or modify it
+under the same terms as Perl itself.
+
+=cut
+
 1;
