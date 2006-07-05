@@ -126,7 +126,7 @@ sub CMD_stats {
     if ($^O eq 'linux') {
         my ($mem) = `cat /proc/\`pidof -x djabberd\`/status | grep ^VmRSS` =~ /(\d+)/;
         $self->write("mem_total\t$mem\tkB");
-        $self->write("mem_per_connection\t". ($mem / $connections ) . "\tkB/conn");
+        $self->write("mem_per_connection\t". ($mem / ($connections || 1) ) . "\tkB/conn");
     }
 
     $self->end;
