@@ -104,18 +104,28 @@ sub send_reply {
 sub process_iq_disco_info_query {
     my ($conn, $iq) = @_;
 
-
+    # Trillian, again, is fucking stupid and crashes on just
+    # about anything its homemade XML parser doesn't like.
+    # so ignore it when it asks for this, just never giving
+    # it a reply.
+    if ($conn->vhost->quirksmode && $iq->id =~ /^trill_/) {
+        return;
+    }
 
     # TODO: these can be sent back to another server I believe -- sky
 
     # TODO: Here we need to figure out what identities we have and
     # capabilities we have
-    my $xml = qq{<query xmlns='http://jabber.org/protocol/disco#info'>
-                     <identity category='server' type='im' name='djabberd'/>};
-    foreach my $cap ($conn->vhost->features) {
+    my $xml;
+    $xml  = qq{<query xmlns='http://jabber.org/protocol/disco#info'>};
+    $xml .= qq{<identity category='server' type='im' name='djabberd'/>};
+
+    foreach my $cap ('http://jabber.org/protocol/disco#info',
+                     $conn->vhost->features)
+    {
         $xml .= "<feature var='$cap'/>";
     }
-    $xml .= "</query>";
+    $xml .= qq{</query>};
 
     $iq->send_reply('result', $xml);
 }
