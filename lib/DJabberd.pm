@@ -48,6 +48,8 @@ our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
 
 our %server;
 
+$SIG{USR2} = sub { Carp::cluck("USR2") };
+
 sub new {
     my ($class, %opts) = @_;
 
