@@ -1,3 +1,9 @@
+-- ACKing: http://www.jabber.org/jeps/inbox/ack.html .  does anybody do this?
+   if they do, and declare the xmlns in open stream, our reusing parser might eat it.
+   we should double-check how we deal with that.
+
+-- add reason codes to type='error' on roster set, else it crashes Pandion it'd seem
+
 -- make "sub send_presence_probes" in Connection/ClientIn a hook so the whole thing can be
    bypassed:  then LiveJournal can do this all in web land, looking up all contacts, looking
    at all presence status/locations in databases, and injecting the presence replies back
