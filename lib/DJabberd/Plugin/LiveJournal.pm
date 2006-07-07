@@ -49,32 +49,51 @@ sub get_vcard {
 
     my ($username) = $user =~ /^(\w+)\@/;
 
-    my $mimetype;
-    my $data = get("http://www.livejournal.com/misc/jabber_avatar.bml?user=${username}");
-    die "No data for $user" unless $data;
-    warn "Data length for $user = " . length($data) . "\n";
-
-    my $b64 = encode_base64($data);
-
-    if ($data =~ /^GIF/) {
-        $mimetype = "image/gif";
-    } elsif ($data =~ /^\x89PNG/) {
-        $mimetype = "image/png";
-    } else {
-        $mimetype = 'image/jpeg';
+    my $gc = DJabberd::Plugin::LiveJournal->gearman_client;
+    unless ($gc) {
+        $iq->send_error;
+        return;
     }
 
-    $logger->info("Getting vcard for user '$user'");
-    my $vcard = qq{<vCard xmlns='vcard-temp'>
-    <N><GIVEN>$username</GIVEN></N>
-    <PHOTO>
-      <TYPE>$mimetype</TYPE>
-      <BINVAL>$b64</BINVAL>
-    </PHOTO>
-    </vCard>};
+    $gc->add_task(Gearman::Task->new("ljtalk_avatar_data" => \ "$username", {
+        uniq        => "-",
+        retry_count => 2,
+        timeout     => 10,
+        on_fail     => sub { $iq->send_error },
+        on_complete => sub {
+            my $dataref = shift;
+            unless ($$dataref) {
+                $iq->send_error;
+                return;
+            }
 
-    my $reply = $self->make_response($iq, $vcard);
-    $reply->deliver($vhost);
+            my $data = $$dataref;
+            my $mimetype;
+            warn "Data length for $user = " . length($data) . "\n";
+
+            my $b64 = encode_base64($data);
+
+            if ($data =~ /^GIF/) {
+                $mimetype = "image/gif";
+            } elsif ($data =~ /^\x89PNG/) {
+                $mimetype = "image/png";
+            } else {
+                $mimetype = 'image/jpeg';
+            }
+
+            my $vcard = qq{<vCard xmlns='vcard-temp'>
+                               <N><GIVEN>$username</GIVEN></N>
+                               <PHOTO>
+                               <TYPE>$mimetype</TYPE>
+                               <BINVAL>$b64</BINVAL>
+                               </PHOTO>
+                               </vCard>};
+
+            my $reply = $self->make_response($iq, $vcard);
+            $reply->deliver($vhost);
+            return;
+        },
+    }));
 }
 
 sub make_response {
@@ -132,7 +151,9 @@ sub hook_alter_presence {
     my (undef, $cb, $conn, $pkt) = @_;
 
     my $bj = $conn->bound_jid;
-    unless ($bj) {
+    my $gc = DJabberd::Plugin::LiveJournal->gearman_client;
+
+    unless ($bj && $gc) {
         $cb->done;
         return;
     }
@@ -144,20 +165,29 @@ sub hook_alter_presence {
     }
 
     my $user = $bj->node;
-    my $sha1_hex = get("http://www.livejournal.com/misc/jabber_avatar.bml?user=${user}&want=sha1");
 
-    # append our fake one
-    my $avatar = DJabberd::XMLElement->new("vcard-temp:x:update",
-                                           "x",
-                                           { '{}xmlns' => 'vcard-temp:x:update' },
-                                           [
-                                            DJabberd::XMLElement->new("vcard-temp:x:update",
-                                                                      "photo",
-                                                                      {},
-                                                                      [$sha1_hex]),
-                                            ]);
-    $pkt->push_child($avatar);
-    $cb->done;
+    $gc->add_task(Gearman::Task->new("ljtalk_avatar_sha1" => \ "$user", {
+        uniq        => "-",
+        retry_count => 2,
+        timeout     => 10,
+        on_fail     => sub { $cb->done },
+        on_complete => sub {
+            my $sha1ref = shift;
+
+            # append our fake one
+            my $avatar = DJabberd::XMLElement->new("vcard-temp:x:update",
+                                                   "x",
+                                                   { '{}xmlns' => 'vcard-temp:x:update' },
+                                                   [
+                                                    DJabberd::XMLElement->new("vcard-temp:x:update",
+                                                                              "photo",
+                                                                              {},
+                                                                              [$$sha1ref]),
+                                                    ]);
+            $pkt->push_child($avatar);
+            $cb->done;
+        },
+    }));
 }
 
 1;
