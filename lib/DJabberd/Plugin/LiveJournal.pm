@@ -4,9 +4,23 @@ use base 'DJabberd::Plugin';
 use warnings;
 use Digest::SHA1 qw(sha1_hex);
 use MIME::Base64;
+use Gearman::Client::Async;
+
 use LWP::Simple;
 
 our $logger = DJabberd::Log->get_logger();
+
+our $gearman_client;
+sub gearman_client {
+    return $gearman_client;
+}
+
+sub set_config_gearmanservers {
+    my ($self, $val) = @_;
+    my @list = split(/\s*,\s*/, $val);
+    $gearman_client = Gearman::Client::Async->new;
+    $gearman_client->set_job_servers(@list);
+}
 
 sub register {
     my ($self, $vhost) = @_;
