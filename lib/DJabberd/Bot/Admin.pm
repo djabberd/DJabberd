@@ -46,13 +46,8 @@ sub handle_message {
         $self->{buffer} = "Unknown command '$command'";
     }
 
+    return $self->{buffer};
 
-
-
-    my $reply = DJabberd::Message->new('jabber:client', 'message', { '{}type' => 'chat', '{}to' => $stanza->from, '{}from' => $self->{jid} }, []);
-    $reply->set_raw('<body>' . exml($self->{buffer}) . '</body>');
-    undef $self->{buffer};
-    $reply->deliver($self->{vhost});
 }
 
 

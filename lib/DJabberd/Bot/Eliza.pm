@@ -28,15 +28,7 @@ sub handle_message {
         }
     }
     $logger->logdie("Can't find a body in incoming message") unless $body;
-    my $text = $body->first_child;
-    my $txt_reply = $self->{bot}->transform($text);
-
-
-    my $reply = DJabberd::Message->new('jabber:client', 'message', { '{}type' => 'chat', '{}to' => $stanza->from, '{}from' => $self->{jid} }, []);
-
-
-    $reply->set_raw('<body>' . exml($txt_reply) . '</body>');
-    $reply->deliver($self->{vhost});;
+    return $self->{bot}->transform($body->first_child);
 }
 
 1;

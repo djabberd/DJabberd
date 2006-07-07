@@ -70,11 +70,24 @@ sub write {
 sub send_stanza {
     my ($self, $stanza) = @_;
 
-
+    my $body = "";
+    my $reply;
     if($stanza->isa('DJabberd::Message')) {
-        $self->{bot}->handle_message($stanza);
+        my ($text, $html) = $self->{bot}->handle_message($stanza);
+        if ($text) {
+            $body .= "<body>". DJabberd::Util::exml($text) . "</body>";
+        }
+        if ($html) {
+            $body .= $html;
+        }
+        $reply = DJabberd::Message->new('jabber:client', 'message', { '{}type' => 'chat', '{}to' => $stanza->from, '{}from' => $self->{bot}{jid} }, []);
     } else {
-        $logger->warn("Ignoring $_[0]");
+        $logger->warn("Ignoring $stanza");
+    }
+
+    if($body && $reply) {
+        $reply->set_raw($body);
+        $reply->deliver($self->{bot}{vhost});
     }
 }
 
