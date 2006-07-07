@@ -25,76 +25,14 @@ sub set_config_gearmanservers {
 sub register {
     my ($self, $vhost) = @_;
 
-    my $vcard_cb = sub {
-        my ($vh, $cb, $iq) = @_;
-        unless ($iq->isa("DJabberd::IQ")) {
-            $cb->decline;
-            return;
-        }
-        if (my $to = $iq->to_jid) {
-            unless ($vhost->handles_jid($to)) {
-                $cb->decline;
-                return;
-            }
-        }
-        if ($iq->signature eq 'get-{vcard-temp}vCard') {
-            $self->get_vcard($vh, $iq);
-            $cb->stop_chain;
-            return;
-        } elsif ($iq->signature eq 'set-{vcard-temp}vCard') {
-            $self->set_vcard($vh, $iq);
-            $cb->stop_chain;
-            return;
-        }
-        $cb->decline;
+    my $hook_vcard = sub {
+        $self->hook_vcard_switch(@_);
     };
 
-    $vhost->register_hook("OnInitialPresence", sub {
-        my (undef, $cb, $conn) = @_;
-        my $bj = $conn->bound_jid;
-        my $how_much = $bj->node =~ /^whitaker|revmischa|brad|crucially|supersat|mart|scsi|evan$/ ?
-            "more than Whitaker's mom" :
-            "a lot";
-
-        $conn->write("<message to='$bj' from='livejournal.com' type='headline'><body>LJ Talk is currently a pre-alpha service lacking tons of features and probably with a bunch of bugs.
-
-We're actively developing it, constantly restarting it with new stuff.  So just don't be surprised if the service goes up and down $how_much.</body></message>");
-    });
-
-    $vhost->register_hook("switch_incoming_client", $vcard_cb);
-    $vhost->register_hook("switch_incoming_server", $vcard_cb);
-
-    $vhost->register_hook("AlterPresenceAvailable", sub {
-        my (undef, $cb, $conn, $pkt) = @_;
-
-        my $bj = $conn->bound_jid;
-        unless ($bj) {
-            $cb->done;
-            return;
-        }
-
-        foreach my $ele ($pkt->children_elements) {
-            next unless ($ele->inner_ns || '') eq "vcard-temp:x:update" && $ele->element_name eq "x";
-            $pkt->remove_child($ele);
-            last;
-        }
-
-        my $user = $bj->node;
-        my $sha1_hex = get("http://www.livejournal.com/misc/jabber_avatar.bml?user=${user}&want=sha1");
-
-        # append our fake one
-        my $avatar = DJabberd::XMLElement->new("vcard-temp:x:update",
-                                               "x",
-                                               { '{}xmlns' => 'vcard-temp:x:update' },
-                                               [
-                                                DJabberd::XMLElement->new("vcard-temp:x:update",
-                                                                          "photo",
-                                                                          {},
-                                                                          [$sha1_hex]),
-                                                ]);
-        $pkt->push_child($avatar);
-        $cb->done;
-    });
+    $vhost->register_hook("switch_incoming_client", $hook_vcard);
+    $vhost->register_hook("switch_incoming_server", $hook_vcard);
+    $vhost->register_hook("OnInitialPresence",      \&hook_on_initial_presence);
+    $vhost->register_hook("AlterPresenceAvailable", \&hook_alter_presence);
     $vhost->add_feature("vcard-temp");
 }
 
@@ -154,10 +92,72 @@ sub make_response {
     return $response;
 }
 
-sub set_vcard {
-    my ($self, $vhost, $iq) = @_;
-    $iq->send_error;
+sub hook_on_initial_presence {
+    my (undef, $cb, $conn) = @_;
+    my $bj = $conn->bound_jid;
+    my $how_much = $bj->node =~ /^whitaker|revmischa|brad|crucially|supersat|mart|scsi|evan$/ ?
+        "more than Whitaker's mom" :
+        "a lot";
+
+    $conn->write("<message to='$bj' from='livejournal.com' type='headline'><body>LJ Talk is currently a pre-alpha service lacking tons of features and probably with a bunch of bugs.
+
+We're actively developing it, constantly restarting it with new stuff.  So just don't be surprised if the service goes up and down $how_much.</body></message>");
 }
 
+sub hook_vcard_switch {
+    my ($self, $vhost, $cb, $iq) = @_;
+    unless ($iq->isa("DJabberd::IQ")) {
+        $cb->decline;
+        return;
+    }
+    if (my $to = $iq->to_jid) {
+        unless ($vhost->handles_jid($to)) {
+            $cb->decline;
+            return;
+        }
+    }
+    if ($iq->signature eq 'get-{vcard-temp}vCard') {
+        $self->get_vcard($vhost, $iq);
+        $cb->stop_chain;
+        return;
+    } elsif ($iq->signature eq 'set-{vcard-temp}vCard') {
+        $iq->send_error;
+        $cb->stop_chain;
+        return;
+    }
+    $cb->decline;
+}
+
+sub hook_alter_presence {
+    my (undef, $cb, $conn, $pkt) = @_;
+
+    my $bj = $conn->bound_jid;
+    unless ($bj) {
+        $cb->done;
+        return;
+    }
+
+    foreach my $ele ($pkt->children_elements) {
+        next unless ($ele->inner_ns || '') eq "vcard-temp:x:update" && $ele->element_name eq "x";
+        $pkt->remove_child($ele);
+        last;
+    }
+
+    my $user = $bj->node;
+    my $sha1_hex = get("http://www.livejournal.com/misc/jabber_avatar.bml?user=${user}&want=sha1");
+
+    # append our fake one
+    my $avatar = DJabberd::XMLElement->new("vcard-temp:x:update",
+                                           "x",
+                                           { '{}xmlns' => 'vcard-temp:x:update' },
+                                           [
+                                            DJabberd::XMLElement->new("vcard-temp:x:update",
+                                                                      "photo",
+                                                                      {},
+                                                                      [$sha1_hex]),
+                                            ]);
+    $pkt->push_child($avatar);
+    $cb->done;
+}
 
 1;
