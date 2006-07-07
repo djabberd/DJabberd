@@ -461,7 +461,7 @@ sub get_roster {
                               # first, lest any of the callbacks load more roster items
                               delete $self->{roster_wanters}{$barestr};
                               foreach my $li (@$list) {
-                                  $li->[1]->();
+                                  $li->[1]->() if $li->[1];
                               }
                           });
 }
