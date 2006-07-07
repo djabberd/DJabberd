@@ -283,7 +283,6 @@ sub find_jid {
     my ($self, $jid) = @_;
     return $self->find_jid($jid->as_string) if ref $jid;
     my $sock = $self->{jid2sock}{$jid} or return undef;
-    return $sock if ref $sock eq 'CODE';
     return undef if $sock->{closed};
     return $sock;
 }
@@ -291,11 +290,7 @@ sub find_jid {
 sub register_jid {
     my ($self, $jid, $conn, $cb) = @_;
     # $cb can ->registered, ->error
-    if (ref($conn) eq 'CODE') {
-        $logger->info("Registering '$jid' to internal coderef");
-    } else {
-        $logger->info("Registering '$jid' to connection '$conn->{id}'");
-    }
+    $logger->info("Registering '$jid' to connection '$conn->{id}'");
 
     my $barestr = $jid->as_bare_string;
     my $fullstr = $jid->as_string;

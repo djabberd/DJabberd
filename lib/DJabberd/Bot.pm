@@ -46,17 +46,41 @@ sub register {
             },
     });
 
-    my $handler = sub {
-        if($_[0]->isa('DJabberd::Message')) {
-            $self->handle_message(@_);
-        } else {
-            $logger->warn("Ignoring $_[0]");
-        }
-    };
+    my $handler = DJabberd::Bot::Handler->new();
+    $handler->{bot} = $self;
 
     $vhost->register_jid($self->{jid}, $handler , $regcb);
 
 }
+
+package DJabberd::Bot::Handler;
+
+sub new {
+    my $class = shift;
+    my $self = bless {} , $class;
+    $self->{id} = "Internal Bot";
+    return $self;
+}
+
+sub write {
+    # currently don't do anything here
+    $logger->warn("Ignoring writes");
+}
+
+sub send_stanza {
+    my ($self, $stanza) = @_;
+
+
+    if($stanza->isa('DJabberd::Message')) {
+        $self->{bot}->handle_message($stanza);
+    } else {
+        $logger->warn("Ignoring $_[0]");
+    }
+}
+
+sub is_available { 1 }
+
+sub requested_roster { 0 }
 
 
 

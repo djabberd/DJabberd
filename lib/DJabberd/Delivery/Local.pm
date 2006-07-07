@@ -11,14 +11,14 @@ sub deliver {
 
     my @dconns;
     my $find_bares = sub {
-        @dconns = grep { ref($_) eq 'CODE' || $_->is_available || $stanza->deliver_when_unavailable } $vhost->find_conns_of_bare($to)
+        @dconns = grep { $_->is_available || $stanza->deliver_when_unavailable } $vhost->find_conns_of_bare($to)
     };
 
     if ($to->is_bare) {
         $find_bares->();
     } else {
         my $dest;
-        if (($dest = $vhost->find_jid($to)) && (ref($dest) eq 'CODE' || $dest->is_available || $stanza->deliver_when_unavailable)) {
+        if (($dest = $vhost->find_jid($to)) && ($dest->is_available || $stanza->deliver_when_unavailable)) {
             push @dconns, $dest;
         } else {
             $find_bares->();
@@ -30,11 +30,7 @@ sub deliver {
     $DJabberd::Stats::counter{deliver_local}++;
 
     foreach my $c (@dconns) {
-        if (ref($c) eq 'CODE') {
-            $c->($stanza);
-        } else {
-            $c->send_stanza($stanza);
-        }
+        $c->send_stanza($stanza);
     }
 
     $cb->delivered;
