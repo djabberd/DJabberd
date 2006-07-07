@@ -35,7 +35,7 @@ sub get_roster {
         return;
     }
     foreach (1..$self->{number}) {
-        my $ri =  DJabberd::RosterItem->new(jid => "user_$_\@$self->{server_name}" , groups => ["dummies"]);
+        my $ri =  DJabberd::RosterItem->new(jid => "dummy_$_\@$self->{server_name}" , groups => ["dummies"]);
         $ri->subscription->set_to;
         $ri->subscription->set_from;
         $roster->add($ri);
