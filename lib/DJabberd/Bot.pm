@@ -46,20 +46,8 @@ sub register {
             },
     });
 
-    my $handler = DJabberd::Bot::Handler->new();
-    $handler->{bot} = $self;
+    $vhost->register_jid($self->{jid}, $self , $regcb);
 
-    $vhost->register_jid($self->{jid}, $handler , $regcb);
-
-}
-
-package DJabberd::Bot::Handler;
-
-sub new {
-    my $class = shift;
-    my $self = bless {} , $class;
-    $self->{id} = "Internal Bot";
-    return $self;
 }
 
 sub write {
@@ -73,21 +61,21 @@ sub send_stanza {
     my $body = "";
     my $reply;
     if($stanza->isa('DJabberd::Message')) {
-        my ($text, $html) = $self->{bot}->handle_message($stanza);
+        my ($text, $html) = $self->handle_message($stanza);
         if ($text) {
             $body .= "<body>". DJabberd::Util::exml($text) . "</body>";
         }
         if ($html) {
             $body .= $html;
         }
-        $reply = DJabberd::Message->new('jabber:client', 'message', { '{}type' => 'chat', '{}to' => $stanza->from, '{}from' => $self->{bot}{jid} }, []);
+        $reply = DJabberd::Message->new('jabber:client', 'message', { '{}type' => 'chat', '{}to' => $stanza->from, '{}from' => $self->{jid} }, []);
     } else {
         $logger->warn("Ignoring $stanza");
     }
 
     if($body && $reply) {
         $reply->set_raw($body);
-        $reply->deliver($self->{bot}{vhost});
+        $reply->deliver($self->{vhost});
     }
 }
 
