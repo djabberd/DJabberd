@@ -23,7 +23,6 @@ sub check_digest {
 
     # non-blocking auth lookup, using gearman.
     if ($gc) {
-        warn "sending off to gc...\n";
         $gc->add_task(Gearman::Task->new("ljtalk_auth_check" => \ "$user,$streamid,$digest", {
             uniq        => "-",
             retry_count => 2,
