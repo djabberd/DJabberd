@@ -1,11 +1,10 @@
 
 package DJabberd::Bot::Eliza;
-# abstract base class
 use strict;
 use warnings;
 use base 'DJabberd::Bot';
 use Chatbot::Eliza;
-
+use DJabberd::Util qw(exml);
 
 our $logger = DJabberd::Log->get_logger();
 
@@ -35,7 +34,8 @@ sub handle_message {
 
     my $reply = DJabberd::Message->new('jabber:client', 'message', { '{}type' => 'chat', '{}to' => $stanza->from, '{}from' => $self->{jid} }, []);
 
-    $reply->set_raw(qq{<body>$txt_reply</body>});
+
+    $reply->set_raw('<body>' . exml($txt_reply) . '</body>');
     $reply->deliver($self->{vhost});;
 }
 
