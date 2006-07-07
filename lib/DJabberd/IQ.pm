@@ -435,10 +435,22 @@ sub process_iq_setauth {
 
     my $vhost = $conn->vhost;
 
+    my $reject = sub {
+        $DJabberd::Stats::counter{'auth_failure'}++;
+        $iq->send_reply("error", qq{<error code='401' type='auth'><not-authorized xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/></error>});
+        return 1;
+    };
+
+
     my $accept = sub {
         # register
         my $sname = $vhost->name;
         my $jid = DJabberd::JID->new("$username\@$sname/$resource");
+
+        unless ($jid) {
+            $reject->();
+            return;
+        }
 
         my $regcb = DJabberd::Callback->new({
             registered => sub {
@@ -452,12 +464,6 @@ sub process_iq_setauth {
         });
 
         $vhost->register_jid($jid, $conn, $regcb);
-    };
-
-    my $reject = sub {
-        $DJabberd::Stats::counter{'auth_failure'}++;
-        $iq->send_reply("error", qq{<error code='401' type='auth'><not-authorized xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/></error>});
-        return 1;
     };
 
     my $can_get_password = $vhost->are_hooks("GetPassword");
