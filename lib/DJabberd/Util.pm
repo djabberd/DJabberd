@@ -2,7 +2,7 @@ package DJabberd::Util;
 use strict;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(exml tsub as_bool as_num as_abs_path);
+our @EXPORT_OK = qw(exml tsub lbsub as_bool as_num as_abs_path);
 
 sub as_bool {
     my $val = shift;
@@ -41,11 +41,22 @@ sub exml
     return $a;
 }
 
+# tracked sub
 sub tsub (&) {
     my $subref = shift;
     bless $subref, 'DJabberd::TrackedSub';
     DJabberd->track_new_obj($subref);
     return $subref;
+}
+
+# line-blessed sub
+sub lbsub (&) {
+    my $subref = shift;
+    my ($pkg, $file, $line) = caller;
+    my $bpkg = $file . "_" . $line;
+    $bpkg =~ s/[^\w]/_/g;
+    warn "blessing into $bpkg\n";
+    return bless $subref, "DJabberd::AnonSubFrom::$bpkg";
 }
 
 sub numeric_entity_clean {
