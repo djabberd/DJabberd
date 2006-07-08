@@ -160,8 +160,10 @@ sub CMD_version {
     $_[0]->write($DJabberd::VERSION);
 }
 
+my %last_gladiator;
 sub CMD_gladiator {
-    my $self = shift;
+    my ($self, $cmd) = @_;
+
     unless ($has_gladiator) {
         $self->end;
         return;
@@ -171,8 +173,14 @@ sub CMD_gladiator {
     my $ret;
     $ret .= "ARENA COUNTS:\n";
     foreach my $k (sort {$ct->{$b} <=> $ct->{$a}} keys %$ct) {
-        next unless $ct->{$k} > 1;
-        $ret .= sprintf(" %4d $k\n", $ct->{$k});
+        my $delta = $ct->{$k} - $last_gladiator{$k};
+        if ($cmd eq "delta") {
+            next unless $delta;
+        } else {
+            next unless $ct->{$k} > 1 || $cmd eq "all";
+        }
+        $ret .= sprintf(" %4d %-4d $k\n", $ct->{$k}, $delta);
+        $last_gladiator{$k} = $ct->{$k};
     }
 
     $self->write($ret);
