@@ -47,7 +47,7 @@ sub check_install_schema {
                                  )});
         $dbh->do(qq{
             CREATE TABLE rostergroup (
-                                      groupid       INTEGER PRIMARY KEY REFERENCES jidmap NOT NULL,
+                                      groupid       INTEGER PRIMARY KEY NOT NULL,
                                       userid        INTEGER REFERENCES jidmap NOT NULL,
                                       name          VARCHAR(255),
                                       UNIQUE (userid, name)
