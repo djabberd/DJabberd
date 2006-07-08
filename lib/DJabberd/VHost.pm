@@ -36,7 +36,7 @@ sub new {
         roster_cache    => {},  # $barejid_str -> DJabberd::Roster
 
         roster_wanters  => {},  # $barejid_str -> [ [$on_success, $on_fail]+ ]
-        
+
         disco_kids      => {},  # $jid_str -> "Description" - children of this vhost for service discovery
     };
 
@@ -122,16 +122,16 @@ sub set_config_inbandreg {
 
 sub set_config_childservice {
     my ($self, $val) = @_;
-    
+
     my ($strjid, $desc) = split(/\s+/, $val, 2);
-    
+
     my $jid = DJabberd::JID->new($strjid);
     $logger->logdie("Invalid JID ".$strjid) unless $jid;
-    
+
     $desc ||= $jid->node;
-    
+
     $logger->info("Registered $strjid as VHost child service: $desc");
-    
+
     $self->{disco_kids}{$jid} = $desc;
 }
 
