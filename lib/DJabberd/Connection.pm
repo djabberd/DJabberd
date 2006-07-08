@@ -548,20 +548,20 @@ sub start_stream_back {
     my $ns         = delete $opts{'namespace'} or
         die "No default namespace"; # {=stream-def-namespace}
 
-    my $extra_attr = delete $opts{'extra_attr'} || "";
+    my $extra_attr    = delete $opts{'extra_attr'} || "";
+    my $features_body = delete $opts{'features'} || "";
     die if %opts;
 
     my $features = "";
     if ($ss->version->supports_features) {
         # unless we're already in SSL mode, advertise it as a feature...
         # {=must-send-features-on-1.0}
-        my $tls = "";
         if (!$self->{ssl}
             && $self->server->ssl_cert_file
             && !$self->isa("DJabberd::Connection::ServerIn")) {
-            $tls = "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls' />";
+            $features_body .= "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls' />";
         }
-        $features = qq{<stream:features>$tls</stream:features>};
+        $features = qq{<stream:features>$features_body</stream:features>};
     }
 
     # The receiving entity MUST set the value of the 'version'

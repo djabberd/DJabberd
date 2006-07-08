@@ -151,7 +151,9 @@ sub on_stream_start {
     # FIXME: bitch if we're starting a stream when we already have one, and we aren't
     # expecting a new stream to start (like after SSL or SASL)
     $self->start_stream_back($ss,
-                             namespace  => 'jabber:client');
+                             namespace  => 'jabber:client',
+                             features   => qq{<auth xmlns='http://jabber.org/features/iq-auth'/>},
+                             );
 }
 
 sub is_server { 0 }
