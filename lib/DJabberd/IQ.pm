@@ -42,7 +42,7 @@ sub process {
     # Trillian Jabber 3.1 is stupid and sends a lot of IQs (but non-important ones)
     # without ids.  If we respond to them (also without ids, or with id='', rather),
     # then Trillian crashes.  So let's just ignore them.
-    return unless length ($self->id);
+    return unless defined($self->id) && length($self->id);
 
     $conn->vhost->run_hook_chain(phase    => "c2s-iq",
                                  args     => [ $self ],
@@ -134,9 +134,9 @@ sub process_iq_disco_items_query {
     my ($conn, $iq) = @_;
 
     my $vhost = $conn->vhost;
-    
+
     my $items = $vhost ? $vhost->child_services : {};
-    
+
     my $xml = qq{<query xmlns='http://jabber.org/protocol/disco#items'>}.
         join('', map({ "<item jid='".exml($_)."' name='".exml($items->{$_})."' />" } keys %$items)).
         qq{</query>};
