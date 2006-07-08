@@ -137,9 +137,6 @@ sub process_iq_disco_items_query {
     
     my $items = $vhost ? $vhost->child_services : {};
     
-    use Data::Dumper;
-    $logger->debug("Got child items: ".Data::Dumper::Dumper($items));
-
     my $xml = qq{<query xmlns='http://jabber.org/protocol/disco#items'>}.
         join('', map({ "<item jid='".exml($_)."' name='".exml($items->{$_})."' />" } keys %$items)).
         qq{</query>};
