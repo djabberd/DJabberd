@@ -5,6 +5,8 @@ use base 'Danga::Socket';
 
 use fields qw(buffer server);
 
+my $has_gladiator = eval "use Devel::Gladiator; 1;";
+
 sub new {
     my ($class, $sock, $server) = @_;
     my $self = $class->SUPER::new($sock);
@@ -156,6 +158,25 @@ sub CMD_users {
 
 sub CMD_version {
     $_[0]->write($DJabberd::VERSION);
+}
+
+sub CMD_gladiator {
+    my $self = shift;
+    unless ($has_gladiator) {
+        $self->end;
+        return;
+    }
+
+    my $ct = Devel::Gladiator->arena_ref_counts();
+    my $ret;
+    $ret .= "ARENA COUNTS:\n";
+    foreach my $k (sort {$ct->{$b} <=> $ct->{$a}} keys %$ct) {
+        next unless $ct->{$k} > 1;
+        $ret .= sprintf(" %4d $k\n", $ct->{$k});
+    }
+
+    $self->write($ret);
+    $self->end;
 }
 
 sub end {
