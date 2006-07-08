@@ -133,9 +133,16 @@ sub process_iq_disco_info_query {
 sub process_iq_disco_items_query {
     my ($conn, $iq) = @_;
 
-    # TODO: here we need to find out all the available items that we can show to the requestor
-    # and send them back
-    my $xml = qq{<query xmlns='http://jabber.org/protocol/disco#items'></query>};
+    my $vhost = $conn->vhost;
+    
+    my $items = $vhost ? $vhost->child_services : {};
+    
+    use Data::Dumper;
+    $logger->debug("Got child items: ".Data::Dumper::Dumper($items));
+
+    my $xml = qq{<query xmlns='http://jabber.org/protocol/disco#items'>}.
+        join('', map({ "<item jid='".exml($_)."' name='".exml($items->{$_})."' />" } keys %$items)).
+        qq{</query>};
 
     $iq->send_reply('result', $xml);
 }
