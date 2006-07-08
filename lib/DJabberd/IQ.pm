@@ -42,7 +42,7 @@ sub process {
     # Trillian Jabber 3.1 is stupid and sends a lot of IQs (but non-important ones)
     # without ids.  If we respond to them (also without ids, or with id='', rather),
     # then Trillian crashes.  So let's just ignore them.
-    return unless length ($self->id || '');
+    return unless length ($self->id);
 
     $conn->vhost->run_hook_chain(phase    => "c2s-iq",
                                  args     => [ $self ],
