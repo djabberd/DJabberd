@@ -1,5 +1,4 @@
 
-
 =head1 NAME
 
 DJabberd::Component::Example - An example DJabberd service component
@@ -17,12 +16,16 @@ with a predefined greeting and which returns a vCard for itself when one is requ
 You can change the greeting returned using the optional Greeting configuration setting
 as above.
 
+This example also exposes a node called "eliza" that allows you to talk to an Eliza chatbot.
+
 =cut
 
 package DJabberd::Component::Example;
 use base DJabberd::Component;
 use DJabberd::Util qw(exml);
 use DJabberd::Log;
+use DJabberd::Bot::Eliza;
+use DJabberd::JID;
 
 our $logger = DJabberd::Log->get_logger();
 
@@ -30,6 +33,10 @@ sub initialize {
     my ($self, $opts) = @_;
     
     $self->{greeting} = $opts->{greeting} || "Hi! I'm an example DJabberd component!";
+    
+    my $elizajid = new DJabberd::JID("eliza@".$self->domain."/chatbot");
+    
+    $self->{eliza} = new DJabberd::Bot::Eliza($elizajid);
 }
 
 sub handle_stanza {
@@ -37,9 +44,43 @@ sub handle_stanza {
 
     $logger->info("Got stanza: ".$stanza->as_summary);
 
-    # We only want stanzas addressed to the domain, since there
-    # aren't any nodes under this component.
-    if ($stanza->to_jid->as_string ne $self->domain) {
+    my $from = $stanza->from_jid;
+    my $to = $stanza->to_jid;
+
+    # Expose an Eliza bot on node "eliza"
+    if ($to->node eq 'eliza') {
+    
+        if ($stanza->isa('DJabberd::Message')) {
+
+            $logger->info("It's a message to our Eliza bot.");
+
+            my $responsetext = $self->{eliza}->handle_message($stanza);
+
+            if ($responsetext) {
+                my $response = $self->_make_response($stanza);
+                $response->set_raw("<body>".exml($responsetext)."</body>");
+                $response->deliver($vhost);
+            }
+
+        }
+        elsif ($stanza->isa('DJabberd::IQ') && $stanza->signature eq 'get-{vcard-temp}vCard') {
+        
+            $logger->info("It's a vCard request for our Eliza bot.");
+        
+            my $response = $self->_make_response($stanza);
+            $response->attrs->{"{}type"} = "result";
+            $response->set_raw("<vCard xmlns='vcard-temp'><FN>Example Eliza Bot</FN></vCard>");
+            $logger->info("Responding with ".$response->as_xml);
+            $response->deliver($vhost);
+        }
+
+        $cb->delivered;
+        return;
+    }
+
+    # Other than for Eliza, we only want stanzas addressed to the domain, since there
+    # aren't any other nodes under this component.
+    if ($to->as_string ne $self->domain) {
         $logger->info("Message to ".$stanza->to_jid->as_string.", not ".$self->domain.". Discarding.");
         $cb->decline;
         return;
@@ -68,7 +109,6 @@ sub handle_stanza {
         }
     }
     elsif ($stanza->isa('DJabberd::Message')) {
-        my $from = $stanza->from_jid;
         
         $logger->info("Got message from ".$from->as_string);
         

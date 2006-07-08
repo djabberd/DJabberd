@@ -8,21 +8,19 @@ use DJabberd::Util qw(exml);
 
 our $logger = DJabberd::Log->get_logger();
 
-sub finalize {
-    my ($self) = @_;
-    $self->{nodename} ||= "admin";
-    $self->SUPER::finalize();
-}
-
-sub set_config_users {
-    my ($self, $users) = @_;
-    my @users = split /\s+/, $users;
-    $self->{users}->{$_}++ foreach @users;
+sub initialize {
+    my ($self, $opts) = @_;
+    
+    if (defined $opts->{users}) {
+        my @users = split /\s+/, $opts->{users};
+        $self->{users}->{$_}++ foreach @users;
+    }
+    
+    $self->{domain} = $self->jid->domain;
 }
 
 sub handle_message {
     my ($self, $stanza) = @_;
-
 
     my $body;
     foreach my $child ($stanza->children_elements) {
@@ -34,7 +32,9 @@ sub handle_message {
     $logger->logdie("Can't find a body in incoming message") unless $body;
     my $command = $body->first_child;
 
-    return if ($self->{users} && !$self->{users}->{$stanza->from_jid->node});
+    my $from = $stanza->from_jid;
+
+    return if ($self->{users} && !($self->{users}->{$from->node} && $from->domain eq $self->{domain}));
 
     my $can = DJabberd::Connection::Admin->can("CMD_$command");
     $self->{buffer} = "";

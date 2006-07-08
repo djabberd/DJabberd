@@ -1,91 +1,78 @@
 
+
+=head1 NAME
+
+DJabberd::Bot - Abstract class representing a bot in DJabberd
+
+=head1 SYNOPSIS
+
+    package MyPackage::DJabberd::MyBot;
+    use base DJabberd::Bot;
+    
+    sub initialize {
+        my ($self, $opts) = @_;
+        
+        # ... perform initialization
+    }
+    
+    sub handle_message {
+        my ($self, $stanza) = @_;
+        
+        # ... handle the given stanza
+        
+        return ("Plain text response", "<p>HTML response</p>");
+    }
+    
+This class provides a parent class for all DJabberd bots. A bot
+is a class that recieves messages sent to a particular JID and responds
+to them.
+
+DJabberd does not use bots directly. The DJabberd::Plugin::Bot plugin
+can be used to expose a bot at a given JID within a VHost, or components
+can instantiate bots directly to expose them as nodes in their domain.
+
+See DJabberd::Bot::Eliza for an example bot implementation.
+
+TODO: Write more docs
+
+=cut
+
+
 package DJabberd::Bot;
-# abstract base class
+
 use strict;
 use warnings;
-use base 'DJabberd::Plugin';
 use DJabberd::JID;
 use Carp;
 use Scalar::Util;
-# don't override, or at least call SUPER to this if you do.
 
 our $logger = DJabberd::Log->get_logger();
 
-sub set_config_nodename {
-    my ($self, $nodename) = @_;
-    $self->{nodename} = $nodename;
+# Don't override this. Implement initialize($opts) instead.
+sub new {
+    my ($class, $jid, $opts) = @_;
+
+    my $self = bless {
+        _bot_jid => $jid,
+    }, $class;
+    
+    $self->initialize($opts);
+    
+    return $self;
 }
 
-sub set_config_resource {
-    my ($self, $resource) = @_;
-    $self->{resource} = $resource;
+sub initialize {}
+
+sub jid {
+    return $_[0]->{_bot_jid};
 }
 
-sub finalize {
-    my ($self) = @_;
-
-    Carp::confess("Bot needs a nodename") unless $self->{nodename};
-    $self->{resource} ||= "bot";
-
-
-}
-
-sub register {
-    my ($self, $vhost) = @_;
-    $self->{jid} = DJabberd::JID->new("$self->{nodename}\@" . $vhost->server_name . "/$self->{resource}");
-
-    $self->{vhost} = $vhost;
-    Scalar::Util::weaken($self->{vhost});
-
-    my $regcb = DJabberd::Callback->new({
-        registered => sub {
-            $logger->debug("Bot $self->{jid} is now registered");
-        },
-        error => sub {
-            $logger->error("Bot $self->{jid} failed to register");
-            },
-    });
-
-    $vhost->register_jid($self->{jid}, $self , $regcb);
-
-}
-
-sub write {
-    # currently don't do anything here
-    $logger->warn("Ignoring writes");
-}
-
-sub send_stanza {
-    my ($self, $stanza) = @_;
-
-    my $body = "";
-    my $reply;
-    if($stanza->isa('DJabberd::Message')) {
-        my ($text, $html) = $self->handle_message($stanza);
-        if ($text) {
-            $body .= "<body>". DJabberd::Util::exml($text) . "</body>";
-        }
-        if ($html) {
-            #  <html xmlns='http://jabber.org/protocol/xhtml-im'>
-            # <body xmlns='http://www.w3.org/1999/xhtml'>
-            $body .= $html;
-            # </body></html>
-        }
-        $reply = DJabberd::Message->new('jabber:client', 'message', { '{}type' => 'chat', '{}to' => $stanza->from, '{}from' => $self->{jid} }, []);
-    } else {
-        $logger->warn("Ignoring $stanza");
-    }
-
-    if($body && $reply) {
-        $reply->set_raw($body);
-        $reply->deliver($self->{vhost});
-    }
+sub handle_message {
+    $logger->warn("$_[0] does not implement handle_message");
 }
 
 sub is_available { 1 }
 
 sub requested_roster { 0 }
-
-
 
 1;
