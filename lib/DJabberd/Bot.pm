@@ -66,7 +66,10 @@ sub send_stanza {
             $body .= "<body>". DJabberd::Util::exml($text) . "</body>";
         }
         if ($html) {
+            #  <html xmlns='http://jabber.org/protocol/xhtml-im'>
+            # <body xmlns='http://www.w3.org/1999/xhtml'>
             $body .= $html;
+            # </body></html>
         }
         $reply = DJabberd::Message->new('jabber:client', 'message', { '{}type' => 'chat', '{}to' => $stanza->from, '{}from' => $self->{jid} }, []);
     } else {
