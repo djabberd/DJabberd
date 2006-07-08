@@ -4,7 +4,6 @@ package DJabberd::Bot::Admin;
 use strict;
 use warnings;
 use base 'DJabberd::Bot';
-use Chatbot::Eliza;
 use DJabberd::Util qw(exml);
 
 our $logger = DJabberd::Log->get_logger();
