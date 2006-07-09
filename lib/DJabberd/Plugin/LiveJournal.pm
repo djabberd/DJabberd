@@ -10,6 +10,8 @@ use LWP::Simple;
 
 our $logger = DJabberd::Log->get_logger();
 
+my $start_time = time();
+
 our $gearman_client;
 sub gearman_client {
     return $gearman_client;
@@ -113,6 +115,10 @@ sub make_response {
 
 sub hook_on_initial_presence {
     my (undef, $cb, $conn) = @_;
+
+    # in first five minutes after bounce, don't bug people with this message
+    return if time < $start_time + 300;
+
     my $bj = $conn->bound_jid;
     my $how_much = $bj->node =~ /^whitaker|revmischa|brad|crucially|supersat|mart|scsi|evan$/ ?
         "more than Whitaker's mom" :
