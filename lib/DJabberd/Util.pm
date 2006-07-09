@@ -55,7 +55,6 @@ sub lbsub (&) {
     my ($pkg, $file, $line) = caller;
     my $bpkg = $file . "_" . $line;
     $bpkg =~ s/[^\w]/_/g;
-    warn "blessing into $bpkg\n";
     return bless $subref, "DJabberd::AnonSubFrom::$bpkg";
 }
 
