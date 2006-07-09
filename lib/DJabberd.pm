@@ -259,7 +259,6 @@ sub run {
     daemonize() if $self->{daemonize};
     local $SIG{'PIPE'} = "IGNORE";  # handled manually
 
-
     $self->start_c2s_server();
 
     # {=s2soptional}
@@ -269,6 +268,7 @@ sub run {
 
     $self->_start_server($self->{admin_port}, "DJabberd::Connection::Admin") if $self->{admin_port};
 
+    DJabberd::Connection::Admin->on_startup;
     Danga::Socket->EventLoop();
 }
 

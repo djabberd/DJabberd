@@ -8,6 +8,22 @@ use fields qw(buffer server);
 my $has_gladiator = eval "use Devel::Gladiator; 1;";
 my $has_cycle     = eval "use Devel::Cycle; 1;";
 
+my $initial_memory;
+
+sub on_startup {
+    $initial_memory ||= get_memory();
+}
+
+sub get_memory {
+    my $mem;
+    if ($^O eq 'linux') {
+        ($mem) = `cat /proc/\`pidof -x djabberd\`/status | grep ^VmRSS` =~ /(\d+)/;
+    } else {
+        $mem = 0;
+    }
+    return $mem;
+}
+
 sub new {
     my ($class, $sock, $server) = @_;
     my $self = $class->SUPER::new($sock);
@@ -126,12 +142,13 @@ sub CMD_stats {
 
     my $connections = $DJabberd::Stats::counter{connect} - $DJabberd::Stats::counter{disconnect};
     $self->write("connections\t$connections\tconnections");
-    if ($^O eq 'linux') {
-        my ($mem) = `cat /proc/\`pidof -x djabberd\`/status | grep ^VmRSS` =~ /(\d+)/;
-        $self->write("mem_total\t$mem\tkB");
-        $self->write("mem_per_connection\t". ($mem / ($connections || 1) ) . "\tkB/conn");
-    }
 
+    my $mem      = get_memory();
+    my $user_mem = $mem - $initial_memory;
+
+    $self->write("mem_total\t$mem\tkB");
+    $self->write("mem_connections\t$user_mem\tkB");
+    $self->write("mem_per_connection\t". ($user_mem / ($connections || 1) ) . "\tkB/conn");
     $self->end;
 }
 
