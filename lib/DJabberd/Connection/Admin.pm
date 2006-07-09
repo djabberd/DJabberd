@@ -17,9 +17,7 @@ sub on_startup {
 sub get_memory {
     my $mem;
     if ($^O eq 'linux') {
-        my $pid = `pidof -x djabberd`;
-        chomp $pid;
-        return 0 unless $pid;
+        my $pid = $$;
         ($mem) = `cat /proc/$pid/status | grep ^VmRSS` =~ /(\d+)/;
     } else {
         $mem = 0;
@@ -277,7 +275,7 @@ sub write {
 
 sub close {
     my $self = shift;
-    $DJabberd::Stats::counter{disconnect}++;
+    $DJabberd::Stats::counter{disconnect}++ unless $self->{closed};
     $self->SUPER::close(@_);
 }
 
