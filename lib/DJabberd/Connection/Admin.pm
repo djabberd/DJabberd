@@ -6,6 +6,7 @@ use base 'Danga::Socket';
 use fields qw(buffer server);
 
 my $has_gladiator = eval "use Devel::Gladiator; 1;";
+my $has_cycle     = eval "use Devel::Cycle; 1;";
 
 sub new {
     my ($class, $sock, $server) = @_;
@@ -173,14 +174,20 @@ sub CMD_gladiator {
     my $ret;
     $ret .= "ARENA COUNTS:\n";
     foreach my $k (sort {$ct->{$b} <=> $ct->{$a}} keys %$ct) {
-        my $delta = $ct->{$k} - $last_gladiator{$k};
+        my $delta = $ct->{$k} - ($last_gladiator{$k} || 0);
+        $last_gladiator{$k} = $ct->{$k};
         if ($cmd eq "delta") {
             next unless $delta;
+        } elsif ($cmd eq "lite") {
+            next if $k =~ /^REF-/;
+            next if $k =~ /^DJabberd::AnonSubFrom::lib_DJabberd_RosterStorage/;
+            next if $k =~ /log4perl/i;
+
+
         } else {
             next unless $ct->{$k} > 1 || $cmd eq "all";
         }
         $ret .= sprintf(" %4d %-4d $k\n", $ct->{$k}, $delta);
-        $last_gladiator{$k} = $ct->{$k};
     }
 
     $self->write($ret);
@@ -189,23 +196,34 @@ sub CMD_gladiator {
 
 sub CMD_cycle {
     my $self = shift;
-    unless ($has_gladiator) {
+
+    unless ($has_gladiator && $has_cycle) {
         $self->end;
         return;
     }
 
     my $array = Devel::Gladiator::walk_arena();
-    my @list = grep { ref($_) =~ /^DJabberd::VHost|DJabberd::Connection::ClientIn|DJabberd::AnonSubFrom/ } @$array;
+    #my @list = grep { ref($_) =~ /^DJabberd::VHost|DJabberd::Connection::ClientIn|DJabberd::AnonSubFrom/ } @$array;
+    my @list = grep { ref($_) =~ /^DJabberd|CODE/ } @$array;
     $array = undef;
-    use Devel::Cycle;
+
     use Data::Dumper;
-    my $flist = \%DJabberd::Connection::ClientIn::FIELDS;
-    foreach my $k (sort { $flist->{$a} <=> $flist->{$b} } keys %$flist) {
-        printf STDERR " %4d %s\n", $flist->{$k}, $k;
-    }
+#    my $flist = \%DJabberd::Connection::ClientIn::FIELDS;
+#    foreach my $k (sort { $flist->{$a} <=> $flist->{$b} } keys %$flist) {
+#        printf STDERR " %4d %s\n", $flist->{$k}, $k;
+#    }
     find_cycle(\@list);
     $self->end;
 
+}
+
+sub CMD_fields {
+    my ($self, $arg) = @_;
+    my $flist = eval "\\%${arg}::FIELDS";
+    foreach my $k (sort { $flist->{$a} <=> $flist->{$b} } keys %$flist) {
+        printf STDERR " %4d %s\n", $flist->{$k}, $k;
+    }
+    $self->end;
 }
 
 sub end {
