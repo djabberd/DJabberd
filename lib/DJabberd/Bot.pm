@@ -50,11 +50,9 @@ our $logger = DJabberd::Log->get_logger();
 
 # Don't override this. Implement initialize($opts) instead.
 sub new {
-    my ($class, $jid, $opts) = @_;
+    my ($class, $opts) = @_;
 
-    my $self = bless {
-        _bot_jid => $jid,
-    }, $class;
+    my $self = bless {}, $class;
     
     $self->initialize($opts);
     
@@ -62,10 +60,6 @@ sub new {
 }
 
 sub initialize {}
-
-sub jid {
-    return $_[0]->{_bot_jid};
-}
 
 sub handle_message {
     $logger->warn("$_[0] does not implement handle_message");

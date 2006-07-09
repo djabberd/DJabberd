@@ -16,7 +16,6 @@ sub initialize {
         $self->{users}->{$_}++ foreach @users;
     }
     
-    $self->{domain} = $self->jid->domain;
 }
 
 sub handle_message {
@@ -33,8 +32,9 @@ sub handle_message {
     my $command = $body->first_child;
 
     my $from = $stanza->from_jid;
+    my $to = $stanza->to_jid;
 
-    return if ($self->{users} && !($self->{users}->{$from->node} && $from->domain eq $self->{domain}));
+    return if ($self->{users} && !($self->{users}->{$from->node} && $from->domain eq $to->domain));
 
     my $can = DJabberd::Connection::Admin->can("CMD_$command");
     $self->{buffer} = "";

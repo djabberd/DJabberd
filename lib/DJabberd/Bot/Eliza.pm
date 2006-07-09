@@ -20,7 +20,7 @@ This class is a DJabberd chatbot using the well-known Eliza algorithm.
 It is supplied as an example of how to write and use a bot for DJabberd.
 
 The optional Chatname parameter specifies what the bot will call itself in
-chat messages. It defaults to being the same as the Nodename.
+chat messages. It defaults to "Eliza".
 
 This class requires the CPAN module Chatbot::Eliza.
 
@@ -38,10 +38,8 @@ our $logger = DJabberd::Log->get_logger();
 sub initialize {
     my ($self, $opts) = @_;
 
-    my $jid = $self->jid;
-
     $self->{bot} = Chatbot::Eliza->new;
-    $self->{bot}->name($opts->{chatname} || $jid->node);
+    $self->{bot}->name($opts->{chatname} || "Eliza");
 }
 
 sub handle_message {

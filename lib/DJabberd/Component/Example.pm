@@ -33,10 +33,7 @@ sub initialize {
     my ($self, $opts) = @_;
     
     $self->{greeting} = $opts->{greeting} || "Hi! I'm an example DJabberd component!";
-    
-    my $elizajid = new DJabberd::JID("eliza@".$self->domain."/chatbot");
-    
-    $self->{eliza} = new DJabberd::Bot::Eliza($elizajid);
+    $self->{eliza} = new DJabberd::Bot::Eliza();
 }
 
 sub handle_stanza {
@@ -48,7 +45,7 @@ sub handle_stanza {
     my $to = $stanza->to_jid;
 
     # Expose an Eliza bot on node "eliza"
-    if ($to->node eq 'eliza') {
+    if ($to->node eq 'eliza' || $to->node eq '3l1z4') {
     
         if ($stanza->isa('DJabberd::Message')) {
 
@@ -57,6 +54,17 @@ sub handle_stanza {
             my $responsetext = $self->{eliza}->handle_message($stanza);
 
             if ($responsetext) {
+                
+                if ($to->node eq '3l1z4') {
+                    # l33t eliza
+                    $responsetext = uc($responsetext);
+                    $responsetext =~ s/CK/X/g;
+                    $responsetext =~ s/ER(\b)/0R$1/g;
+                    $responsetext =~ tr/AIETO/41370/;
+                    $responsetext =~ s/X/></;
+                    $responsetext =~ s/([A-Z])/ ( rand(1) > 0.6 ? lc($1) : $1 ) /eg;
+                }
+            
                 my $response = $self->_make_response($stanza);
                 $response->set_raw("<body>".exml($responsetext)."</body>");
                 $response->deliver($vhost);

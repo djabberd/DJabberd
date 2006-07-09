@@ -51,7 +51,7 @@ sub register {
     $logger->info("Registering bot $self->{class} as $jid_string");
     $self->{jid} = DJabberd::JID->new($jid_string);
 
-    $self->{bot} = $self->{class}->new($self->{jid}, $self->{bot_opts});
+    $self->{bot} = $self->{class}->new($self->{bot_opts});
     $logger->logdie("Failed to instantiate bot $self->{class}") unless ref $self->{bot};
 
     $self->{vhost} = $vhost;
