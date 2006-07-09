@@ -102,6 +102,7 @@ sub new {
         $self->{timed_out} = 1;
         $logger->debug("DNS lookup for '$hostname' timed out");
         $callback->();
+        $self->close;
     });
 
     $self->watch_read(1);
@@ -112,7 +113,10 @@ sub new {
 sub event_read {
     my $self = shift;
 
-    return if $self->{timed_out};
+    if ($self->{timed_out}) {
+        $self->close;
+        return;
+    }
     $self->{became_readable} = 1;
 
     if ($self->{srv}) {
@@ -158,6 +162,7 @@ sub event_read_a {
             1;
         };
         if ($@) {
+            $self->close;
             die "ERROR in DNS world: [$@]\n";
         }
         return if $rv;
