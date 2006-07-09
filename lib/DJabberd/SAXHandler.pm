@@ -24,7 +24,19 @@ sub new {
 sub set_connection {
     my ($self, $conn) = @_;
     $self->{ds_conn} = $conn;
-    weaken($self->{ds_conn});
+    if ($conn) {
+        weaken($self->{ds_conn});
+    } else {
+        # when sax handler is being put back onto the freelist...
+        $self->{on_end_capture} = undef;
+    }
+}
+
+# called when somebody is about to destroy their reference to us, to make
+# us clean up.
+sub cleanup {
+    my $self = shift;
+    $self->{on_end_capture} = undef;
 }
 
 sub depth {
@@ -79,12 +91,14 @@ sub start_element {
         return 1;
     };
 
+    Scalar::Util::weaken($conn);
+
     return $start_capturing->(sub {
         my ($doc, $events) = @_;
         my $nodes = _nodes_from_events($events);
         # {=xml-stanza}
         my $t1 = Time::HiRes::time();
-        $conn->on_stanza_received($nodes->[0]);
+        $conn->on_stanza_received($nodes->[0]) if $conn;
         my $td = Time::HiRes::time() - $t1;
 
         # ring buffer for latency stats:

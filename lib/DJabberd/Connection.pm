@@ -132,6 +132,7 @@ sub discard_parser {
     # TODOTEST: bunch of new connections speaking not-well-formed xml and getting booted, then watch for mem leaks
     my $p = $self->{parser}   or return;
     $self->{parser}        = undef;
+    $self->{saxhandler}->cleanup;
     $self->{saxhandler} = undef;
     Danga::Socket->AddTimer(0, sub {
         $p->finish_push;
@@ -674,8 +675,10 @@ sub close {
     # from inside an existint callback.  so schedule for a bit later.
     # this probably could be 0 seconds later, but who cares.
     Danga::Socket->AddTimer(1, sub {
-        $p->finish_push if $p;
-    });
+        $p->finish_push;
+        $self->{saxhandler}->cleanup if $self->{saxhandler};
+        $self->{saxhandler} = undef;
+    }) if $p;
 
     $self->SUPER::close;
 }
