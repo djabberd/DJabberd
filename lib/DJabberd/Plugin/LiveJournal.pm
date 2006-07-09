@@ -61,7 +61,10 @@ sub get_vcard {
         uniq        => "-",
         retry_count => 2,
         timeout     => 10,
-        on_fail     => sub { $iq->send_error },
+        on_fail     => sub {
+            $DJabberd::Stats::counter{'ljtalk_avatar_data_fail'}++;
+            $iq->send_error;
+        },
         on_complete => sub {
             my $dataref = shift;
             unless ($$dataref) {
@@ -176,7 +179,10 @@ sub hook_alter_presence {
         uniq        => "-",
         retry_count => 2,
         timeout     => 10,
-        on_fail     => sub { $cb->done },
+        on_fail     => sub {
+            $DJabberd::Stats::counter{'ljtalk_avatar_sha1_fail'}++;
+            $cb->done;
+        },
         on_complete => sub {
             my $sha1ref = shift;
 

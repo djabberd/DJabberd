@@ -20,7 +20,13 @@ sub get_roster {
             uniq        => "-",
             retry_count => 2,
             timeout     => 10,
-            on_fail     => sub { $cb->decline; }, # which causes an error in vhost.pm's get_roster
+            on_fail     => sub {
+                # useful for tracking if not enough workers:  too bad
+                # we can't distinguish between timeouts and failures yet.
+                $DJabberd::Stats::counter{'ljtalk_get_roster_fail'}++;
+                 # which causes an error in vhost.pm's get_roster:
+                $cb->decline;
+            },
             on_complete => sub {
                 my $stref = shift;
                 my $list = eval { Storable::thaw($$stref) };
