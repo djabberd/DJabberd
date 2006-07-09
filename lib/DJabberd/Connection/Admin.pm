@@ -195,7 +195,7 @@ sub CMD_cycle {
     }
 
     my $array = Devel::Gladiator::walk_arena();
-    my @list = grep { ref($_) =~ /^DJabberd::VHost|DJabberd::Connection::ClientIn|CODE$/ } @$array;
+    my @list = grep { ref($_) =~ /^DJabberd::VHost|DJabberd::Connection::ClientIn|DJabberd::AnonSubFrom/ } @$array;
     $array = undef;
     use Devel::Cycle;
     use Data::Dumper;
