@@ -27,6 +27,15 @@ sub clone {
 # used by DJabberd::PresenceChecker::Local.
 my %last_bcast;   # barejidstring -> { full_jid_string -> $cloned_pres_stanza }
 
+sub forget_last_presence {
+    my ($class, $jid) = @_;
+
+    my $barestr = $jid->as_bare_string;
+    my $map     = $last_bcast{$barestr}   or return;
+    delete $map->{$jid->as_string};
+    delete $last_bcast{$barestr} unless %$map;
+}
+
 # is this directed presence?  must be to a JID, and must be available/unavailable, not probe/subscribe/etc.
 sub is_directed {
     my $self = shift;

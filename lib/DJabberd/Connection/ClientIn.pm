@@ -125,6 +125,7 @@ sub close {
 
     if (my $jid = $self->bound_jid) {
         $self->vhost->unregister_jid($jid, $self);
+        DJabberd::Presence->forget_last_presence($jid);
     }
 
     $self->SUPER::close;
