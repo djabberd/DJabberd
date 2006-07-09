@@ -53,6 +53,8 @@ sub new {
 
     $self->{vhost}   = undef;  # set once we get a stream start header from them.
     $self->{server}  = $server;
+    Scalar::Util::weaken($self->{server});
+
     $self->{log}     = DJabberd::Log->get_logger($class);
 
     # hack to inject XML after Connection:: in the logger category
