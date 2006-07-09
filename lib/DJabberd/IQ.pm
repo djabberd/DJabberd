@@ -147,9 +147,6 @@ sub process_iq_disco_items_query {
 sub process_iq_getroster {
     my ($conn, $iq) = @_;
 
-    # {=getting-roster-on-login}
-    $conn->set_requested_roster(1);
-
     my $send_roster = sub {
         my $roster = shift;
         $logger->info("Sending roster to conn $conn->{id}");
@@ -168,7 +165,17 @@ sub process_iq_getroster {
         }
     };
 
-    $conn->vhost->get_roster($conn->bound_jid,
+    # need to be authenticated to request a roster.
+    my $bj = $conn->bound_jid;
+    unless ($bj) {
+        $iq->send_error;
+        return;
+    }
+
+    # {=getting-roster-on-login}
+    $conn->set_requested_roster(1);
+
+    $conn->vhost->get_roster($bj,
                              on_success => $send_roster,
                              on_fail => sub {
                                  $send_roster->(DJabberd::Roster->new);
