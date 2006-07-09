@@ -477,7 +477,7 @@ sub event_read {
     }
 
     if (my $handler = $self->handler) {
-        my $depth = $handler;
+        my $depth = $handler->depth;
         if ($depth == 0 && $$bref =~ m!>\s*$!) {
             # if no errors and not inside a stanza, return our parser to save memory
             $self->return_parser;
