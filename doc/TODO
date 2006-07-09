@@ -88,3 +88,9 @@
 -- <not-authorized/> -- the sender must provide proper credentials
       before being allowed to perform the action, or has provided
       improper credentials; the associated error type SHOULD be "auth".   no error currently gets sent on non AUTH
+
+-- need to write some tests for components
+
+-- need a better API for components so they aren't so ugly. maybe just a nice subclass?
+
+-- make Component subclass that implements JEP-0114
