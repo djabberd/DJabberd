@@ -17,7 +17,10 @@ sub on_startup {
 sub get_memory {
     my $mem;
     if ($^O eq 'linux') {
-        ($mem) = `cat /proc/\`pidof -x djabberd\`/status | grep ^VmRSS` =~ /(\d+)/;
+        my $pid = `pidof -x djabberd`;
+        chomp $pid;
+        return 0 unless $pid;
+        ($mem) = `cat /proc/$pid/status | grep ^VmRSS` =~ /(\d+)/;
     } else {
         $mem = 0;
     }
