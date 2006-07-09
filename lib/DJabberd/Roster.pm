@@ -5,8 +5,19 @@ use warnings;
 sub new {
     my $class = shift;
     my $self = bless {}, $class;
-    $self->{items} = [];
+
+    $self->{items}      = [];
+    $self->{cache_gets} = 0;   # times retrieved from cache
+
     return $self;
+}
+
+sub inc_cache_gets {
+    return ++$_[0]->{cache_gets};
+}
+
+sub cache_gets {
+    return $_[0]->{cache_gets};
 }
 
 sub add {

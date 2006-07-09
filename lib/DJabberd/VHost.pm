@@ -435,6 +435,9 @@ sub get_roster {
 
     # see if it's cached.
     if (my $roster = $self->{roster_cache}{$barestr}) {
+        if ($roster->inc_cache_gets >= 3) {
+            delete $self->{roster_cache}{$barestr};
+        }
         $good_cb->($roster);
         return;
     }
@@ -473,8 +476,17 @@ sub get_roster {
                                   # call all the on-success items, but deleting the current list
                                   # first, lest any of the callbacks load more roster items
                                   delete $self->{roster_wanters}{$barestr};
+                                  my $done = 0;
                                   foreach my $li (@$list) {
                                       $li->[0]->($roster);
+                                      $done = 1 if $roster->inc_cache_gets >= 3;
+                                  }
+
+                                  # if they've used it three times, they're done with
+                                  # the initial roster, probes, and broadcast, so drop
+                                  # it early, not waiting for 5 seconds.
+                                  if ($done) {
+                                      delete $self->{roster_cache}{$barestr};
                                   }
                               },
                           },
