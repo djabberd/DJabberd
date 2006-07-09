@@ -472,6 +472,10 @@ sub process_iq_setauth {
             error => sub {
                 $iq->send_error;
             },
+            _post_fire => sub {
+                $conn = undef;
+                $iq   = undef;
+            },
         });
 
         $vhost->register_jid($jid, $conn, $regcb);
