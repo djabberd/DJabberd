@@ -20,6 +20,10 @@ sub new {
         $libxml->set_handler($self);
         $self->{LibParser} = $libxml;
 
+        # this buys nothing but less noise when using Devel::Cycle:
+        # make it a developer option?
+        # Scalar::Util::weaken($self->{LibParser});
+
         $libxml->init_push;
         $self->{CONTEXT} = $libxml->{CONTEXT};
     }
