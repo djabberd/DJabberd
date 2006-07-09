@@ -150,6 +150,7 @@ sub borrow_a_parser {
         if (my $ent = pop @$freelist) {
             ($self->{parser}, $self->{saxhandler}) = @$ent;
             $self->{saxhandler}->set_connection($self);
+            # die "ASSERT" unless $self->{parser}{LibParser};
             return $self->{parser};
         }
     }
@@ -165,6 +166,7 @@ sub borrow_a_parser {
         # like <?xml ... ?> at top, which can only come at top, so we need
         # a virgin parser.
         my $ns = $self->namespace;
+
         # this is kinda a hack, in that it hard-codes the namespace
         # prefixes 'db' and 'stream',...  however, RFC 3920 seection
         # 11.2.1, 11.2.3, etc say it's okay for historical reasons to
@@ -202,7 +204,6 @@ sub return_parser {
         push @$freelist, [$p, $handler];
 
     } else {
-        $handler->set_connection(undef);
         Danga::Socket->AddTimer(0, sub {
             $p->finish_push;
         });
@@ -476,7 +477,10 @@ sub event_read {
         return;
     }
 
-    if (my $handler = $self->handler) {
+    # if we still have a handler and haven't already closed down (cleanly),
+    # then let's consider giving our xml parser/sax pair back, if we're at
+    # a good breaking point.
+    if ((my $handler = $self->handler) && ! $self->{closed}) {
         my $depth = $handler->depth;
         if ($depth == 0 && $$bref =~ m!>\s*$!) {
             # if no errors and not inside a stanza, return our parser to save memory
@@ -674,10 +678,11 @@ sub close {
     # libxml isn't reentrant apparently, so we can't finish_push
     # from inside an existint callback.  so schedule for a bit later.
     # this probably could be 0 seconds later, but who cares.
-    Danga::Socket->AddTimer(1, sub {
+    Danga::Socket->AddTimer(0, sub {
         $p->finish_push;
         $self->{saxhandler}->cleanup if $self->{saxhandler};
         $self->{saxhandler} = undef;
+        $self->{parser}     = undef;
     }) if $p;
 
     $self->SUPER::close;

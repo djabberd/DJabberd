@@ -17,6 +17,7 @@ two_parties(sub {
     # now pa/pb send presence to become available resources
     $pa->send_xml("<presence/>");
     $pb->send_xml("<presence/>");
+    select(undef, undef, undef, 0.25);
 
     # PA to PB
     $pa->send_xml("<message type='chat' to='$pb'>Hello.  I am $pa.</message>");
