@@ -163,6 +163,7 @@ sub server {
 sub set_server {
     my ($self, $server) = @_;
     $self->{server} = $server;
+    Scalar::Util::weaken($self->{server});
 }
 
 sub run_hook_chain {
