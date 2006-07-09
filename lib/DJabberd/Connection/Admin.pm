@@ -187,6 +187,27 @@ sub CMD_gladiator {
     $self->end;
 }
 
+sub CMD_cycle {
+    my $self = shift;
+    unless ($has_gladiator) {
+        $self->end;
+        return;
+    }
+
+    my $array = Devel::Gladiator::walk_arena();
+    my @list = grep { ref($_) =~ /^DJabberd::VHost|DJabberd::Connection::ClientIn|CODE$/ } @$array;
+    $array = undef;
+    use Devel::Cycle;
+    use Data::Dumper;
+    my $flist = \%DJabberd::Connection::ClientIn::FIELDS;
+    foreach my $k (sort { $flist->{$a} <=> $flist->{$b} } keys %$flist) {
+        printf STDERR " %4d %s\n", $flist->{$k}, $k;
+    }
+    find_cycle(\@list);
+    $self->end;
+
+}
+
 sub end {
     $_[0]->write('.');
 }
