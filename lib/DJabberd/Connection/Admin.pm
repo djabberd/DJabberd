@@ -181,6 +181,25 @@ sub CMD_version {
     $_[0]->write($DJabberd::VERSION);
 }
 
+sub arena_ref_counts {
+    my $all = Devel::Gladiator::walk_arena();
+    my %ct;
+    foreach my $it (@$all) {
+        $ct{ref $it}++;
+        if (ref $it eq "REF") {
+            $ct{"REF-" . ref $$it}++;
+        }
+        elsif (ref $it eq "DJabberd::IQ") {
+            $ct{"DJabberd::IQ-" . $it->signature}++;
+        }
+        elsif (ref $it eq "Gearman::Task") {
+            $ct{"Gearman::Task-func:$it->{func}"}++;
+        }
+    }
+    $all = undef;
+    return \%ct;
+}
+
 my %last_gladiator;
 sub CMD_gladiator {
     my ($self, $cmd) = @_;
@@ -190,7 +209,7 @@ sub CMD_gladiator {
         return;
     }
 
-    my $ct = Devel::Gladiator->arena_ref_counts();
+    my $ct = arena_ref_counts();
     my $ret;
     $ret .= "ARENA COUNTS:\n";
     foreach my $k (sort {$ct->{$b} <=> $ct->{$a}} keys %$ct) {
