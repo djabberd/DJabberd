@@ -36,6 +36,12 @@ sub forget_last_presence {
     delete $last_bcast{$barestr} unless %$map;
 }
 
+sub set_local_presence {
+    my ($class, $jid, $prepkt) = @_;
+    return 0 unless $jid;
+    $last_bcast{$jid->as_bare_string}{$jid->as_string} = $prepkt;
+}
+
 # is this directed presence?  must be to a JID, and must be available/unavailable, not probe/subscribe/etc.
 sub is_directed {
     my $self = shift;
@@ -61,6 +67,18 @@ sub local_presence_info {
     my ($class, $jid) = @_;
     my $barestr = $jid->as_bare_string;
     return $last_bcast{$barestr} || {};
+}
+
+# constructor
+sub available {
+    my ($class, %opts) = @_;
+    my ($from) = map { delete $opts{$_} } qw(from);
+    croak "Invalid options" if %opts;
+
+    my $xml = DJabberd::XMLElement->new("", "presence", {
+        '{}from' => $from->as_string,
+    }, []);
+    return $class->downbless($xml);
 }
 
 # constructor
@@ -409,7 +427,7 @@ sub _process_outbound_available {
     }
 
     my $jid = $conn->bound_jid;
-    $last_bcast{$jid->as_bare_string}{$jid->as_string} = $self->clone;
+    DJabberd::Presence->set_local_presence($jid, $self->clone);
 
     $conn->set_available(1);
 
@@ -444,7 +462,7 @@ sub _process_outbound_unavailable {
     $conn->clear_directed_presence;
 
     my $jid = $conn->bound_jid;
-    $last_bcast{$jid->as_bare_string}{$jid->as_string} = $self->clone;
+    DJabberd::Presence->set_local_presence($jid, $self->clone);
 
     $conn->set_available(0);
     $self->broadcast_from($conn);
