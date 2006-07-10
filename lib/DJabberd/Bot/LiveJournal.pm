@@ -19,7 +19,7 @@ sub process_text {
     my $html = $ctx->last_html;
 
     my $req = Storable::nfreeze({
-        user => $from->node,
+        jid => $from->as_bare_string,
         text => $text,
         html => $html,
     });
