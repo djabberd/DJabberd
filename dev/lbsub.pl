@@ -15,9 +15,9 @@ foreach my $f (@files) {
     while (my $line = <$fh>) {
         $linenum++;
         if ($mode eq "on") {
-            $line =~ s/\bsub\s*\{/DJabberd::Util::lbsub sub \{/g;
+            $line =~ s/\bsub\s*\{/DJabberd::Util::lbsub \{/g;
         } else {
-            $line =~ s/DJabberd::Util::lbsub sub \{/sub \{/g;
+            $line =~ s/DJabberd::Util::lbsub \{/sub \{/g;
         }
         $data .= $line;
     }
