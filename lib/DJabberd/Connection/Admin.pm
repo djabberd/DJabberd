@@ -41,23 +41,28 @@ sub event_read {
     $self->{buffer} .= $$bref;
 
     while ($self->{buffer} =~ s/^(.*?)\r?\n//) {
-        my $cmdline = $1;
-        $cmdline =~ s/^\s*(\w+)\s*//;
-        my $command = $1;
-        unless ($command) {
-            $self->write("Cannot parse command '$cmdline'");
-            return;
-        }
+        my $line = $1;
+        $self->process_line($line);
+    }
+}
 
-        if (my $cref = $self->can("CMD_" . $command)) {
-            $cref->($self, $cmdline);
-        } else {
-            $self->write("Unknown command '$command'");
-        }
+sub process_line {
+    my DJabberd::Connection::Admin $self = shift;
+    my $line = shift;
+    return unless $line =~ /\S/;
 
+    $line =~ s/^\s*(\w+)\s*//;
+    my $command = $1;
+    unless ($command) {
+        $self->write("Cannot parse command '$line'");
+        return;
     }
 
-
+    if (my $cref = DJabberd::Connection::Admin->can("CMD_" . $command)) {
+        $cref->($self, $line);
+    } else {
+        $self->write("Unknown command '$command'");
+    }
 }
 
 sub CMD_close { $_[0]->close }

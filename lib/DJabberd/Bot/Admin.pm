@@ -1,62 +1,50 @@
-
 package DJabberd::Bot::Admin;
-# abstract base class
 use strict;
 use warnings;
 use base 'DJabberd::Bot';
 use DJabberd::Util qw(exml);
+use List::Util qw(first);
 
 our $logger = DJabberd::Log->get_logger();
 
-sub initialize {
-    my ($self, $opts) = @_;
-    
-    if (defined $opts->{users}) {
-        my @users = split /\s+/, $opts->{users};
-        $self->{users}->{$_}++ foreach @users;
-    }
-    
+sub finalize {
+    my ($self) = @_;
+    $self->{nodename} ||= "admin";
+    $self->SUPER::finalize();
 }
 
-sub handle_message {
-    my ($self, $stanza) = @_;
+sub set_config_users {
+    my ($self, $users) = @_;
+    my @users = split /\s+/, $users;
+    $self->{users}->{$_}++ foreach @users;
+}
 
-    my $body;
-    foreach my $child ($stanza->children_elements) {
-        if($child->{element} eq 'body') {
-            $body = $child;
-            last;
-        }
-    }
-    $logger->logdie("Can't find a body in incoming message") unless $body;
-    my $command = $body->first_child;
+sub process_text {
+    my ($self, $text, $from, $ctx) = @_;
 
-    my $from = $stanza->from_jid;
-    my $to = $stanza->to_jid;
+    # access control:
+    return if $self->{users} && !$self->{users}->{$from->node};
 
-    return if ($self->{users} && !($self->{users}->{$from->node} && $from->domain eq $to->domain));
+    warn "doing process for text: $text\n";
 
-    my $can = DJabberd::Connection::Admin->can("CMD_$command");
     $self->{buffer} = "";
-
-    if ($can) {
-        $can->($self);
-    } else {
-        $self->{buffer} = "Unknown command '$command'";
+    eval {
+        DJabberd::Connection::Admin::process_line($self, $text);
+    };
+    if ($@) {
+        $self->{buffer} = "Error: $@";
     }
 
-    return $self->{buffer};
-
+    $ctx->reply($self->{buffer});
 }
-
 
 sub write {
     my ($self, $data) = @_;
     $self->{buffer} .= $data . "\n";
 }
 
+# specifically for being a connection::admin object:
 sub end {
-
 }
 
 1;
