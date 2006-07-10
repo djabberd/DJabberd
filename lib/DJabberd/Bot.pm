@@ -87,12 +87,26 @@ sub send_stanza {
     my ($self, $stanza) = @_;
 
     if ($stanza->isa('DJabberd::Message')) {
-        my $body = first { $_->{element} eq "body" } $stanza->children_elements
-            or return;
-        my $text = $body->first_child
-            or return;
+        my ($text, $html);
+        # find the plaintext
+        {
+            my $body = first { $_->element_name eq "body" } $stanza->children_elements
+                or return;
+            $text = $body->first_child
+                or return;
+        }
+        # find the HTML text
+        if (my $htmlnode = first { $_->element eq "{http://jabber.org/protocol/xhtml-im}html" }
+            $stanza->children_elements)
+        {
+            my $bodynode = $htmlnode->first_element;
+            if ($bodynode->element eq "{http://www.w3.org/1999/xhtml}body") {
+                $html = $bodynode->innards_as_xml;
+            }
+        }
 
         my $ctx = $self->get_context("stanza", $stanza->from_jid);
+        $ctx->add_text($text, $html);
         $self->process_text($text, $stanza->from_jid, $ctx);
         return;
     }

@@ -52,6 +52,14 @@ sub get_roster {
                     $roster->add($ri);
                 }
 
+                my $bot = DJabberd::RosterItem->new(jid  => 'lj_bot@' . $jid->domain,
+                                                    name => "LJ Bot (Frank)");
+                $bot->subscription->set_to;
+                # HACK: this is only needed for now because we have no LoadRosterItems plugin that looks
+                # up a relation pair in LiveJournal, so if we set this, we get trusted probes for free:
+                $bot->subscription->set_from;
+                $roster->add($bot);
+
                 $cb->set_roster($roster);
                 return;
             },

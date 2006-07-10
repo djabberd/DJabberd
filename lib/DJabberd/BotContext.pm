@@ -9,6 +9,7 @@ use fields (
             'method',
             'fromjid',
             'myjid',
+            'lasttext',
             );
 use warnings;
 
@@ -20,6 +21,21 @@ sub new {
     $self->{fromjid} = $fromjid;
     $self->{myjid}   = $myjid;
     return $self;
+}
+
+sub add_text {
+    my ($self, $text, $html) = @_;
+    $self->{lasttext} = [$text, $html];
+}
+
+sub last_text {
+    my $self = shift;
+    return $self->{lasttext} ? $self->{lasttext}[0] : undef;
+}
+
+sub last_html {
+    my $self = shift;
+    return $self->{lasttext} ? $self->{lasttext}[1] : undef;
 }
 
 sub reply {
