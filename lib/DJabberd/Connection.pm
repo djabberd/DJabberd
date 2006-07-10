@@ -666,24 +666,27 @@ sub close_stream {
 
 sub close {
     my DJabberd::Connection $self = shift;
-    $DJabberd::Stats::counter{disconnect}++ unless $self->{closed};
+    return if $self->{closed};
+
+    $DJabberd::Stats::counter{disconnect}++;
     $self->log->debug("DISCONNECT: $self->{id}\n") if $self->{id};
 
     if (my $ssl = $self->{ssl}) {
         Net::SSLeay::free($ssl);
+        $self->{ssl} = undef;
     }
 
-    my $p       = $self->{parser};
-
-    # libxml isn't reentrant apparently, so we can't finish_push
-    # from inside an existint callback.  so schedule for a bit later.
-    # this probably could be 0 seconds later, but who cares.
-    Danga::Socket->AddTimer(0, sub {
-        $p->finish_push;
-        $self->{saxhandler}->cleanup if $self->{saxhandler};
-        $self->{saxhandler} = undef;
-        $self->{parser}     = undef;
-    }) if $p;
+    if (my $p = $self->{parser}) {
+        # libxml isn't reentrant apparently, so we can't finish_push
+        # from inside an existint callback.  so schedule immediately,
+        # after event loop.
+        Danga::Socket->AddTimer(0, sub {
+            $p->finish_push;
+            $self->{saxhandler}->cleanup if $self->{saxhandler};
+            $self->{saxhandler} = undef;
+            $self->{parser}     = undef;
+        });
+    }
 
     $self->SUPER::close;
 }

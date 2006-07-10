@@ -146,6 +146,8 @@ sub event_hup {
 
 sub close {
     my $self = shift;
+    return if $self->{closed};
+
     $self->{queue}->on_connection_error($self);
     return $self->SUPER::close;
 }

@@ -110,6 +110,7 @@ sub send_pending_sub_requests {
 
 sub close {
     my $self = shift;
+    return if $self->{closed};
 
     # send an unavailable presence broadcast if we've gone away
     if ($self->is_available) {
