@@ -19,8 +19,8 @@ sub as_num {
 
 sub as_abs_path {
     my $val = shift;
-    die "Path isn't absolute" unless $val =~ m!^/!;
-    die "File doesn't exist" unless -f $val;
+    die "Path '$val' isn't absolute" unless $val =~ m!^/!;
+    die "File '$val' doesn't exist" unless -f $val;
     return $val;
 }
 
