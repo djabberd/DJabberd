@@ -184,6 +184,30 @@ sub CMD_version {
     $_[0]->write($DJabberd::VERSION);
 }
 
+sub _in_sub_process {
+    my $code = shift;
+    my $rand = rand();
+    my $file = ".tmp.$$.$rand.answer";
+
+    my $cpid = fork;
+    if ($cpid) {
+        wait;
+        open (my $fh, $file);
+        my $data = do { local $/; <$fh> };
+        my $res = eval { Storable::thaw($data); };
+        unlink $file;
+        return $res;
+    }
+
+    my $res = $code->();
+    if (open (my $fh, ">$file.writing")) {
+        print $fh Storable::nfreeze($res);
+        close $fh;
+        rename "$file.writing", $file;
+        exit 0;
+    }
+}
+
 sub arena_ref_counts {
     my $all = Devel::Gladiator::walk_arena();
     my %ct;
@@ -212,7 +236,7 @@ sub CMD_gladiator {
         return;
     }
 
-    my $ct = arena_ref_counts();
+    my $ct = _in_sub_process(sub { arena_ref_counts() });
     my $ret;
     $ret .= "ARENA COUNTS:\n";
     foreach my $k (sort {$ct->{$b} <=> $ct->{$a}} keys %$ct) {
