@@ -58,6 +58,7 @@ sub get_roster {
                 # HACK: this is only needed for now because we have no LoadRosterItems plugin that looks
                 # up a relation pair in LiveJournal, so if we set this, we get trusted probes for free:
                 $bot->subscription->set_from;
+                $bot->add_group("LiveJournal");
                 $roster->add($bot);
 
                 $cb->set_roster($roster);
