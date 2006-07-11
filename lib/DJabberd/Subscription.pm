@@ -112,6 +112,18 @@ sub got_inbound_subscribed {
     $self->{pendout} = 0;
 }
 
+sub got_outbound_unsubscribe {
+    my $self = shift;
+    $self->{to}      = 0;
+    $self->{pendout} = 0;
+}
+
+sub got_inbound_unsubscribe {
+    my $self = shift;
+    $self->{from}    = 0;
+    $self->{pendin}  = 0;
+}
+
 sub got_outbound_subscribed {
     my $self = shift;
     $self->{from}    = 1;

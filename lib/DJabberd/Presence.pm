@@ -205,7 +205,11 @@ sub process_outbound {
         return;
     };
     if (exists($need_ritem{$type})) {
-        $self->_roster_load_item($conn->vhost, $call_method);
+        my $to_jid = $self->to_jid
+            or return $self->fail($conn->vhost, "no/invalid 'to' attribute");
+        my $from_jid   = $self->from_jid
+            or return $self->fail($conn->vhost, "no/invalid 'from' attribute");
+        $self->_roster_load_item($conn->vhost, $from_jid, $to_jid, $call_method);
     } else {
         $call_method->();
     }
@@ -245,19 +249,20 @@ sub process_inbound {
     # find the RosterItem corresponding to this sender, and only once we have
     # it, invoke the next handler
 
-    $self->_roster_load_item($vhost, $call_method);
+    my $to_jid = $self->to_jid
+        or return $self->fail($vhost, "no/invalid 'to' attribute");
+    my $from_jid   = $self->from_jid
+        or return $self->fail($vhost, "no/invalid 'from' attribute");
+
+    $self->_roster_load_item($vhost, $to_jid, $from_jid, $call_method);
 }
 
 sub _roster_load_item {
-    my ($self, $vhost, $call_method) = @_;
+    my ($self, $vhost, $my_jid, $contact_jid,$call_method) = @_;
 
-    my $to_jid    = $self->to_jid
-        or return $self->fail($vhost, "no/invalid 'to' attribute");
-    my $from_jid  = $self->from_jid
-        or return $self->fail($vhost, "no/invalid 'from' attribute");
 
     $vhost->run_hook_chain(phase => "RosterLoadItem",
-                           args  => [ $to_jid, $from_jid ],
+                           args  => [ $my_jid, $contact_jid ],
                            methods => {
                                error   => sub {
                                    my ($cb, $reason) = @_;
@@ -265,7 +270,7 @@ sub _roster_load_item {
                                },
                                set => sub {
                                    my ($cb, $ritem) = @_;
-                                   $call_method->($ritem, $from_jid);
+                                   $call_method->($ritem, $contact_jid);
                                },
                            });
     return 0;
@@ -390,11 +395,26 @@ sub _process_inbound_probe {
 sub _process_inbound_unsubscribe {
     my ($self, $vhost, $ritem) = @_;
 
-    # TODO:
-    # 1) MUST roster push
-    # 2) MUST deliver to all available resources
 
-    # both -> to
+    # if we don't know the user, just drop it
+    return unless $ritem;
+
+    my $to_jid = $self->to_jid;
+
+    $ritem->subscription->got_inbound_unsubscribe;
+
+    $vhost->run_hook_chain(phase => "RosterSetItem",
+                           args  => [ $to_jid, $ritem ],
+                           methods => {
+                               done => sub {
+                                   $vhost->roster_push($to_jid, $ritem);
+                                   $self->deliver($vhost);
+                               },
+                               error => sub { my $reason = $_[1]; },
+                           },
+                           );
+
+
 }
 
 sub _process_inbound_unsubscribed {
@@ -494,17 +514,37 @@ sub _process_outbound_unavailable {
 
 
 sub _process_outbound_unsubscribe {
-    my ($self, $conn) = @_;
+    my ($self, $conn, $ritem) = @_;
     # TODO: outbound_unsubscribe
-    my $from_jid    = $conn->bound_jid;
-    my $contact_jid = $self->to_jid or die "Can't subscribe to bogus jid";
+    my $from_jid    = $self->from_jid;
+    my $to_jid = $self->to_jid or die "Can't subscribe to bogus jid";
 
-    warn "unsubscribed $from_jid from $contact_jid";
+    # we didn't have this user;
+    return unless ($ritem);
+
+
+    $ritem->subscription->got_outbound_unsubscribe;
 
     my $deliver = sub {
+        # let's bare-ifiy our from address, as per the SHOULD in XMPP-IM 8.2.5
+        # {=remove-resource-on-presence-out}
+        $self->set_from($self->from_jid->as_bare_string);
+
+        $self->procdeliver($conn->vhost);
+    };
 
 
-    }
+
+    $conn->vhost->run_hook_chain(phase => "RosterSetItem",
+                                 args  => [ $from_jid, $ritem ],
+                                 methods => {
+                                     done => sub {
+                                         $conn->vhost->roster_push($from_jid, $ritem);
+                                         $deliver->();
+                                     },
+                                     error => sub { my $reason = $_[1]; },
+                                 }
+                                 );
 
     # xmpp-ip 8.4.[12]
     # roster push,   (to => none, both => from)
