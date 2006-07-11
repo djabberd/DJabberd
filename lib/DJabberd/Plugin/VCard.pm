@@ -30,7 +30,7 @@ sub register {
             return;
         }
         if(my $to = $iq->to_jid) {
-            unless ($vhost->handles_jid($to)) {
+            unless ($vh->handles_jid($to)) {
                 $cb->decline;
                 return;
             }
