@@ -3,10 +3,11 @@ use strict;
 use warnings;
 use base 'Danga::Socket';
 
-use fields qw(buffer server);
+use fields qw(buffer server handle);
 
-my $has_gladiator = eval "use Devel::Gladiator; 1;";
-my $has_cycle     = eval "use Devel::Cycle; 1;";
+my $has_gladiator  = eval "use Devel::Gladiator; 1;";
+my $has_cycle      = eval "use Devel::Cycle; 1;";
+my $has_devel_leak = eval "use Devel::Leak; 1;";
 
 my $initial_memory;
 
@@ -301,6 +302,24 @@ sub CMD_fields {
     }
     $self->end;
 }
+
+sub CMD_note_arena {
+    my ($self, $arg) = @_;
+    return unless $has_devel_leak;
+    $self->{handle} = 1;
+    Devel::Leak::NoteSV($self->{handle});
+    $self->end;
+}
+
+sub CMD_check_arena {
+    my ($self, $arg) = @_;
+    return unless $has_devel_leak;
+    Devel::Leak::CheckSV($self->{handle});
+    $self->end;
+}
+
+
+
 
 sub end {
     $_[0]->write('.');
