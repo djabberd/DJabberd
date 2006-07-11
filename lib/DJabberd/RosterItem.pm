@@ -28,7 +28,8 @@ sub new {
     }
 
     unless (ref $self->{jid}) {
-        $self->{jid} = DJabberd::JID->new($self->{jid});
+        $self->{jid} = DJabberd::JID->new($self->{jid})
+            or croak("Invalid JID");
     }
 
     $self->{groups}       ||= [];
