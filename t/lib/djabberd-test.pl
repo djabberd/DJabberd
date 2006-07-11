@@ -583,10 +583,18 @@ sub login {
 
 sub get_roster {
     my $self = shift;
+    $self->{requested_roster}++;
     $self->send_xml(qq{<iq type='get' id='rosterplz'><query xmlns='jabber:iq:roster'/></iq>});
     my $xmlo = $self->recv_xml_obj;
     die unless $xmlo->as_xml =~ /type=.result.+jabber:iq:roster/s;
     return $xmlo;
+}
+
+sub initial_presence {
+    my $self = shift;
+    my $message = shift || 'Default Message';
+    $self->send_xml(qq{<presence><status>$message</status></presence>});
+    $self->{initial_presence}++;
 }
 
 # assumes no roster has been requested yet.
@@ -617,5 +625,97 @@ sub subscribe_successfully {
                          );
 }
 
+# this code is a bit duplicated from above, but it deals
+# with initial presence and roster requested
+# it also doesn't ack it
 
+sub subscribe_to {
+    my ($self, $to) = @_;
+    my $from = $self;
+
+    $from->send_xml(qq{<presence to='$to' type='subscribe' />});
+
+    $from->{state}->{subscribe_to}->{$to}++;
+    my @test;
+
+    if ($from->{requested_roster}) {
+        push @test, "roster push" => sub {
+            my ($xo, $xml) = @_;
+            my $subscription = $from->{state}->{subscribed_from}->{$to} ? "from" : "none";
+            return 0 unless $xml =~ /jid=.$to./;
+            return 0 unless $xml =~ /\bsubscription=.$subscription\b/;
+            return 0 if !$from->{state}->{subscribed_from}->{$to} && $xml !~ /ask=.subscribe\b/;
+            return 1;
+        },
+    }
+
+
+    main::test_responses($from, @test) if(@test);
+    my $xml = $to->recv_xml_obj;
+    main::is($xml->attr("{}to"), $to->as_string, "to pb");
+    main::is($xml->attr("{}from"), $from->as_string, "from a");
+    main::is($xml->attr("{}type"), "subscribe", "type subscribe");
+    $to->{state}->{subscribe_from}->{$from}++;
+
+
+
+}
+
+sub accept_subscription_from {
+    my ($self, $from) = @_;
+
+    $self->send_xml(qq{<presence to='$from' type='subscribed' />});
+    $self->{state}->{subscribed_from}->{$from}++;
+
+    my @test;
+    if ($from->{requested_roster}) {
+        push @test,"roster push" => sub {
+                       my ($xo, $xml) = @_;
+                       warn "B) $xml";
+                       if ($from->{state}->{subscribed_from}->{$self}) {
+                           $xml =~ /\bsubscription=.from\b/ && $xml =~ /ask=.subscribe\b/;
+                       } else {
+                           $xml =~ /\bsubscription=.to\b/;
+                       }
+                   };
+        push @test,"roster push" => sub {
+                       my ($xo, $xml) = @_;
+                       if ($from->{state}->{subscribed_from}->{$self} && $self->{state}->{subscribed_from}->{$from}) {
+                           $xml =~ /\bsubscription=.both\b/;
+                       } else {
+                           $xml =~ /\bsubscription=.to\b/;
+                           1;
+                       }
+                   };
+
+    }
+
+
+
+    if ($from->{initial_presence} && $self->{initial_presence}) {
+        push @test, "presence of user" => sub {
+            my ($xo, $xml) = @_;
+            $xml =~ /Default Message/;
+        };
+    }
+
+    if ($from->{initial_presence}) {
+        push @test, "presence subscribed" => sub {
+            my ($xo, $xml) = @_;
+            return 0 unless $xml =~ /\btype=.subscribed\b/;
+            return 0 unless $xml =~ /\bfrom=.$self\b/;
+            return 1;
+        };
+    }
+     main::test_responses($from, @test) if (@test);
+    $from->{state}->{subscribed_to}->{$self}++;
+    my $xml = $self->recv_xml;
+    main::like($xml, qr/to=.$self\b/, "to $self");
+    if ($from->{state}->{subscribed_from}->{$self} && $self->{state}->{subscribed_from}->{$from}) {
+        main::like($xml, qr/subscription=.both\b/, "both");
+    } else {
+        main::like($xml, qr/subscription=.from\b/, "from");
+    }
+
+}
 1;
