@@ -242,6 +242,9 @@ sub arena_ref_counts {
         elsif (ref $it eq "Gearman::Task") {
             $ct{"Gearman::Task-func:$it->{func}"}++;
         }
+        elsif (ref $it eq "DJabberd::Callback") {
+            $ct{"DJabberd::Callback-" . $it->{_phase}}++ if $it->{_phase};
+        }
     }
     $all = undef;
     return \%ct;
@@ -256,6 +259,8 @@ sub CMD_gladiator {
         return;
     }
 
+    $cmd ||= "lite";
+
     my $ct = _in_sub_process(sub { arena_ref_counts() });
     my $ret;
     $ret .= "ARENA COUNTS:\n";
@@ -268,8 +273,6 @@ sub CMD_gladiator {
             next if $k =~ /^REF-/;
             next if $k =~ /^DJabberd::AnonSubFrom::lib_DJabberd_RosterStorage/;
             next if $k =~ /log4perl/i;
-
-
         } else {
             next unless $ct->{$k} > 1 || $cmd eq "all";
         }

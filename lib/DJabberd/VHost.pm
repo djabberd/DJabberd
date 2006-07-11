@@ -242,6 +242,7 @@ sub hook_chain_fast {
         }
     };
     $cb = DJabberd::Callback->new({
+        _phase     => $phase->[0],           # just for leak tracking, not needed
         decline    => $try_another,
         declined   => $try_another,
         stop_chain => $stopper,
