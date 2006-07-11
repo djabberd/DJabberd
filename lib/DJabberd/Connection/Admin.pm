@@ -1,15 +1,15 @@
 package DJabberd::Connection::Admin;
 use strict;
 use warnings;
+no warnings 'redefine';
 use base 'Danga::Socket';
 
 use fields qw(buffer server handle);
+use vars qw($initial_memory);
 
 my $has_gladiator  = eval "use Devel::Gladiator; 1;";
 my $has_cycle      = eval "use Devel::Cycle; 1;";
 my $has_devel_leak = eval "use Devel::Leak; 1;";
-
-my $initial_memory;
 
 sub on_startup {
     $initial_memory ||= get_memory();
@@ -222,7 +222,7 @@ sub _in_sub_process {
     my $res = $code->();
     if (open (my $fh, ">$file.writing")) {
         print $fh Storable::nfreeze($res);
-        close $fh;
+        CORE::close($fh);
         rename "$file.writing", $file;
         exit 0;
     }
@@ -333,7 +333,6 @@ sub CMD_check_arena {
 sub CMD_reload {
     my $self = shift;
     delete $INC{"DJabberd/Connection/Admin.pm"};
-    no warnings 'redefine';
     my $rv = eval "use DJabberd::Connection::Admin; 1;";
     if ($rv) {
         $self->write("OK");
