@@ -21,6 +21,7 @@ sub register {
     });
     $vhost->register_hook("RosterRemoveItem", sub {
         my ($vh, $cb, $jid, $ritem) = @_;
+        # $cb can ->done
         $self->delete_roster_item($cb, $jid, $ritem);
     });
     $vhost->register_hook("RosterLoadItem", sub {

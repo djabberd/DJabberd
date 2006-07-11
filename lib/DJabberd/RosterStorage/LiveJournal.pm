@@ -4,7 +4,9 @@ use base 'DJabberd::RosterStorage';
 use LWP::Simple;
 use Storable;
 
-sub blocking { 1 }
+sub gc {
+    return DJabberd::Plugin::LiveJournal->gearman_client;
+}
 
 sub get_roster {
     my ($self, $cb, $jid) = @_;
@@ -12,7 +14,7 @@ sub get_roster {
     my $user = $jid->node;
     my $roster = DJabberd::Roster->new;
 
-    my $gc = DJabberd::Plugin::LiveJournal->gearman_client;
+    my $gc = gc();
 
     # non-blocking version using gearman
     if ($gc) {
@@ -30,20 +32,18 @@ sub get_roster {
             on_complete => sub {
                 my $stref = shift;
                 my $list = eval { Storable::thaw($$stref) };
-
                 if ($@) {
                     $cb->decline;
                     return;
                 }
 
+                # $list is arrayref of items:
+                #      [jid, nick, $substate, [@groups]]
                 foreach my $it (@$list) {
-                    my $ri = DJabberd::RosterItem->new(jid  => $it->[0],
-                                                       name => $it->[1]);
-                    my $rels = $it->[2];
-                    foreach my $rel (@$rels) {
-                        my $meth = "set_$rel";  # set_to, set_from, set_pending_out, etc...
-                        $ri->subscription->$meth;
-                    }
+                    my $subsc = DJabberd::Subscription->from_bitmask($it->[2]);
+                    my $ri = DJabberd::RosterItem->new(jid          => $it->[0],
+                                                       name         => $it->[1],
+                                                       subscription => $subsc);
 
                     my $glist = $it->[3];
                     foreach my $grp (@$glist) {
@@ -99,7 +99,122 @@ sub get_roster {
         }
         $cb->set_roster($roster);
     }
+}
 
+# override this.  unlike addupdate, you should respect the subscription level
+sub set_roster_item {
+    my ($self, $cb, $jid, $ritem) = @_;
+    warn "set: cb=$cb jid=$jid ritem=$ritem\n";
+    $self->_addupdateset_item($cb, $jid, $ritem, "respect_sublevel");
+}
+
+sub addupdate_roster_item {
+    my ($self, $cb, $jid, $ritem) = @_;
+    warn "addupdate: cb=$cb jid=$jid ritem=$ritem\n";
+    $self->_addupdateset_item($cb, $jid, $ritem, 0);
+}
+
+sub _addupdateset_item {
+    my ($self, $cb, $jid, $ritem, $opt_usesublevel) = @_;
+    warn "_addupdate: cb=$cb jid=$jid ritem=$ritem\n";
+
+    my $gc = gc() or
+        return $cb->declined;
+
+    my $req = {
+        'user'     => $jid->node,
+        'contact'  => $ritem->jid->as_bare_string,
+        'name'     => $ritem->name,
+        'groups'   => [ $ritem->groups ],
+        'substate' => $opt_usesublevel ? $ritem->subscription->as_bitmask : undef,
+    };
+    $req = Storable::nfreeze($req);
+
+    $gc->add_task(Gearman::Task->new("ljtalk_addupdateset_roster" => \$req, {
+        uniq        => "-",
+        retry_count => 2,
+        timeout     => 10,
+        on_fail     => sub {
+            $DJabberd::Stats::counter{'ljtalk_addupdateset_fail'}++;
+            $cb->decline;
+        },
+        on_complete => sub {
+            my $stref = shift;
+            my $res = eval { Storable::thaw($$stref) };
+            if ($res && defined $res->{substate}) {
+                $ritem->set_subscription(DJabberd::Subscription->from_bitmask($res->{substate}));
+                $cb->done($ritem);
+            } else {
+                # Better error method to call?
+                $cb->decline;
+            }
+        },
+    }));
+}
+
+sub load_roster_item {
+    my ($self, $jid, $cjid, $cb) = @_;
+    # cb can set($data|undef)' and 'error($reason)
+
+    my $gc = gc() or
+        return $cb->declined;
+
+    my $req = Storable::nfreeze({
+        'user'     => $jid->node,
+        'contact'  => $cjid->as_bare_string,
+    });
+
+    $gc->add_task(Gearman::Task->new("ljtalk_load_roster_item" => \$req, {
+        uniq        => "-",
+        retry_count => 2,
+        timeout     => 10,
+        on_fail     => sub {
+            $DJabberd::Stats::counter{'ljtalk_load_roster_item_fail'}++;
+            $cb->error('timeout');
+        },
+        on_complete => sub {
+            my $stref = shift;
+            my $res = eval { Storable::thaw($$stref) };
+            # we need $res->{'name', 'substate', 'groups'}
+
+            my $ritem =
+                DJabberd::RosterItem->new(
+                                          jid          => $cjid,
+                                          name         => $res->{name},
+                                          subscription => DJabberd::Subscription->from_bitmask($res->{substate}),
+                                          );
+            foreach my $grp (split(/\0/, $res->{groups})) {
+                $ritem->add_group($grp);
+            }
+            $cb->set($ritem);
+        },
+    }));
+}
+
+# override this.
+sub delete_roster_item {
+    my ($self, $cb, $jid, $ritem) = @_;
+
+    my $gc = gc() or
+        return $cb->declined;
+
+    my $req = Storable::nfreeze({
+        'user'     => $jid->node,
+        'contact'  => $ritem->jid->as_bare_string,
+    });
+
+    $gc->add_task(Gearman::Task->new("ljtalk_delete_roster_item" => \$req, {
+        uniq        => "-",
+        retry_count => 2,
+        timeout     => 10,
+        on_fail     => sub {
+            $DJabberd::Stats::counter{'ljtalk_delete_roster_item_fail'}++;
+            $cb->error('timeout');
+        },
+        on_complete => sub {
+            $cb->done;
+        },
+    }));
 }
 
 1;
