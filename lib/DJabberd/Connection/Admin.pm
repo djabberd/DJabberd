@@ -146,15 +146,25 @@ sub CMD_list {
 sub CMD_stats {
     my $self = shift;
 
-    my $connections = $DJabberd::Stats::counter{connect} - $DJabberd::Stats::counter{disconnect};
-    $self->write("connections\t$connections\tconnections");
+    my $conns       = keys %{ Danga::Socket->DescriptorMap};
+    my $conns_quick = $DJabberd::Stats::counter{connect} - $DJabberd::Stats::counter{disconnect};
+
+    my $users = 0;
+    DJabberd->foreach_vhost(sub {
+        my $vhost = shift;
+        $users += keys %{$vhost->{jid2sock}};
+    });
+
+    $self->write("connections\t$conns\tconnections");
+    $self->write("users\t$users\tusers");
+    $self->write("connections_quickcalc\t$conns_quick\tconnections");
 
     my $mem      = get_memory();
     my $user_mem = $mem - $initial_memory;
 
     $self->write("mem_total\t$mem\tkB");
     $self->write("mem_connections\t$user_mem\tkB");
-    $self->write("mem_per_connection\t". ($user_mem / ($connections || 1) ) . "\tkB/conn");
+    $self->write("mem_per_connection\t". ($user_mem / ($conns || 1) ) . "\tkB/conn");
     $self->end;
 }
 
@@ -270,7 +280,7 @@ sub CMD_cycle {
 
     my $array = Devel::Gladiator::walk_arena();
     #my @list = grep { ref($_) =~ /^DJabberd::VHost|DJabberd::Connection::ClientIn|DJabberd::AnonSubFrom/ } @$array;
-    my @list = grep { ref($_) =~ /^DJabberd|CODE/ } @$array;
+    my @list = grep { ref($_) =~ /^DJabberd|Gearman|CODE/ } @$array;
     $array = undef;
 
     use Data::Dumper;
