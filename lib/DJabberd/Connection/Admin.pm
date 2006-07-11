@@ -330,8 +330,17 @@ sub CMD_check_arena {
     $self->end;
 }
 
-
-
+sub CMD_reload {
+    my $self = shift;
+    delete $INC{"DJabberd/Connection/Admin.pm"};
+    no warnings 'redefine';
+    my $rv = eval "use DJabberd::Connection::Admin; 1;";
+    if ($rv) {
+        $self->write("OK");
+    } else {
+        $self->write("ERROR: $@");
+    }
+}
 
 sub end {
     $_[0]->write('.');
