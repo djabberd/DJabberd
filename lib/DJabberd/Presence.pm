@@ -181,22 +181,35 @@ sub process {
     confess "No generic 'process' method for $_[0]";
 }
 
+our %need_ritem = (
+                   unsubscribe => 1,
+                   );
+
 sub process_outbound {
     my ($self, $conn) = @_;
     my $type      = $self->type || "available";
 
 
-    my $bjid = $conn->bound_jid;
-    return 0 unless $bjid;
-
+    return 0 unless $conn->bound_jid;
     return $self->fail($conn->vhost, "bogus type") unless $type =~ /^\w+$/;
 
-    my $meth = "_process_outbound_$type";
-    eval { $self->$meth($conn) };
-    if ($@) {
-        warn "  ... ERROR: [$@]\n";
+
+
+    my $call_method = sub {
+        my $ritem = shift;
+        my $meth = "_process_outbound_$type";
+        eval { $self->$meth($conn,$ritem) };
+        if ($@) {
+            warn "  ... ERROR: [$@]\n";
+        }
+        return;
+    };
+    if (exists($need_ritem{$type})) {
+        $self->_roster_load_item($conn->vhost, $call_method);
+    } else {
+        $call_method->();
     }
-    return;
+
 }
 
 sub process_inbound {
@@ -207,13 +220,9 @@ sub process_inbound {
 
     return $self->fail($vhost, "bogus type") unless $type =~ /^\w+$/;
 
-    my $to_jid    = $self->to_jid
-        or return $self->fail($vhost, "no/invalid 'to' attribute");
-    my $from_jid  = $self->from_jid
-        or return $self->fail($vhost, "no/invalid 'from' attribute");
-
     my $call_method = sub {
-        my $ritem = shift;
+        my $ritem    = shift;
+        my $from_jid = shift;
         my $meth = "_process_inbound_$type";
         eval { $self->$meth($vhost, $ritem, $from_jid) };
         if ($@) {
@@ -236,11 +245,16 @@ sub process_inbound {
     # find the RosterItem corresponding to this sender, and only once we have
     # it, invoke the next handler
 
-    $self->_roster_load_item($vhost, $to_jid, $from_jid, $call_method);
+    $self->_roster_load_item($vhost, $call_method);
 }
 
 sub _roster_load_item {
-    my ($self, $vhost, $to_jid, $from_jid, $call_method) = @_;
+    my ($self, $vhost, $call_method) = @_;
+
+    my $to_jid    = $self->to_jid
+        or return $self->fail($vhost, "no/invalid 'to' attribute");
+    my $from_jid  = $self->from_jid
+        or return $self->fail($vhost, "no/invalid 'from' attribute");
 
     $vhost->run_hook_chain(phase => "RosterLoadItem",
                            args  => [ $to_jid, $from_jid ],
@@ -251,7 +265,7 @@ sub _roster_load_item {
                                },
                                set => sub {
                                    my ($cb, $ritem) = @_;
-                                   $call_method->($ritem);
+                                   $call_method->($ritem, $from_jid);
                                },
                            });
     return 0;
