@@ -87,6 +87,15 @@ sub CMD_connections {
     $self->write($conns);
 }
 
+sub CMD_latency_log {
+   my $self = shift;
+    foreach my $le (@DJabberd::Stats::stanza_process_latency_log) {
+        next unless defined $le;
+        $self->write("$le->[0]\t$le->[1]");
+    }
+   $self->end;
+}
+
 sub CMD_latency {
     my $self = shift;
     my %hist;

@@ -101,7 +101,14 @@ sub start_element {
         $conn->on_stanza_received($nodes->[0]) if $conn;
         my $td = Time::HiRes::time() - $t1;
 
-        # ring buffer for latency stats:
+        # ring buffers for latency stats:
+        if ($td > $DJabberd::Stats::latency_log_threshold) {
+            $DJabberd::Stats::stanza_process_latency_log[ $DJabberd::Stats::latency_log_index =
+                                                          ($DJabberd::Stats::latency_log_index + 1) % $DJabberd::Stats::latency_log_max_size
+                                                          ] = [$td, $nodes->[0]->as_xml];
+        }
+
+
         $DJabberd::Stats::stanza_process_latency[ $DJabberd::Stats::latency_index =
                                                   ($DJabberd::Stats::latency_index + 1) % $DJabberd::Stats::latency_max_size
                                                   ] = $td;
