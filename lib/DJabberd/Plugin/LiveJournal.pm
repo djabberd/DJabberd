@@ -126,6 +126,8 @@ sub hook_on_initial_presence {
     my $how_much = $bj->node =~ /^whitaker|revmischa|brad|crucially|supersat|mart|scsi|evan$/ ?
         "more than Whitaker's mom" :
         "a lot";
+        
+    return if $bj->node eq 'mart';
 
     $conn->write("<message to='$bj' from='livejournal.com' type='headline'><body>LJ Talk is currently a pre-alpha service lacking tons of features and probably with a bunch of bugs.
 
