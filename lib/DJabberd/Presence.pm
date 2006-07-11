@@ -235,6 +235,13 @@ sub process_inbound {
 
     # find the RosterItem corresponding to this sender, and only once we have
     # it, invoke the next handler
+
+    $self->_roster_load_item($vhost, $to_jid, $from_jid, $call_method);
+}
+
+sub _roster_load_item {
+    my ($self, $vhost, $to_jid, $from_jid, $call_method) = @_;
+
     $vhost->run_hook_chain(phase => "RosterLoadItem",
                            args  => [ $to_jid, $from_jid ],
                            methods => {
@@ -247,7 +254,9 @@ sub process_inbound {
                                    $call_method->($ritem);
                                },
                            });
+    return 0;
 }
+
 
 sub _process_inbound_available {
     my ($self, $vhost) = @_;
@@ -475,6 +484,14 @@ sub _process_outbound_unsubscribe {
     # TODO: outbound_unsubscribe
     my $from_jid    = $conn->bound_jid;
     my $contact_jid = $self->to_jid or die "Can't subscribe to bogus jid";
+
+    warn "unsubscribed $from_jid from $contact_jid";
+
+    my $deliver = sub {
+
+
+    }
+
     # xmpp-ip 8.4.[12]
     # roster push,   (to => none, both => from)
     # deliver.
@@ -548,6 +565,7 @@ sub _process_outbound_subscribe {
                                      set => $on_load,
                                  });
 }
+
 
 
 sub _process_outbound_subscribed {
