@@ -21,6 +21,7 @@ use fields (
                                     # but bool true is actually an arrayref of previous watch_read state
             'iqctr',          # iq counter.  incremented whenever we SEND an iq to the party (roster pushes, etc)
             'in_stream',      # bool:  true if we're in a stream tag
+            'counted_close',  # bool:  temporary here to track down the overcounting of disconnects
             );
 
 our $connection_id = 1;
@@ -668,7 +669,13 @@ sub close {
     my DJabberd::Connection $self = shift;
     return if $self->{closed};
 
-    $DJabberd::Stats::counter{disconnect}++;
+
+    if ($self->{counted_close}++) {
+        $self->log->logcluck("We are about to increment the diconnect counter one time too many, but we didn't");
+    } else {
+        $DJabberd::Stats::counter{disconnect}++;
+    }
+
     $self->log->debug("DISCONNECT: $self->{id}\n") if $self->{id};
 
     if (my $ssl = $self->{ssl}) {
