@@ -203,7 +203,8 @@ sub process_outbound {
         }
         return;
     };
-    if (exists($outbound_need_ritem{$type})) {
+
+    if ($outbound_need_ritem{$type}) {
         my $to_jid = $self->to_jid
             or return $self->fail($conn->vhost, "no/invalid 'to' attribute");
         my $from_jid   = $self->from_jid
@@ -223,9 +224,13 @@ sub process_inbound {
 
     return $self->fail($vhost, "bogus type") unless $type =~ /^\w+$/;
 
+    my $to_jid = $self->to_jid
+        or return $self->fail($vhost, "no/invalid 'to' attribute");
+    my $from_jid   = $self->from_jid
+        or return $self->fail($vhost, "no/invalid 'from' attribute");
+
     my $call_method = sub {
-        my $ritem    = shift;
-        my $from_jid = shift;
+        my $ritem = shift;
         my $meth = "_process_inbound_$type";
         eval { $self->$meth($vhost, $ritem, $from_jid) };
         if ($@) {
@@ -245,20 +250,13 @@ sub process_inbound {
         return;
     }
 
-    # find the RosterItem corresponding to this sender, and only once we have
-    # it, invoke the next handler
-
-    my $to_jid = $self->to_jid
-        or return $self->fail($vhost, "no/invalid 'to' attribute");
-    my $from_jid   = $self->from_jid
-        or return $self->fail($vhost, "no/invalid 'from' attribute");
-
+    # find the RosterItem corresponding to this sender, and only once
+    # we have it, invoke the next handler
     $self->_roster_load_item($vhost, $to_jid, $from_jid, $call_method);
 }
 
 sub _roster_load_item {
-    my ($self, $vhost, $my_jid, $contact_jid,$call_method) = @_;
-
+    my ($self, $vhost, $my_jid, $contact_jid, $call_method) = @_;
 
     $vhost->run_hook_chain(phase => "RosterLoadItem",
                            args  => [ $my_jid, $contact_jid ],
@@ -269,12 +267,11 @@ sub _roster_load_item {
                                },
                                set => sub {
                                    my ($cb, $ritem) = @_;
-                                   $call_method->($ritem, $contact_jid);
+                                   $call_method->($ritem);
                                },
                            });
     return 0;
 }
-
 
 sub _process_inbound_available {
     my ($self, $vhost) = @_;
