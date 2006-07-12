@@ -6,12 +6,12 @@ use IO::Socket::INET;
 
 my $adminport = 5200;
 my $mcastport = 8650;
-my $sleep_time = 5;
+my $sleep_time = 30;
 
 our $dry_run = 0;
 our $daemonize = 0;
 
-use GetOpt::Long;
+use Getopt::Long;
 
 Getopt::Long::GetOptions(
                          'd|daemon'     => \$daemonize,
@@ -25,9 +25,12 @@ MAIN: while(1) {
     my $addr = "127.0.0.1:$adminport";
 
     my $sock = IO::Socket::INET->new(PeerAddr => "$addr",
-                                     Timeout => 10)
+                                     Timeout => 10);
 
-        or die "Cannot connect to server ($addr)";
+    unless ($sock) {
+	warn "Cannot connect to server ($addr)";
+	sleep 10;
+    }
 
     my %stats;
     my %output;
@@ -67,7 +70,7 @@ MAIN: while(1) {
 
         while (my $line = $sock->getline || next MAIN) {
             last if $line =~ /^\./;
-            $line =~ /^\s*(.+?)\s+(\d+)\s+(\w+)/;
+            $line =~ /^\s*(.+?)\s+([\d.]+)\s+([\w\/]+)/;
             my ($key, $val, $unit) = ($1, $2, $3);
             my $metric_key = $key;
             $metric_key =~ s/\W/_/g;
