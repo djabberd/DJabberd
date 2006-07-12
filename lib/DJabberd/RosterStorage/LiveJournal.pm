@@ -104,19 +104,16 @@ sub get_roster {
 # override this.  unlike addupdate, you should respect the subscription level
 sub set_roster_item {
     my ($self, $cb, $jid, $ritem) = @_;
-    warn "set: cb=$cb jid=$jid ritem=$ritem\n";
     $self->_addupdateset_item($cb, $jid, $ritem, "respect_sublevel");
 }
 
 sub addupdate_roster_item {
     my ($self, $cb, $jid, $ritem) = @_;
-    warn "addupdate: cb=$cb jid=$jid ritem=$ritem\n";
     $self->_addupdateset_item($cb, $jid, $ritem, 0);
 }
 
 sub _addupdateset_item {
     my ($self, $cb, $jid, $ritem, $opt_usesublevel) = @_;
-    warn "_addupdate: cb=$cb jid=$jid ritem=$ritem\n";
 
     my $gc = gc() or
         return $cb->declined;

@@ -182,7 +182,8 @@ sub process {
 }
 
 our %outbound_need_ritem = (
-                            unsubscribe => 1,
+                            unsubscribe  => 1,
+                            unsubscribed => 1,
                             );
 
 sub process_outbound {
@@ -540,13 +541,47 @@ sub _process_outbound_unsubscribe {
 }
 
 sub _process_outbound_unsubscribed {
-    my ($self, $conn) = @_;
-    # TODO: outbound_unsubscribed
+    my ($self, $conn, $ritem) = @_;
+
+    my $deliver = sub {
+        $self->set_from($self->from_jid->as_bare_string);
+        $self->procdeliver($conn->vhost);
+    };
+
+    # no relation, but deliver anyway....
+    unless ($ritem) {
+        # TODO: we should deliver these, I assume, as that's consistent
+        # with other parts of spec wrt inter-server sync issues?  --brad
+        $deliver->();
+        return;
+    }
+
     my $from_jid    = $conn->bound_jid;
     my $contact_jid = $self->to_jid or die "Can't subscribe to bogus jid";
+
     # xmpp-ip 8.5.[12]
-    # roster push   (from => none, both => to)
-    # send unavailable presence to contact
+    # roster push   (from => none, both => to), clearing pendin as well...
+    $ritem->subscription->got_outbound_unsubscribed;
+
+    $conn->vhost->run_hook_chain(phase => "RosterSetItem",
+                                 args  => [ $from_jid, $ritem ],
+                                 methods => {
+                                     done => sub {
+                                         $conn->vhost->roster_push($from_jid, $ritem);
+
+                                         # continue this packet along to contact
+                                         $self->set_from($self->from_jid->as_bare_string);
+                                         $self->procdeliver($conn->vhost);
+
+                                         # send unavailable presence to contact:
+                                         my $unavail = DJabberd::Presence->unavailable_stanza;
+                                         $unavail->set_to($contact_jid);
+                                         $unavail->set_from($from_jid);
+                                         $unavail->deliver($conn->vhost);  # procdeliver's useless:  proc just delivers
+                                     },
+                                     error => sub { my $reason = $_[1]; },
+                                 },
+                                 );
 }
 
 
