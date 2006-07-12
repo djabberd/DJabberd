@@ -28,11 +28,17 @@ sub register {
     my ($self, $vhost) = @_;
 
     my $hook_vcard = sub {
-        $self->hook_vcard_switch(@_);
+        $DJabberd::Stats::counter{'debug_iq_leak1_c2s'}++;
+        $self->hook_vcard_switch(@_, "c2s");
+    };
+
+    my $hook_vcard_s2s = sub {
+        $DJabberd::Stats::counter{'debug_iq_leak1_s2s'}++;
+        $self->hook_vcard_switch(@_, "s2s");
     };
 
     $vhost->register_hook("switch_incoming_client", $hook_vcard);
-    $vhost->register_hook("switch_incoming_server", $hook_vcard);
+    $vhost->register_hook("switch_incoming_server", $hook_vcard_s2s);
     $vhost->register_hook("OnInitialPresence",      \&hook_on_initial_presence);
     $vhost->register_hook("AlterPresenceAvailable", \&hook_alter_presence);
     $vhost->add_feature("vcard-temp");
@@ -126,7 +132,7 @@ sub hook_on_initial_presence {
     my $how_much = $bj->node =~ /^whitaker|revmischa|brad|crucially|supersat|mart|scsi|evan$/ ?
         "more than Whitaker's mom" :
         "a lot";
-        
+
     return if $bj->node eq 'mart';
 
     $conn->write("<message to='$bj' from='livejournal.com' type='headline'><body>LJ Talk is currently a pre-alpha service lacking tons of features and probably with a bunch of bugs.
@@ -135,26 +141,34 @@ We're actively developing it, constantly restarting it with new stuff.  So just 
 }
 
 sub hook_vcard_switch {
-    my ($self, $vhost, $cb, $iq) = @_;
+    my ($self, $vhost, $cb, $iq, $type) = @_;
+    $DJabberd::Stats::counter{"debug_iq_leak2_$type"}++;
     unless ($iq->isa("DJabberd::IQ")) {
+        $DJabberd::Stats::counter{"debug_iq_leak3_$type"}++;
         $cb->decline;
         return;
     }
     if (my $to = $iq->to_jid) {
+        $DJabberd::Stats::counter{"debug_iq_leak4_$type"}++;
         unless ($vhost->handles_jid($to)) {
+            $DJabberd::Stats::counter{"debug_iq_leak5_$type"}++;
             $cb->decline;
             return;
         }
     }
     if ($iq->signature eq 'get-{vcard-temp}vCard') {
+        $DJabberd::Stats::counter{"debug_iq_leak6_$type"}++;
         $self->get_vcard($vhost, $iq);
         $cb->stop_chain;
         return;
     } elsif ($iq->signature eq 'set-{vcard-temp}vCard') {
+        $DJabberd::Stats::counter{"debug_iq_leak7_$type"}++;
         $iq->send_error;
         $cb->stop_chain;
         return;
     }
+
+    $DJabberd::Stats::counter{"debug_iq_leak8_$type"}++;
     $cb->decline;
 }
 
