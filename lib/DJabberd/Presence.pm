@@ -181,9 +181,9 @@ sub process {
     confess "No generic 'process' method for $_[0]";
 }
 
-our %need_ritem = (
-                   unsubscribe => 1,
-                   );
+our %outbound_need_ritem = (
+                            unsubscribe => 1,
+                            );
 
 sub process_outbound {
     my ($self, $conn) = @_;
@@ -192,8 +192,6 @@ sub process_outbound {
 
     return 0 unless $conn->bound_jid;
     return $self->fail($conn->vhost, "bogus type") unless $type =~ /^\w+$/;
-
-
 
     my $call_method = sub {
         my $ritem = shift;
@@ -204,7 +202,7 @@ sub process_outbound {
         }
         return;
     };
-    if (exists($need_ritem{$type})) {
+    if (exists($outbound_need_ritem{$type})) {
         my $to_jid = $self->to_jid
             or return $self->fail($conn->vhost, "no/invalid 'to' attribute");
         my $from_jid   = $self->from_jid
@@ -395,7 +393,6 @@ sub _process_inbound_probe {
 sub _process_inbound_unsubscribe {
     my ($self, $vhost, $ritem) = @_;
 
-
     # if we don't know the user, just drop it
     return unless $ritem;
 
@@ -413,8 +410,6 @@ sub _process_inbound_unsubscribe {
                                error => sub { my $reason = $_[1]; },
                            },
                            );
-
-
 }
 
 sub _process_inbound_unsubscribed {
@@ -515,40 +510,33 @@ sub _process_outbound_unavailable {
 
 sub _process_outbound_unsubscribe {
     my ($self, $conn, $ritem) = @_;
-    # TODO: outbound_unsubscribe
-    my $from_jid    = $self->from_jid;
-    my $to_jid = $self->to_jid or die "Can't subscribe to bogus jid";
+
+    my $from_jid  = $self->from_jid;
+    my $to_jid    = $self->to_jid    or die "Can't subscribe to bogus jid";
 
     # we didn't have this user;
-    return unless ($ritem);
-
+    return unless $ritem;
 
     $ritem->subscription->got_outbound_unsubscribe;
-
-    my $deliver = sub {
-        # let's bare-ifiy our from address, as per the SHOULD in XMPP-IM 8.2.5
-        # {=remove-resource-on-presence-out}
-        $self->set_from($self->from_jid->as_bare_string);
-
-        $self->procdeliver($conn->vhost);
-    };
-
-
 
     $conn->vhost->run_hook_chain(phase => "RosterSetItem",
                                  args  => [ $from_jid, $ritem ],
                                  methods => {
                                      done => sub {
+                                         # xmpp-ip 8.4.[12]
+                                         # roster push,   (to => none, both => from)
+                                         # deliver.
                                          $conn->vhost->roster_push($from_jid, $ritem);
-                                         $deliver->();
+
+                                         # let's bare-ifiy our from address, as per the SHOULD in XMPP-IM 8.2.5
+                                         # {=remove-resource-on-presence-out}
+                                         $self->set_from($self->from_jid->as_bare_string);
+                                         $self->procdeliver($conn->vhost);
                                      },
                                      error => sub { my $reason = $_[1]; },
                                  }
                                  );
 
-    # xmpp-ip 8.4.[12]
-    # roster push,   (to => none, both => from)
-    # deliver.
 }
 
 sub _process_outbound_unsubscribed {
