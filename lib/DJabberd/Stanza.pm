@@ -143,4 +143,20 @@ sub deliver_when_unavailable {
     0;
 }
 
+sub make_response {
+    my ($self) = @_;
+
+    # Common to all stanzas is a switching of the from/to addresses.
+    my $response = $self->clone;
+    my $from = $self->from;
+    my $to   = $self->to;
+
+    $response->set_to($from);
+    $to ? $response->set_from($to) : delete($response->attrs->{"{}from"});
+    
+    $response->set_raw("");
+
+    return $response;
+}
+
 1;

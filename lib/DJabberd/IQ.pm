@@ -574,4 +574,12 @@ sub deliver_when_unavailable {
         $self->type eq "error";
 }
 
+sub make_response {
+    my ($self) = @_;
+    
+    my $response = $self->SUPER::make_response();
+    $response->attrs->{"{}type"} = "result";
+    return $response;    
+}
+
 1;
