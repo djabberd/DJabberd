@@ -51,9 +51,11 @@ sub register {
     Scalar::Util::weaken($self->{vhost});
     
     $vhost->register_hook('deliver',sub {
-        if ($_[2]->to_jid && $_[2]->to_jid->domain eq $self->{domain}) {
-            $logger->debug("Delivering ".$_[2]->element_name." stanza to component ".$self->{domain});
-            $self->{component}->handle_stanza(@_);
+        my ($vhost, $cb, $stanza) = @_;
+        if ($stanza->to_jid && $stanza->to_jid->domain eq $self->{domain}) {
+            $logger->debug("Delivering ".$stanza->element_name." stanza to component ".$self->{domain});
+            $self->{component}->handle_stanza($vhost, $stanza);
+            $cb->delivered();
         }
     });
 }

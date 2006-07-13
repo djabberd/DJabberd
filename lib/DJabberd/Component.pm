@@ -56,10 +56,9 @@ sub domain {
 }
 
 sub handle_stanza {
-    my ($self, $vhost, $cb, $stanza) = @_;
+    my ($self, $vhost, $stanza) = @_;
 
     $logger->warn("handle_stanza not implemented for $self");
-    $cb->decline;
 }
 
 1;

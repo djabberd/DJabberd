@@ -77,7 +77,8 @@ sub deliver {
 
     if ($stanza->to_jid && $vhost->handles_domain($stanza->to_jid->domain)) {
         $logger->debug("Delivering ".$stanza->element_name." stanza via component ".$self->{class});
-        $self->{component}->handle_stanza($vhost, $cb, $stanza);
+        $self->{component}->handle_stanza($vhost, $stanza);
+        $cb->delivered;
     }
     else {
         $logger->debug("This stanza is not for ".$vhost->server_name);
