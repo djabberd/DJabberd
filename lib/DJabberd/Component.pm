@@ -32,27 +32,41 @@ TODO: Write more docs
 
 package DJabberd::Component;
 
+use base 'DJabberd::Delivery';
 use strict;
 use DJabberd::Log;
 
 our $logger = DJabberd::Log->get_logger();
 
-sub new {
-    my ($class, $domain, $opts) = @_;
-
-    my $self = bless {
-        _component_domain => $domain,
-    }, $class;
+sub register {
+    my ($self, $vhost) = @_;
     
-    $self->initialize($opts);
+    $self->{component_vhost} = $vhost;
     
-    return $self;
+    $logger->debug("Component ".$self." will serve domain ".$self->domain);
+    
+    return $self->SUPER::register($vhost);
 }
 
-sub initialize { }
+sub deliver {
+    my ($self, $vhost, $cb, $stanza) = @_;
+
+    $logger->debug("Got a nice stanza: ".$stanza->as_summary);
+
+    # FIXME: Maybe this should require an exact match on the vhost domain, rather than handles_domain?
+    if ($stanza->to_jid && $vhost->handles_domain($stanza->to_jid->domain)) {
+        $logger->debug("Delivering ".$stanza->element_name." stanza via component ".$self->{class});
+        $self->handle_stanza($vhost, $stanza);
+        $cb->delivered;
+    }
+    else {
+        $logger->debug("This stanza is not for ".$vhost->server_name);
+        $cb->decline;
+    }
+}
 
 sub domain {
-    return $_[1] ? $_[0]->{_component_domain} = $_[1] : $_[0]->{_component_domain};
+    return $_[0]->{component_vhost}->server_name;
 }
 
 sub handle_stanza {
