@@ -63,7 +63,6 @@ sub deliver {
     my $server = $vhost->server;
     
     unless ($server) {
-        $logger->warn("My vhost has no server. Bailing out!");
         return $cb->decline;
     }
 
@@ -80,7 +79,6 @@ sub deliver {
     
     # Sanity check: don't want to re-deliver to the same vhost
     if ($handler == $vhost) {
-        $logger->debug("Not re-delivering to myself.");
         return $cb->decline;
     }
 
@@ -91,7 +89,7 @@ sub deliver {
     }
     
     if ($handler) {
-        $logger->debug("Delivering via local vhost $handler");
+        $logger->debug($vhost->server_name." -> ".$handler->server_name);
         $stanza->deliver($handler);
         return $cb->delivered;
     }
