@@ -159,4 +159,32 @@ sub make_response {
     return $response;
 }
 
+sub make_error_response {
+    my ($self, $code, $type, $error) = @_;
+    
+    my $response = $self->clone;
+    my $from = $self->from;
+    my $to   = $self->to;
+
+    $response->set_to($from);
+    $to ? $response->set_from($to) : delete($response->attrs->{"{}from"});
+
+    my $error_elem = new DJabberd::XMLElement(
+        "jabber:server",
+        "error",
+        {
+            "{}code" => $code,
+            "{}type" => $type,
+        },
+        [
+            ref $error ? $error : new DJabberd::XMLElement("urn:ietf:params:xml:ns:xmpp-stanzas", $error, {}, []),
+        ],
+    );
+
+    $response->attrs->{"{}type"} = "error";
+    $response->push_child($error_elem);
+    
+    return $response;
+}
+
 1;
