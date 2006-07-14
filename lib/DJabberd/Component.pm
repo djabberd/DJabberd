@@ -35,6 +35,7 @@ package DJabberd::Component;
 use base 'DJabberd::Agent';
 use strict;
 use DJabberd::Log;
+use DJabberd::Util qw(exml);
 
 our $logger = DJabberd::Log->get_logger();
 
@@ -79,6 +80,8 @@ sub handle_stanza {
 sub get_node {
     my ($self, $nodename) = @_;
 
+    use DJabberd::Component::Node;
+    return new DJabberd::Component::Node(nodename => $nodename, component => $self);
     return undef;
 }
 
