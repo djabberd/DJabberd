@@ -27,16 +27,11 @@ sub deliver {
 
     my ($self, $vhost, $cb, $stanza) = @_;
 
-    $logger->debug("Got a nice stanza: ".$stanza->as_summary);
-
-    # FIXME: Maybe this should require an exact match on the vhost domain, rather than handles_domain?
     if ($self->handles_destination($stanza->to_jid, $vhost)) {
-        $logger->debug("Delivering ".$stanza->element_name." stanza via agent ".$self);
         $self->handle_stanza($vhost, $stanza);
         $cb->delivered;
     }
     else {
-        $logger->debug("This stanza is not for ".$vhost->server_name);
         $cb->decline;
     }
 
