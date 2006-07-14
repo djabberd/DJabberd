@@ -15,7 +15,7 @@ DJabberd::Component - Abstract class representing a component in DJabberd
     }
     
     sub handle_stanza {
-        my ($self, $vhost, $cb, $stanza) = @_;
+        my ($self, $vhost, $stanza) = @_;
         
         # ... handle the given stanza
     }
@@ -80,8 +80,6 @@ sub handle_stanza {
 sub get_node {
     my ($self, $nodename) = @_;
 
-    use DJabberd::Component::Node;
-    return new DJabberd::Component::Node(nodename => $nodename, component => $self);
     return undef;
 }
 
