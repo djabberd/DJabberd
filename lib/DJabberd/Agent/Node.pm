@@ -10,7 +10,7 @@ use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger();
 
 sub set_config_nodename {
-    $_[0]->{agent_node_name};
+    $_[0]->{agent_node_name} = $_[1];
 }
 
 sub finalize {

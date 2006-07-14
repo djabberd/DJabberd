@@ -10,7 +10,7 @@ use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger();
 
 sub set_config_component {
-    $_[0]->{component_node_component};
+    $_[0]->{component_node_component} = $_[1];
 }
 
 sub finalize {
