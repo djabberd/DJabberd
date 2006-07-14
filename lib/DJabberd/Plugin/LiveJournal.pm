@@ -80,7 +80,6 @@ sub get_vcard {
 
             my $data = $$dataref;
             my $mimetype;
-            warn "Data length for $user = " . length($data) . "\n";
 
             my $b64 = encode_base64($data);
 
