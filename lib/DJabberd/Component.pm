@@ -42,11 +42,10 @@ our $logger = DJabberd::Log->get_logger();
 sub register {
     my ($self, $vhost) = @_;
     
-    $self->{component_vhost} = $vhost;
-    
+    $self->SUPER::register($vhost);
     $logger->debug("Component ".$self." will serve domain ".$self->domain);
+    return;
     
-    return $self->SUPER::register($vhost);
 }
 
 sub handles_destination {
@@ -55,9 +54,8 @@ sub handles_destination {
 }
 
 sub domain {
-    return $_[0]->{component_vhost}->server_name;
+    return $_[0]->vhost->server_name;
 }
-
 
 sub handle_stanza {
     my ($self, $vhost, $stanza) = @_;
@@ -106,5 +104,10 @@ sub identities {
     ];
 }
 
+sub send_stanza {
+    my ($self, $stanza) = @_;
+    
+    $stanza->deliver($self->vhost);
+}
 
 1;
