@@ -12,13 +12,13 @@ use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger;
 
 use fields (
-	    'vhost',
-	    'endpoints',
-	    'to_deliver',
-	    'last_connect_fail',
-	    'state',
-	    'connection',
-	    );
+            'vhost',
+            'endpoints',
+            'to_deliver',
+            'last_connect_fail',
+            'state',
+            'connection',
+            );
 
 use constant NO_CONN    => \ "no connection";
 use constant RESOLVING  => \ "resolving";
@@ -35,10 +35,10 @@ sub new {
     Carp::croak("Not a vhost: $self->{vhost}") unless $self->vhost->isa("DJabberd::VHost");
 
     if (my $endpoints = delete $opts{endpoints}) {
-	Carp::croak("endpoints must be an arrayref") unless (ref $endpoints eq 'ARRAY');
-	  $self->{endpoints} = $endpoints;
+        Carp::croak("endpoints must be an arrayref") unless (ref $endpoints eq 'ARRAY');
+          $self->{endpoints} = $endpoints;
       } else {
-	  $self->{endpoints} = [];
+          $self->{endpoints} = [];
       }
 
     die "too many opts" if %opts;
@@ -56,7 +56,7 @@ sub endpoints {
     my $endpoints = $self->{endpoints};
 
     if (@_) {
-	@$endpoints = @_;
+        @$endpoints = @_;
     }
     return @$endpoints;
 }
@@ -117,8 +117,8 @@ sub on_connection_connected {
     while (my $qi = shift @{ $self->{to_deliver} }) {
         $conn->send_stanza($qi->stanza);
         $qi->callback->delivered;
-	# TODO: the connection might need to handle marking things as delivered
-	# otherwise we could run into a problem if the connection dies mid-stanza.
+        # TODO: the connection might need to handle marking things as delivered
+        # otherwise we could run into a problem if the connection dies mid-stanza.
     }
 }
 
@@ -142,7 +142,7 @@ sub on_connection_error {
 
    if ($pre_state == CONNECTING) {
        # died while connecting:  no more luck
-       $logger->error("Connection error while connecting, giving up");
+       $self->give_up_connecting;
        $self->on_final_error;
    } else {
        # died during an active connection, let's try again
@@ -168,8 +168,8 @@ sub start_connecting {
     my $endpoints = $self->{endpoints};
 
     unless (@$endpoints) {
-	$self->failed_to_connect;
-	return;
+        $self->failed_to_connect;
+        return;
     }
 
     $self->{state} = CONNECTING;

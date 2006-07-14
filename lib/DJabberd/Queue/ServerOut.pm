@@ -34,6 +34,11 @@ sub new {
     return $self;
 }
 
+sub give_up_connecting {
+    my $self = shift;
+    $logger->error("Connection error while connecting to $self->{domain}, giving up");
+}
+
 sub domain {
     my $self = shift;
     return $self->{domain};
