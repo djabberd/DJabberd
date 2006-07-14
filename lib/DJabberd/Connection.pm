@@ -45,6 +45,9 @@ our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
 use constant POLLIN        => 1;
 use constant POLLOUT       => 4;
 
+use constant XMLDEBUG      => "/tmp/djabberd/";
+our %LOGMAP;
+
 sub new {
     my ($class, $sock, $server) = @_;
     my $self = $class->SUPER::new($sock);
@@ -61,6 +64,7 @@ sub new {
     # hack to inject XML after Connection:: in the logger category
     my $xml_category = $class;
     $xml_category =~ s/Connection::/Connection::XML::/;
+
     $self->{xmllog}  = DJabberd::Log->get_logger($xml_category);
 
     my $fromip = $self->peer_ip_string || "<undef>";
@@ -72,6 +76,13 @@ sub new {
         $self->log->debug("New connection '$self->{id}' from $fromip");
     }
 
+    if (XMLDEBUG) {
+        system("mkdir -p " . XMLDEBUG ."$$/");
+        my $handle = IO::Handle->new;
+        my $filename = "+>" . XMLDEBUG . "/$$/$fromip-$self->{id}";
+        open ($handle, $filename) || die "Cannot open $filename: $!";
+        $LOGMAP{$self} = $handle;
+    }
     return $self;
 }
 
@@ -411,6 +422,23 @@ sub restart_stream {
     $self->discard_parser;
 }
 
+
+# this is a hack to get everything we print
+# this is a slow down now, will fix later but
+# eval is being annoying
+sub write {
+    my $self = shift;
+    if (XMLDEBUG) {
+        my $time = Time::HiRes::time;
+        no warnings;
+        my $data = $_[0];
+        $data = $$data if (ref($data) eq 'SCALAR');
+        $LOGMAP{$self}->print("$time\t> $data\n") unless ref($data) eq 'CODE';
+    }
+    $self->SUPER::write(@_);
+}
+
+
 # DJabberd::Connection
 sub event_read {
     my DJabberd::Connection $self = shift;
@@ -451,6 +479,13 @@ sub event_read {
     # clients send whitespace between stanzas as keep-alives.  let's just ignore those,
     # not going through the bother to checkout a parser and all.
     return if ! $self->{parser} && $$bref !~ /\S/;
+
+    Carp::confess if ($self->{closed});
+
+    if (XMLDEBUG) {
+        my $time = Time::HiRes::time;
+        $LOGMAP{$self}->print("$time\t< $$bref\n");
+    }
 
     my $p = $self->{parser} || $self->borrow_a_parser;
     my $len = length $$bref;
@@ -694,7 +729,7 @@ sub close {
             $self->{parser}     = undef;
         });
     }
-
+    delete $LOGMAP{$self} if XMLDEBUG;
     $self->SUPER::close;
 }
 
