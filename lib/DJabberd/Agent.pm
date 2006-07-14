@@ -5,11 +5,14 @@
 # behavior at a variety of levels.
 
 package DJabberd::Agent;
-use base qw(DJabberd::Component);
+use base qw(DJabberd::Delivery);
 use strict;
 use warnings;
 use DJabberd::Util qw(exml);
 use DJabberd::JID;
+use DJabberd::Log;
+
+our $logger = DJabberd::Log->get_logger();
 
 sub handle_stanza {
     my ($self, $vhost, $stanza) = @_;
@@ -18,6 +21,31 @@ sub handle_stanza {
     return $self->handle_message($vhost, $stanza) if $stanza->isa('DJabberd::Message');
     return $self->handle_presence($vhost, $stanza) if $stanza->isa('DJabberd::Presence');    
 
+}
+
+sub deliver {
+
+    my ($self, $vhost, $cb, $stanza) = @_;
+
+    $logger->debug("Got a nice stanza: ".$stanza->as_summary);
+
+    # FIXME: Maybe this should require an exact match on the vhost domain, rather than handles_domain?
+    if ($self->handles_destination($stanza->to_jid, $vhost)) {
+        $logger->debug("Delivering ".$stanza->element_name." stanza via agent ".$self);
+        $self->handle_stanza($vhost, $stanza);
+        $cb->delivered;
+    }
+    else {
+        $logger->debug("This stanza is not for ".$vhost->server_name);
+        $cb->decline;
+    }
+
+}
+
+sub handles_destination {
+    my ($self, $to_jid, $vhost) = @_;
+    
+    return 0;
 }
 
 sub name {

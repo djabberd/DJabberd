@@ -32,7 +32,7 @@ TODO: Write more docs
 
 package DJabberd::Component;
 
-use base 'DJabberd::Delivery';
+use base 'DJabberd::Agent';
 use strict;
 use DJabberd::Log;
 
@@ -48,31 +48,62 @@ sub register {
     return $self->SUPER::register($vhost);
 }
 
-sub deliver {
-    my ($self, $vhost, $cb, $stanza) = @_;
-
-    $logger->debug("Got a nice stanza: ".$stanza->as_summary);
-
-    # FIXME: Maybe this should require an exact match on the vhost domain, rather than handles_domain?
-    if ($stanza->to_jid && $vhost->handles_domain($stanza->to_jid->domain)) {
-        $logger->debug("Delivering ".$stanza->element_name." stanza via component ".$self->{class});
-        $self->handle_stanza($vhost, $stanza);
-        $cb->delivered;
-    }
-    else {
-        $logger->debug("This stanza is not for ".$vhost->server_name);
-        $cb->decline;
-    }
+sub handles_destination {
+    my ($self, $to_jid, $vhost) = @_;
+    return ($to_jid && $to_jid->domain eq $self->domain);
 }
 
 sub domain {
     return $_[0]->{component_vhost}->server_name;
 }
 
+
 sub handle_stanza {
     my ($self, $vhost, $stanza) = @_;
 
-    $logger->warn("handle_stanza not implemented for $self");
+    if ($stanza->to_jid->node) {
+        my $node = $self->get_node($stanza->to_jid->node);
+        unless ($node) {
+            my $error = $stanza->make_error_response('404', 'cancel', 'item-not-found');
+            $error->deliver($vhost);
+            return;
+        }
+        return $node->handle_stanza($vhost, $stanza);
+    }
+    else {
+        $self->SUPER::handle_stanza($vhost, $stanza);
+    }
+
 }
+
+sub get_node {
+    my ($self, $nodename) = @_;
+
+    return undef;
+}
+
+sub name {
+    my ($self) = @_;
+    
+    return $self->domain;
+}
+
+sub vcard {
+    my ($self) = @_;
+    
+    return "<FN>".exml($self->name)."</FN>";
+}
+
+sub identities {
+    my ($self) = @_;
+    
+    # Use a generic identity by default because some clients
+    # get upset if a JID has no identities.
+    # Subclasses really should specialize this.
+    return [
+        [ 'heirarchy', 'branch', $self->name ],
+    ];
+}
+
 
 1;
