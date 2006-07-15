@@ -340,7 +340,7 @@ sub send_stanza {
 sub write_stanza {
     my ($self, $stanza) = @_;
 
-    my $to_jid    = $stanza->to   || die "no to";
+    my $to_jid    = $stanza->to   || die "missing 'to' attribute in ".$stanza->element_name." stanza";
     my $from_jid  = $stanza->from;  # this can be iq
     my $elename   = $stanza->element_name;
 
