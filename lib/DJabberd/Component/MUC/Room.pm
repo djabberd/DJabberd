@@ -57,18 +57,41 @@ sub add_participant {
     $logger->logdie("Participant room mismatch (".$participant->room." != $self)") unless $participant->room == $self;
     
     my $oldcount = scalar(keys(%{$self->{component_muc_room_participants}}));
+    
+    if ($oldcount == 0) { # If the room is currently empty
+        unless ($self->jid_can_create($participant->real_jid, $participant->nickname)) {
+            # FIXME: Return a 405/cancel/not-allowed error here?
+            return 0;
+        }
+    }
+    
+    foreach my $nick (sort keys %{$self->{component_muc_room_participants}}) {
+        my $p = $self->{component_muc_room_participants}{$nick};
+        $p->send_presence($participant->real_jid);
+        $participant->send_presence($p->real_jid);
+    }
+
     $self->{component_muc_room_participants}{$participant->nickname} = $participant;
     
-    # TODO: Send presence to all current participants
-    #     and *of* all current participants.
+    # If the room was previously empty, create the room and notify the new guy that
+    # it's been done.
+    if ($oldcount == 0) {
+        $self->component->add_room($self);
+        $participant->send_presence($participant->real_jid, 201);
+    }
     
-    $participant->send_presence($participant->real_jid);
-
+    return 1;
 }
 
 # FIXME: This needs to be able to distingish somehow the cases of
 #   "membership required", "need password" or just "you aren't allowed"
 sub jid_can_join {
+    my ($self, $jid, $nickname) = @_;
+    
+    return 1;
+}
+
+sub jid_can_create {
     my ($self, $jid, $nickname) = @_;
     
     return 1;

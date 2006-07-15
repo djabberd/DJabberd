@@ -37,6 +37,18 @@ sub get_room {
     return DJabberd::Component::MUC::Room->new(nodename => $name, component => $self);
 }
 
+sub add_room {
+    my ($self, $room) = @_;
+    
+    $self->{component_muc_activerooms}{$room->nodename} = $room;
+}
+
+sub remove_room {
+    my ($self, $room) = @_;
+    
+    delete $self->{component_muc_activerooms}{$room->nodename};
+}
+
 sub name {
     return $_[0]->{component_muc_displayname} || $_[0]->SUPER::name;
 }

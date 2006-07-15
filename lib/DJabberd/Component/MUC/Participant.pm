@@ -58,8 +58,16 @@ sub apparent_jid {
     return $self->room->resource_jid($self->nickname);
 }
 
+sub role {
+    return "participant";
+}
+
+sub affiliation {
+    return "member";
+}
+
 sub send_presence {
-    my ($self, $to_jid, $status) = @_;
+    my ($self, $to_jid, $status, $type) = @_;
     
     my $presence = new DJabberd::Presence(
         'jabber:server',
@@ -71,8 +79,15 @@ sub send_presence {
         [],
     );
     
-    $presence->set_raw("<show>".exml($status)."</show>") if $status;
+    $presence->attrs->{"{}type"} = $type if $type;
     
+    $presence->set_raw(
+        "<x xmlns='http://jabber.org/protocol/muc#user'>".
+        "<item affiliation='".exml($self->affiliation)."' role='".exml($self->role)."'/>".
+        ($status ? "<status code='".exml($status)."'>" : "").
+        "</x>"
+    );
+
     $self->room->send_stanza($presence);
 }
 
