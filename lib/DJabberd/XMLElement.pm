@@ -128,6 +128,7 @@ sub as_xml {
     my $xmlns = (!$ns ||
                  ($def_ns && $ns eq $def_ns) ||
                  $ns eq "jabber:server" ||
+                 $ns eq "jabber:component:accept" ||
                  $ns eq "jabber:client") ?
                  "" : " xmlns='$ns'";
     my $innards = $self->innards_as_xml($nsmap, $ns, $def_ns);
