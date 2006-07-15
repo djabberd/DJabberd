@@ -1,4 +1,39 @@
 
+=head1 NAME
+
+DJabberd::Component::External - Interface to external plugins implementing JEP-0114
+
+=head1 SYNOPSIS
+
+  <Plugin DJabberd::Component::External>
+    ListenPort 23534
+    Secret somesecret
+  </Plugin>
+
+This component provides support for connecting external components that support the
+Jabber Component Protocol specified in JEP-0114. Specify the TCP port that the external component
+will connect on and the secret it will use to authenticate. These should match the equivilent
+settings in the component's own configuration.
+
+You can also specify a ListenAddr option, which specifies the IP address of the interface to
+listen on. By default, we only listen on the loopback address, 127.0.0.1. Alternatively,
+you can give a UNIX domain socket (an absolute path beginning with a slash) and leave out
+the ListenPort setting to await a connection on a UNIX domain socket. Most components do not
+support UNIX domain sockets, however.
+
+Please note that this component only implements the "accept" variation of the protocol,
+where DJabberd opens a listen socket and waits for the component to connect. The "connect"
+variation, where the component waits for DJabberd to connect to it, is not supported.
+
+=head1 LICENCE
+
+Copyright 2006 Martin Atkins and Six Apart
+
+This library is part of the Jabber server DJabberd. It can be modified and distributed
+under the same terms as DJabberd itself.
+
+=cut
+
 package DJabberd::Component::External;
 
 use base 'DJabberd::Component';

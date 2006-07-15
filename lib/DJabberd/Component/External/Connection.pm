@@ -1,3 +1,22 @@
+
+=head1 NAME
+
+DJabberd::Component::External::Component - Connection component for DJabberd::Component::External
+
+=head1 INTRODUCTION
+
+This class provides the connection and stream handling implementation for the
+DJabberd component DJabberd::Component::External. It is of no interest on its own.
+
+=head1 LICENCE
+
+Copyright 2006 Martin Atkins and Six Apart
+
+This library is part of the Jabber server DJabberd. It can be modified and distributed
+under the same terms as DJabberd itself.
+
+=cut
+
 package DJabberd::Component::External::Connection;
 use strict;
 use base 'DJabberd::Connection';
