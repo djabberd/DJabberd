@@ -382,7 +382,7 @@ sub _load_config_ref {
     my $vhost;  # current vhost in scope
     my $plugin; # current plugin in scope
     my @vhost_stack = ();
-    
+
     foreach my $line (split(/\n/, $$configref)) {
         $linenum++;
 
@@ -426,12 +426,12 @@ sub _load_config_ref {
             if ($line =~ /<Subdomain\s+(\S+?)>/i) {
                 die "Subdomain blocks can only inside VHost\n" unless $vhost;
                 my $subdomain_name = $1.".".$vhost->server_name;
-                
+
                 my $old_vhost = $vhost;
                 push @vhost_stack, $old_vhost;
-                
+
                 $vhost = DJabberd::VHost->new(server_name => $subdomain_name);
-                
+
                 # Automatically add the LocalVHosts delivery plugin so that these
                 # VHosts can talk to one another without S2S.
                 my $loaded = eval "use DJabberd::Delivery::LocalVHosts; 1;";
@@ -441,7 +441,7 @@ sub _load_config_ref {
                 my $ld2 = DJabberd::Delivery::LocalVHosts->new(allowvhost => $old_vhost->server_name);
                 $old_vhost->add_plugin($ld1);
                 $vhost->add_plugin($ld2);
-                
+
                 next;
             }
             if ($line =~ m!</Subdomain>!i) {
