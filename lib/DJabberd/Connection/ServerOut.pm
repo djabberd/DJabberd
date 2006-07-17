@@ -31,6 +31,7 @@ sub new {
     IO::Handle::blocking($sock, 0);
     $ip = $endpt->addr;
     connect $sock, Socket::sockaddr_in($endpt->port, Socket::inet_aton($ip));
+    $DJabberd::Stats::counter{connect}++;
 
     my $self = $class->SUPER::new($sock, $queue->vhost->server);
     $self->log->debug("Connecting to '$ip' for '$queue->{domain}'");

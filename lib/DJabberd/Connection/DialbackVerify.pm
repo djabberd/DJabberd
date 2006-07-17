@@ -37,6 +37,7 @@ sub new {
     $logger->debug("Attempting to connect to '$fromip'");
     IO::Handle::blocking($sock, 0);
     connect $sock, Socket::sockaddr_in($port, Socket::inet_aton($fromip));
+    $DJabberd::Stats::counter{connect}++;
 
     my $self = $class->SUPER::new($sock, $server);
     $self->{db_result} = $db_result;
