@@ -94,3 +94,5 @@
 -- need a better API for components so they aren't so ugly. maybe just a nice subclass?
 
 -- make Component subclass that implements JEP-0114
+
+-- privsep for security and scalability
