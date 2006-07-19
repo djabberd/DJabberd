@@ -49,6 +49,12 @@ sub get_vcard {
 
     my $user;
     if ($iq->to) {
+        unless ($iq->to_jid) {
+            # some clients, like sim 0.9.3 send incorrect to jids, in that case to is set but to_jid is undef
+            # the jid constructor should really deal with this for us, but currently it doesn't  FIXME!
+            $iq->send_error;
+            return;
+        }
         $user = $iq->to_jid->as_bare_string;
     } else {
         # user is requesting their own vCard
