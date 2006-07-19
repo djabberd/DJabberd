@@ -79,7 +79,9 @@ sub new {
     if (XMLDEBUG) {
         system("mkdir -p " . XMLDEBUG ."$$/");
         my $handle = IO::Handle->new;
-        my $filename = "+>" . XMLDEBUG . "/$$/$fromip-$self->{id}";
+        no warnings;
+        my $from = $fromip || "outbound";
+        my $filename = "+>" . XMLDEBUG . "/$$/$from-$self->{id}";
         open ($handle, $filename) || die "Cannot open $filename: $!";
         $LOGMAP{$self} = $handle;
     }
@@ -433,7 +435,7 @@ sub write {
         no warnings;
         my $data = $_[0];
         $data = $$data if (ref($data) eq 'SCALAR');
-        $LOGMAP{$self}->print("$time\t> $data\n") unless ref($data) eq 'CODE';
+        $LOGMAP{$self}->print("$time\t> $data\n") if $LOGMAP{$self} &&  ref($data) ne 'CODE' ;
     }
     $self->SUPER::write(@_);
 }
