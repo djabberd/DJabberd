@@ -96,3 +96,10 @@
 -- make Component subclass that implements JEP-0114
 
 -- privsep for security and scalability
+
+-- network read eval should do something different on xml versus perl errors
+        maybe another eval around callbacks that cleans up the callback and then propagates
+        separate logfile for our errors versus client errors
+
+-- timer that runs every x seconds cleaning up an array of weakrefs to callbacks that are still active
+        and then put the callback start time in the object, so we can force clean up of callbacks
