@@ -78,22 +78,14 @@ sub start_element {
         return;
     }
 
-    my $start_capturing = sub {
-        my $cb = shift;
-
-        $self->{"events"} = [];  # capturing events
-        $self->{capture_depth} = 1;
-
-        # capture via saving SAX events
-        push @{$self->{events}}, [EVT_START_ELEMENT, $data];
-
-        $self->{on_end_capture} = $cb;
-        return 1;
-    };
+    # start capturing...
+    $self->{"events"} = [
+                         [EVT_START_ELEMENT, $data],
+                         ];
+    $self->{capture_depth} = 1;
 
     Scalar::Util::weaken($conn);
-
-    return $start_capturing->(sub {
+    $self->{on_end_capture} = sub {
         my ($doc, $events) = @_;
         my $nodes = _nodes_from_events($events);
         # {=xml-stanza}
@@ -104,16 +96,17 @@ sub start_element {
         # ring buffers for latency stats:
         if ($td > $DJabberd::Stats::latency_log_threshold) {
             $DJabberd::Stats::stanza_process_latency_log[ $DJabberd::Stats::latency_log_index =
-                                                          ($DJabberd::Stats::latency_log_index + 1) % $DJabberd::Stats::latency_log_max_size
+                                                          ($DJabberd::Stats::latency_log_index + 1)
+                                                          % $DJabberd::Stats::latency_log_max_size
                                                           ] = [$td, $nodes->[0]->as_xml];
         }
 
-
         $DJabberd::Stats::stanza_process_latency[ $DJabberd::Stats::latency_index =
-                                                  ($DJabberd::Stats::latency_index + 1) % $DJabberd::Stats::latency_max_size
+                                                  ($DJabberd::Stats::latency_index + 1)
+                                                   % $DJabberd::Stats::latency_max_size
                                                   ] = $td;
-    });
-
+    };
+    return;
 }
 
 sub characters {
