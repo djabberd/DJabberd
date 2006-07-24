@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 24;
+use Test::More tests => 26;
 use lib 't/lib';
 BEGIN { $ENV{LOGLEVEL} = 'FATAL'; }
 require 'djabberd-test.pl';

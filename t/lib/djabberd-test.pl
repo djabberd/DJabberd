@@ -616,6 +616,12 @@ sub subscribe_successfully {
                              return 0 unless $xml =~ /<presence\b/;
                              return 1;
                          },
+                         "presence2" => sub {
+                             my ($xo, $xml) = @_;
+                             return 0 if $xml =~ /\btype=/;
+                             return 0 unless $xml =~ /<presence\b/;
+                             return 1;
+                         },
                          "presence subscribed" => sub {
                              my ($xo, $xml) = @_;
                              return 0 unless $xml =~ /\btype=.subscribed\b/;
@@ -652,6 +658,7 @@ sub subscribe_to {
 
     main::test_responses($from, @test) if(@test);
     my $xml = $to->recv_xml_obj;
+
     main::is($xml->attr("{}to"), $to->as_string, "to pb");
     main::is($xml->attr("{}from"), $from->as_string, "from a");
     main::is($xml->attr("{}type"), "subscribe", "type subscribe");
@@ -697,6 +704,10 @@ sub accept_subscription_from {
             my ($xo, $xml) = @_;
             $xml =~ /Default Message/;
         };
+        push @test, "presence of user2" => sub {
+            my ($xo, $xml) = @_;
+            $xml =~ /Default Message/;
+        };
     }
 
     if ($from->{initial_presence}) {
@@ -716,6 +727,5 @@ sub accept_subscription_from {
     } else {
         main::like($xml, qr/subscription=.from\b/, "from");
     }
-
 }
 1;

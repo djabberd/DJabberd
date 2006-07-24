@@ -676,8 +676,16 @@ sub _process_outbound_subscribed {
 # decide to skip processing or not.  see above.
 sub _process_outbound_subscribed_with_ritem {
     my ($self, $conn, $ritem) = @_;
-
+    my $vhost = $conn->vhost;
     $ritem->subscription->got_outbound_subscribed;
+
+    my $from_jid = $conn->bound_jid || die("lacking from_jid");
+    my $to_jid = $self->to_jid;
+    my %map;  # fullstrres -> stanza
+    my $add_presence = sub {
+        my ($jid, $stanza) = @_;
+        $map{$jid->as_string} = $stanza;
+    };
 
     $conn->vhost->run_hook_chain(phase => "RosterSetItem",
                                  args  => [ $conn->bound_jid, $ritem ],
@@ -685,6 +693,20 @@ sub _process_outbound_subscribed_with_ritem {
                                      done => sub {
                                          $conn->vhost->roster_push($conn->bound_jid, $ritem);
                                          $self->procdeliver($conn->vhost);
+
+                                         $vhost->run_hook_chain(phase => "PresenceCheck",
+                                                                args  => [ $conn->bound_jid, $add_presence ],
+                                                                fallback => sub {
+                                                                    # send them
+                                                                    foreach my $fullstr (keys %map) {
+                                                                        my $stanza = $map{$fullstr};
+                                                                        my $to_send = $stanza->clone;
+                                                                        $to_send->set_to($to_jid);
+
+                                                                        $to_send->deliver($vhost);
+                                                                    }
+                                                                });
+
                                      },
                                      error => sub { my $reason = $_[1]; },
                                  },

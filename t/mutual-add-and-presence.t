@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 32;
+use Test::More tests => 36;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
@@ -65,6 +65,10 @@ two_parties(sub {
                    "presence of user" => sub {
                        my ($xo, $xml) = @_;
                        $xml =~ /InitPres/;
+                   },
+                   "presence of user2" => sub {
+                       my ($xo, $xml) = @_;
+                       $xml =~ /InitPres/;
                    });
 
     # now PA is subscribed to PB.  so let's make PB change its status
@@ -99,7 +103,12 @@ two_parties(sub {
                    "presence of user" => sub {
                        my ($xo, $xml) = @_;
                        $xml =~ /Init-A-Pres/;
+                   },
+                   "presence of user2" => sub {
+                       my ($xo, $xml) = @_;
+                       $xml =~ /Init-A-Pres/;
                    });
+
 
     $pa->send_xml(qq{<presence><status>I_am_A</status></presence>});
     $pb->send_xml(qq{<presence><status>I_am_B</status></presence>});
