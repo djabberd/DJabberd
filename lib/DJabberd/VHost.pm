@@ -41,7 +41,7 @@ sub new {
     };
 
     croak("Missing/invalid vhost name") unless
-        $self->{server_name} && $self->{server_name} =~ /^[\w\.]+$/;
+        $self->{server_name} && $self->{server_name} =~ /^[-\w\.]+$/;
 
     my $plugins = delete $opts{plugins};
     croak("Unknown vhost parameters: " . join(", ", keys %opts)) if %opts;
