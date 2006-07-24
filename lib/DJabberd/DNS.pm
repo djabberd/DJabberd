@@ -85,6 +85,14 @@ sub new {
     my $recurse_count = delete($opts{'recurse_count'}) || 0;
     croak "unknown opts" if %opts;
 
+    if ($hostname =~/^\d+\.\d+\.\d+\.\d+/) {
+        # we already have the IP, lets not looking it up
+        $logger->debug("Skipping lookup for '$hostname', it is already the IP");
+        $callback->(DJabberd::IPEndPoint->new($hostname, $port));
+        return;
+    }
+
+
     my $sock = $resolver->bgsend($hostname);
     my $self = $class->SUPER::new($sock);
 
@@ -154,6 +162,8 @@ sub event_read_a {
                     $self->close;
                     $cb->();
                 }
+            } elsif ($ans->isa("Net::DNS::RR::PTR")) {
+                $logger->debug("Ignoring RR response for $self->{hostname}");
             }
             else {
                 $cb->(DJabberd::IPEndPoint->new($ans->address, $self->{port}));
