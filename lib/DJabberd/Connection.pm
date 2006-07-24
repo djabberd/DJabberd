@@ -83,6 +83,7 @@ sub new {
         my $from = $fromip || "outbound";
         my $filename = "+>" . XMLDEBUG . "/$$/$from-$self->{id}";
         open ($handle, $filename) || die "Cannot open $filename: $!";
+        $handle->autoflush(1);
         $LOGMAP{$self} = $handle;
     }
     return $self;
@@ -300,7 +301,7 @@ sub process_incoming_stanza_from_s2s_out {
 
     my $class = $stanzas{$node->element};
     unless ($class) {
-        warn "Unknown/handled stanza: " . $node->element . "\n";
+        warn "Unknown/handled stanza: " . $node->element . " on connection ($self->{id}), " . ref($self) .  "\n";
         return;
     }
 
@@ -731,7 +732,10 @@ sub close {
             $self->{parser}     = undef;
         });
     }
-    delete $LOGMAP{$self} if XMLDEBUG;
+    if (XMLDEBUG) {
+        $LOGMAP{$self}->close;
+        delete $LOGMAP{$self};
+    }
     $self->SUPER::close;
 }
 
