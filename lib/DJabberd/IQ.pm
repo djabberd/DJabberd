@@ -50,7 +50,14 @@ sub process {
                                      my $sig = $self->signature;
                                      my $meth = $iq_handler->{$sig};
                                      unless ($meth) {
-                                         $self->send_error;
+                                         $self->send_error(
+                                            qq{<error type='cancel'>}.
+                                            qq{<feature-not-implemented xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>}.
+                                            qq{<text xmlns='urn:ietf:params:xml:ns:xmpp-stanzas' xml:lang='en'>}.
+                                            qq{This feature is not implemented yet in DJabberd.}.
+                                            qq{</text>}.
+                                            qq{</error>}
+                                         );
                                          $logger->warn("Unknown IQ packet: $sig");
                                          return;
                                      }
@@ -74,8 +81,8 @@ sub send_result {
 
 sub send_error {
     my DJabberd::IQ $self = shift;
-    my $raw = shift;
-    $self->send_reply("error", $raw);
+    my $raw = shift || '';
+    $self->send_reply("error", $self->innards_as_xml . "\n" . $raw);
 }
 
 # caller must send well-formed XML (but we do the wrapping element)
@@ -95,7 +102,7 @@ sub send_reply {
     $raw ||= "";
     my $id = $self->id;
     my $bj = $conn->bound_jid;
-    my $to = $bj ? (" to='" . $bj->as_string . "'") : "";
+    my $to = $bj ? ("to='" . $bj->as_string . "'") : "";
     my $xml = qq{<iq $to type='$type' id='$id'>$raw</iq>};
     $conn->xmllog->info($xml);
     $conn->write(\$xml);
@@ -168,7 +175,14 @@ sub process_iq_getroster {
     # need to be authenticated to request a roster.
     my $bj = $conn->bound_jid;
     unless ($bj) {
-        $iq->send_error;
+        $iq->send_error(
+            qq{<error type='auth'>}.
+            qq{<not-authorized xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>}.
+            qq{<text xmlns='urn:ietf:params:xml:ns:xmpp-stanzas' xml:lang='en'>}.
+            qq{You need to be authenticated before requesting a roster.}.
+            qq{</text>}.
+            qq{</error>}
+        );
         return;
     }
 
@@ -189,7 +203,14 @@ sub process_iq_setroster {
 
     my $item = $iq->query->first_element;
     unless ($item && $item->element eq "{jabber:iq:roster}item") {
-        $iq->send_error;
+        $iq->send_error( # TODO make this error proper
+            qq{<error type='error-type'>}.
+            qq{<not-authorized xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>}.
+            qq{<text xmlns='urn:ietf:params:xml:ns:xmpp-stanzas' xml:lang='langcode'>}.
+            qq{You need to be authenticated before requesting a roster.}.
+            qq{</text>}.
+            qq{</error>}
+        );
         return;
     }
 
@@ -198,7 +219,14 @@ sub process_iq_setroster {
     my $removing = $subattr eq "remove" ? 1 : 0;
 
     my $jid = $item->attr("{}jid")
-        or return $iq->send_error;
+        or return $iq->send_error( # TODO Yeah, this one too
+            qq{<error type='error-type'>}.
+            qq{<not-authorized xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>}.
+            qq{<text xmlns='urn:ietf:params:xml:ns:xmpp-stanzas' xml:lang='langcode'>}.
+            qq{You need to be authenticated before requesting a roster.}.
+            qq{</text>}.
+            qq{</error>}
+        );
 
     my $name = $item->attr("{}name");
 
@@ -239,7 +267,7 @@ sub process_iq_setroster {
                                          # bunch of presence
                                          # unsubscribe/unsubscribed messages
                                      },
-                                     error => sub {
+                                     error => sub { # TODO What sort of error stat is being hit here?
                                          $iq->send_error;
                                      },
                                  },
@@ -249,7 +277,7 @@ sub process_iq_setroster {
                                          # out of sync and we need to let them think a delete
                                          # happened even if it didn't.
                                          $iq->send_result;
-                                     } else {
+                                     } else { # TODO ACK, This one as well
                                          $iq->send_error;
                                      }
                                  });
@@ -271,7 +299,14 @@ sub process_iq_getregister {
     my $vhost = $conn->vhost;
     unless ($vhost->allow_inband_registration) {
         # MUST return a <service-unavailable/>
-        $iq->send_error;  # FIXME: send the service-unavailable param
+        $iq->send_error(
+            qq{<error type='cancel' code='503'>}.
+            qq{<service-unavailable xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>}.
+            qq{<text xmlns='urn:ietf:params:xml:ns:xmpp-stanzas' xml:lang='en'>}.
+            qq{In-Band registration is not supported by this server's configuration.}.
+            qq{</text>}.
+            qq{</error>}
+        );
         return;
     }
 
@@ -307,7 +342,14 @@ sub process_iq_setregister {
     my $vhost = $conn->vhost;
     unless ($vhost->allow_inband_registration) {
         # MUST return a <service-unavailable/>
-        $iq->send_error;  # FIXME: send the service-unavailable param
+        $iq->send_error(
+            qq{<error type='cancel'>}.
+            qq{<service-unavailable xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>}.
+            qq{<text xmlns='urn:ietf:params:xml:ns:xmpp-stanzas' xml:lang='en'>}.
+            qq{In-Band registration is not supported by this server's configuration.}.
+            qq{</text>}.
+            qq{</error>}
+        );
         return;
     }
 
