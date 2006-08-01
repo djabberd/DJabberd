@@ -346,7 +346,7 @@ sub process_iq_setregister {
             qq{<error type='cancel'>}.
             qq{<service-unavailable xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>}.
             qq{<text xmlns='urn:ietf:params:xml:ns:xmpp-stanzas' xml:lang='en'>}.
-            qq{In-Band registration is not supported by this server's configuration.}.
+            qq{In-Band registration is not supported by this server\'s configuration.}.
             qq{</text>}.
             qq{</error>}
         );
@@ -548,7 +548,7 @@ sub process_iq_setauth {
                               fallback => $reject);
     } elsif ($vhost->are_hooks("CheckDigest")) {
         $vhost->run_hook_chain(phase => "CheckDigest",
-                              args => [ username => $username, conn => $conn, digest => $digest ],
+                              args => [ username => $username, conn => $conn, digest => $digest, resource => $resource ],
                               methods => {
                                   accept => $accept,
                                   reject => $reject,
@@ -618,10 +618,10 @@ sub deliver_when_unavailable {
 
 sub make_response {
     my ($self) = @_;
-    
+
     my $response = $self->SUPER::make_response();
     $response->attrs->{"{}type"} = "result";
-    return $response;    
+    return $response;
 }
 
 1;
