@@ -19,6 +19,7 @@ sub check_digest {
         $cb->reject;
         return;
     }
+    my $resource = delete $args{'resource'} or die "No resource";
 
     my $gc = DJabberd::Plugin::LiveJournal->gearman_client;
 
