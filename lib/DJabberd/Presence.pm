@@ -476,7 +476,24 @@ sub _process_outbound_available {
 }
 
 sub _process_outbound_unavailable {
-    my ($self, $conn) = @_;
+    my ($self, $conn, $skip_alter) = @_;
+
+    my $vhost = $conn->vhost;
+    if (!$skip_alter && $vhost->are_hooks("AlterPresenceUnavailable")) {
+        warn "runnig hook chain unavailable";
+        $vhost->run_hook_chain(phase => "AlterPresenceUnavailable",
+                               args  => [ $conn, $self ],
+                               methods => {
+                                   done => sub {
+                                       return if $conn->{closed};
+                                       $self->_process_outbound_unavailable($conn, 1);
+                                   },
+                               },
+                               );
+        return;
+    }
+
+
     if ($self->is_directed) {
         delete($conn->{directed_presence}->{$self->to_jid});
         $self->deliver;

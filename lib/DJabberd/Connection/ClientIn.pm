@@ -110,7 +110,7 @@ sub send_pending_sub_requests {
 
 sub close {
     my $self = shift;
-    return if $self->{closed};
+    return if $self->{closed}++;
 
     # send an unavailable presence broadcast if we've gone away
     if ($self->is_available) {
@@ -129,7 +129,19 @@ sub close {
         DJabberd::Presence->forget_last_presence($jid);
     }
 
-    $self->SUPER::close;
+    if ($self->vhost->are_hooks("ConnectionClosing")) {
+        $self->vhost->run_hook_chain(phase => "ConnectionClosing",
+                               args  => [ $self ],
+                               methods => {
+                                   fallback => sub {
+                                       $self->SUPER::close;
+                                   },
+                               },
+                               );
+
+    } else {
+        $self->SUPER::close;
+    }
 }
 
 sub namespace {

@@ -5,13 +5,14 @@ use warnings;
 use Digest::SHA1 qw(sha1_hex);
 use MIME::Base64;
 use Gearman::Client::Async;
-
+use Gearman::Client;
 use LWP::Simple;
 
 our $logger = DJabberd::Log->get_logger();
 
 my $start_time = time();
 
+our @gearman_servers;
 our $gearman_client;
 sub gearman_client {
     return $gearman_client;
@@ -19,9 +20,9 @@ sub gearman_client {
 
 sub set_config_gearmanservers {
     my ($self, $val) = @_;
-    my @list = split(/\s*,\s*/, $val);
+    @gearman_servers = split(/\s*,\s*/, $val);
     $gearman_client = Gearman::Client::Async->new;
-    $gearman_client->set_job_servers(@list);
+    $gearman_client->set_job_servers(@gearman_servers);
 }
 
 sub register {
@@ -41,8 +42,35 @@ sub register {
     $vhost->register_hook("switch_incoming_server", $hook_vcard_s2s);
     $vhost->register_hook("OnInitialPresence",      \&hook_on_initial_presence);
     $vhost->register_hook("AlterPresenceAvailable", \&hook_alter_presence);
+    $vhost->register_hook("AlterPresenceUnavailable", \&hook_alter_presence);
+    $vhost->register_hook("ConnectionClosing", \&hook_connection_closing);
     $vhost->add_feature("vcard-temp");
+
+    # make sure we init this cluster node when it comes up
+    my $gc = Gearman::Client->new;
+    $gc->job_servers(@gearman_servers);
+    my $rv = $gc->do_task("ljtalk_init", $vhost->server_name . "_cluster_ip_port", {timeout => 5});
+    die "Couldn't init LJ Plugin" unless $$rv eq 'OK';
+
 }
+
+sub get_vcard_keyword {
+    my ($self, $jid, $last_bcast) = @_;
+    $last_bcast ||= DJabberd::Presence->local_presence_info($jid);
+    my $keyword;
+    if (keys %$last_bcast) {
+        foreach my $value (values %$last_bcast) {
+            foreach my $ele ($value->children_elements) {
+                if ($ele->element_name eq 'status') {
+                    $keyword = $ele->first_child;
+                }
+                last;
+            }
+        }
+    }
+    return $keyword;
+}
+
 
 sub get_vcard {
     my ($self, $vhost, $iq) = @_;
@@ -69,7 +97,12 @@ sub get_vcard {
         return;
     }
 
-    $gc->add_task(Gearman::Task->new("ljtalk_avatar_data" => \ "$username", {
+
+    my $keyword = $self->get_vcard_keyword($iq->to_jid);
+
+    warn "get $keyword";
+
+    $gc->add_task(Gearman::Task->new("ljtalk_avatar_data" => \Storable::nfreeze([$username, $keyword]), {
         uniq        => "-",
         retry_count => 2,
         timeout     => 10,
@@ -140,9 +173,9 @@ sub hook_on_initial_presence {
 
     return if $bj->node eq 'mart';
 
-    $conn->write("<message to='$bj' from='livejournal.com' type='headline'><body>LJ Talk is currently a pre-alpha service lacking tons of features and probably with a bunch of bugs.
+#    $conn->write("<message to='$bj' from='livejournal.com' type='headline'><body>LJ Talk is currently a pre-alpha service lacking tons of features and probably with a bunch of bugs.
 
-We're actively developing it, constantly restarting it with new stuff.  So just don't be surprised if the service goes up and down $how_much.</body></message>");
+#We're actively developing it, constantly restarting it with new stuff.  So just don't be surprised if the service goes up and down $how_much.</body></message>");
 }
 
 sub hook_vcard_switch {
@@ -177,6 +210,32 @@ sub hook_vcard_switch {
     $cb->decline;
 }
 
+sub hook_connection_closing {
+    my (undef, $cb, $conn) = @_;
+
+    my $bj = $conn->bound_jid;
+    my $gc = DJabberd::Plugin::LiveJournal->gearman_client;
+
+    unless ($bj && $gc) {
+        $cb->done;
+        return;
+    }
+
+    $gc->add_task(Gearman::Task->new("ljtalk_connection_closing" => \Storable::nfreeze([$bj->node, $bj->resource]), {
+                                     uniq => '-',
+                                     retry_count => 2,
+                                     timeout => 10,
+                                     on_fail => sub {
+                                         $DJabberd::Stats::counter{'ljtalk_alter_presence_fail'}++;
+                                     },
+                                     on_complete => sub {
+                                         $DJabberd::Stats::counter{'ljtalk_alter_presence_success'}++;
+                                     },
+                                 }));
+
+    $cb->decline;
+}
+
 sub hook_alter_presence {
     my (undef, $cb, $conn, $pkt) = @_;
 
@@ -188,7 +247,12 @@ sub hook_alter_presence {
         return;
     }
 
+
+    my $priority;
     foreach my $ele ($pkt->children_elements) {
+        if ($ele->element_name eq 'priority') {
+            $priority = $ele->first_child;
+        }
         next unless ($ele->inner_ns || '') eq "vcard-temp:x:update" && $ele->element_name eq "x";
         $pkt->remove_child($ele);
         last;
@@ -196,7 +260,22 @@ sub hook_alter_presence {
 
     my $user = $bj->node;
 
-    $gc->add_task(Gearman::Task->new("ljtalk_avatar_sha1" => \ "$user", {
+    $gc->add_task(Gearman::Task->new("ljtalk_alter_presence" => \Storable::nfreeze([$bj->node, $bj->resource, $priority,  $pkt->as_xml]), {
+                                     uniq => '-',
+                                     retry_count => 2,
+                                     timeout => 10,
+                                     on_fail => sub {
+                                         $DJabberd::Stats::counter{'ljtalk_alter_presence_fail'}++;
+                                     },
+                                     on_complete => sub {
+                                         $DJabberd::Stats::counter{'ljtalk_alter_presence_success'}++;
+                                     },
+                                 }));
+
+    my $keyword = __PACKAGE__->get_vcard_keyword($bj, { dummy => $pkt });
+
+
+    $gc->add_task(Gearman::Task->new("ljtalk_avatar_sha1" => \Storable::nfreeze([$user, $keyword]), {
         uniq        => "-",
         retry_count => 2,
         timeout     => 10,

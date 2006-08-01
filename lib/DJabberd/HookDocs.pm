@@ -144,7 +144,15 @@ $hook{'AlterPresenceAvailable'} = {
     callback => {
         done => {},
     },
-    des => "Place to alter outgoing presence available packets from users, in-place.  Just modify the provided second argument",
+    des => "Place to alter outgoing presence available packets from users, in-place.  Just modify the provided second argument, warning will see directed ones",
+};
+
+$hook{'AlterPresenceUnavailable'} = {
+    args => ['Connection', 'Presence'],
+    callback => {
+        done => {},
+    },
+    des => "Place to alter outgoing presence unavailable packets from users, in-place.  Just modify the provided second argument, warning will see directed ones",
 };
 
 $hook{'OnInitialPresence'} = {
@@ -152,6 +160,14 @@ $hook{'OnInitialPresence'} = {
     callback => {
     },
     des => "Called when a client first comes online and becomes present.",
+};
+
+$hook{'ConnectionClosing'} = {
+    args => ['Connection'],
+    callback => {
+        done => {},
+    },
+    des => "Gets called when a connection is in closing state, you can't do anything but let it fall through",
 };
 
 1;
