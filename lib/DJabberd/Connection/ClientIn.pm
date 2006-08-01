@@ -110,7 +110,7 @@ sub send_pending_sub_requests {
 
 sub close {
     my $self = shift;
-    return if $self->{closed}++;
+    return if $self->{closed};
 
     # send an unavailable presence broadcast if we've gone away
     if ($self->is_available) {
@@ -134,14 +134,12 @@ sub close {
                                args  => [ $self ],
                                methods => {
                                    fallback => sub {
-                                       $self->SUPER::close;
                                    },
                                },
                                );
 
-    } else {
-        $self->SUPER::close;
     }
+    $self->SUPER::close;
 }
 
 sub namespace {
