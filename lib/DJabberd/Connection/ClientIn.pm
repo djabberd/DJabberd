@@ -129,7 +129,7 @@ sub close {
         DJabberd::Presence->forget_last_presence($jid);
     }
 
-    if ($self->vhost->are_hooks("ConnectionClosing")) {
+    if ($self->vhost && $self->vhost->are_hooks("ConnectionClosing")) {
         $self->vhost->run_hook_chain(phase => "ConnectionClosing",
                                args  => [ $self ],
                                methods => {
