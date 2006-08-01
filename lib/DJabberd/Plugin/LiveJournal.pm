@@ -166,19 +166,31 @@ sub make_response {
 sub hook_on_initial_presence {
     my (undef, $cb, $conn) = @_;
 
-    # in first five minutes after bounce, don't bug people with this message
-    return if time < $start_time + 300;
+    my $gc = DJabberd::Plugin::LiveJournal->gearman_client;
+    unless ($gc) {
+        return;
+    }
 
     my $bj = $conn->bound_jid;
-    my $how_much = $bj->node =~ /^whitaker|revmischa|brad|crucially|supersat|mart|scsi|evan$/ ?
-        "more than Whitaker's mom" :
-        "a lot";
+    my $username = $bj->node;
 
-    return if $bj->node eq 'mart';
-
-#    $conn->write("<message to='$bj' from='livejournal.com' type='headline'><body>LJ Talk is currently a pre-alpha service lacking tons of features and probably with a bunch of bugs.
-
-#We're actively developing it, constantly restarting it with new stuff.  So just don't be surprised if the service goes up and down $how_much.</body></message>");
+    $gc->add_task(Gearman::Task->new("ljtalk_user_motd" => \Storable::nfreeze([$username]), {
+        uniq        => "-",
+        retry_count => 2,
+        timeout     => 10,
+        on_fail     => sub {
+            $DJabberd::Stats::counter{'ljtalk_user_motd_fail'}++;
+        },
+        on_complete => sub {
+            my $dataref = shift;
+	    if (length $$dataref) {
+		$conn->write( "<message to='$bj' from='livejournal.com' type='headline'>".
+			      $$dataref.
+			      "</message>"
+			      );
+	    }
+       }
+    }));
 }
 
 sub hook_vcard_switch {
