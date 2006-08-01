@@ -76,6 +76,7 @@ sub get_vcard {
     my ($self, $vhost, $iq) = @_;
 
     my $user;
+    my $user_iq;
     if ($iq->to) {
         unless ($iq->to_jid) {
             # some clients, like sim 0.9.3 send incorrect to jids, in that case to is set but to_jid is undef
@@ -84,9 +85,11 @@ sub get_vcard {
             return;
         }
         $user = $iq->to_jid->as_bare_string;
+	$user_iq = $iq->to_jid;
     } else {
         # user is requesting their own vCard
         $user = $iq->connection->bound_jid->as_bare_string;
+	$user_iq = $iq->connection->bound_jid;
     }
 
     my ($username) = $user =~ /^(\w+)\@/;
@@ -98,7 +101,7 @@ sub get_vcard {
     }
 
 
-    my $keyword = $self->get_vcard_keyword($iq->to_jid);
+    my $keyword = $self->get_vcard_keyword($user_iq);
 
     warn "get $keyword";
 
@@ -217,7 +220,7 @@ sub hook_connection_closing {
     my $gc = DJabberd::Plugin::LiveJournal->gearman_client;
 
     unless ($bj && $gc) {
-        $cb->done;
+        $cb->declined;
         return;
     }
 
