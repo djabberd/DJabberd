@@ -283,20 +283,23 @@ sub _start_server {
         $server = IO::Socket::UNIX->new(Type   => SOCK_STREAM,
                                         Local  => $localaddr,
                                         Listen => 10)
-            or die "Error creating unix domain socket: $@\n";
+            or $logger->logdie("Error creating unix domain socket: $@\n");
     } else {
         # assume it's a port if there's no colon
         unless ($localaddr =~ /:/) {
             $localaddr = "0.0.0.0:$localaddr";
         }
 
+        $logger->debug("Opening TCP listen socket on $localaddr");
+
         $server = IO::Socket::INET->new(LocalAddr => $localaddr,
                                         Type      => SOCK_STREAM,
                                         Proto     => IPPROTO_TCP,
-                                        Blocking  => 0,
                                         Reuse     => 1,
                                         Listen    => 10 )
-            or die "Error creating socket: $@\n";
+            or $logger->logdie("Error creating socket: $@\n");
+            
+        $logger->warn("Unable to make socket non-blocking: $!") unless defined($server->blocking(0));
     }
 
     # Not sure if I'm crazy or not, but I can't see in strace where/how
