@@ -298,8 +298,19 @@ sub _start_server {
                                         Reuse     => 1,
                                         Listen    => 10 )
             or $logger->logdie("Error creating socket: $@\n");
-            
-        $logger->warn("Unable to make socket non-blocking: $!") unless defined($server->blocking(0));
+        
+        my $success = $server->blocking(0);
+        
+        unless (defined($success)) {
+            if ($^O eq 'MSWin32') {
+                # On Windows, we have to do this a bit differently
+                my $do = 1;
+                ioctl($server, 0x8004667E, \$do) or $logger->warn("Failed to make socket non-blocking: $!");
+            }
+            else {
+                $logger->warn("Failed to make socket non-blocking: $!")
+            }
+        }
     }
 
     # Not sure if I'm crazy or not, but I can't see in strace where/how
