@@ -379,7 +379,10 @@ sub process_iq_setregister {
                                        notfound => sub {
                                            warn "notfound.\n";
                                            return $iq->send_error;
-                                       }
+                                       },
+                                       error => sub {
+                                           return $iq->send_error;
+                                       },
                                    });
 
             $iq->send_result;
@@ -426,6 +429,9 @@ sub process_iq_setregister {
                                            <conflict xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>
                                            </error>
                                        });
+                               },
+                               error => sub {
+                                   return $iq->send_error;
                                },
                            });
 
