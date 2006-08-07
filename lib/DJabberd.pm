@@ -185,8 +185,20 @@ sub add_vhost {
     $vhost->set_server($self);
 }
 
+# works as Server method or class method.
 sub lookup_vhost {
     my ($self, $hostname) = @_;
+
+    # look at all server objects in process
+    unless (ref $self) {
+        foreach my $server (values %DJabberd::server) {
+            my $vh = $server->lookup_vhost($hostname);
+            return $vh if $vh;
+        }
+        return 0;
+    }
+
+    # method on server object
     foreach my $vhost (values %{$self->{vhosts}}) {
         return $vhost
             if ($vhost->handles_domain($hostname));
@@ -298,9 +310,9 @@ sub _start_server {
                                         Reuse     => 1,
                                         Listen    => 10 )
             or $logger->logdie("Error creating socket: $@\n");
-        
+
         my $success = $server->blocking(0);
-        
+
         unless (defined($success)) {
             if ($^O eq 'MSWin32') {
                 # On Windows, we have to do this a bit differently

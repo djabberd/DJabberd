@@ -341,6 +341,34 @@ sub CMD_reload {
     }
 }
 
+sub CMD_send_stanza {
+    my ($self, $params) = @_;
+    my ($vname, $barejid_str, $e_stanza) = split(/\s+/, $params);
+
+    my $vhost = DJabberd->lookup_vhost($vname);
+    unless ($vhost) {
+        $self->write("ERROR bogus vhost");
+        return;
+    }
+
+    my $jid = DJabberd::JID->new($barejid_str);
+    unless ($jid) {
+        $self->write("ERROR bogus jid");
+        return;
+    }
+
+    my @dconns = $vhost->find_conns_of_bare($jid);
+    unless (@dconns) {
+        $self->write("ERROR not connected");
+        return;
+    }
+
+    foreach my $c (@dconns) {
+        $c->write(DJabberd::Util::durl($e_stanza));
+    }
+    $self->write("OK");
+}
+
 sub end {
     $_[0]->write('.');
 }

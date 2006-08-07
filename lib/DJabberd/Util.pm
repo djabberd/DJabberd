@@ -41,6 +41,13 @@ sub exml
     return $a;
 }
 
+sub durl {
+    my ($a) = @_;
+    $a =~ tr/+/ /;
+    $a =~ s/%([a-fA-F0-9][a-fA-F0-9])/pack("C", hex($1))/eg;
+    return $a;
+}
+
 # tracked sub
 sub tsub (&) {
     my $subref = shift;
