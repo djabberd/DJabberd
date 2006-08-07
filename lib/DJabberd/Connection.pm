@@ -343,8 +343,8 @@ sub send_stanza {
 sub write_stanza {
     my ($self, $stanza) = @_;
 
-    my $to_jid    = $stanza->to   || die "missing 'to' attribute in ".$stanza->element_name." stanza";
-    my $from_jid  = $stanza->from;  # this can be iq
+    my $to_jid    = $stanza->to_jid  || die "missing 'to' attribute in ".$stanza->element_name." stanza";
+    my $from_jid  = $stanza->from_jid;  # this can be iq
     my $elename   = $stanza->element_name;
 
     my $other_attrs = "";
@@ -358,20 +358,21 @@ sub write_stanza {
     my $from = "";
     die "no from" if ($elename ne 'iq' && !$from_jid);
 
-    $from = $from_jid ? qq{ from='$from_jid'} : "";
+    $from = $from_jid ? " from='" . $from_jid->as_string_exml . "'" : "";
 
+    my $to_str = $to_jid->as_string_exml;
     my $ns = $self->namespace;
 
-    my $xml = "<$elename $other_attrs to='$to_jid'$from>" . $stanza->innards_as_xml . "</$elename>";
+    my $xml = "<$elename $other_attrs to='$to_str'$from>" . $stanza->innards_as_xml . "</$elename>";
 
     if ($self->xmllog->is_info) {
         # refactor this out
         my $debug;
         if($self->xmllog->is_debug) {
-            $debug = "<$elename $other_attrs to='$to_jid'$from>" . $stanza->innards_as_xml . "</$elename>";
+            $debug = "<$elename $other_attrs to='$to_str'$from>" . $stanza->innards_as_xml . "</$elename>";
         } else {
             local $DJabberd::ASXML_NO_TEXT = 1;
-            $debug = "<$elename $other_attrs to='$to_jid'$from>" . $stanza->innards_as_xml . "</$elename>";
+            $debug = "<$elename $other_attrs to='$to_str'$from>" . $stanza->innards_as_xml . "</$elename>";
         }
         $self->log_outgoing_data($debug);
     }

@@ -38,9 +38,12 @@ sub run_test {
 
         select(undef,undef,undef,0.25);
 
+        my $e_pa_res = DJabberd::Util::exml($pa->resource);
+        my $e_pb_res = DJabberd::Util::exml($pb->resource);
+
         $pa->send_xml("<iq
-    from='$pa/testsuite'
-    to='$pb/testsuite'
+    from='$pa/$e_pa_res'
+    to='$pb/$e_pb_res'
     type='get'
     id='v1'>
   <vCard xmlns='vcard-temp'/>
@@ -53,8 +56,8 @@ sub run_test {
 
         # now we'll make pb be the broken libgaim.  note the bogus from address.
         $pb->send_xml("<iq
-    from='$pa/testsuite'
-    to='$pa/testsuite'
+    from='$pa/$e_pa_res'
+    to='$pa/$e_pa_res'
     type='error'
     id='v1'>
   <vCard xmlns='vcard-temp'/>

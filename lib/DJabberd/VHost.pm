@@ -403,7 +403,7 @@ sub roster_push {
     foreach my $c (@conns) {
         next unless $c->is_available && $c->requested_roster;
         my $id = $c->new_iq_id;
-        my $iq = "<iq to='" . $c->bound_jid->as_string . "' type='set' id='$id'>$xml</iq>";
+        my $iq = "<iq to='" . $c->bound_jid->as_string_exml . "' type='set' id='$id'>$xml</iq>";
         $c->xmllog->info($iq);
         $c->write(\$iq);
     }

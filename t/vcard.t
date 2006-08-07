@@ -46,8 +46,11 @@ sub run_tests {
         $pa->send_xml("<presence/>");
         $pb->send_xml("<presence/>");
 
+        my $e_pa_res = DJabberd::Util::exml($pa->resource);
+        my $e_pb_res = DJabberd::Util::exml($pb->resource);
+
         $pa->send_xml("<iq type='get'
-    from='$pa/testsuite'
+    from='$pa/$e_pa_res'
     to='" . $pa->server . "'
     id='info1'>
   <query xmlns='http://jabber.org/protocol/disco#info'/>
@@ -56,7 +59,7 @@ sub run_tests {
 
 
         $pa->send_xml("<iq
-    from='$pa/testsuite'
+    from='$pa/$e_pa_res'
     type='get'
     id='v1'>
   <vCard xmlns='vcard-temp'/>
@@ -68,7 +71,7 @@ sub run_tests {
 
         like($xml, qr{<vCard xmlns='vcard-temp'/>}, "No vcard set, getting empty vcard back");
         $pa->send_xml("<iq
-    from='$pa/testsuite'
+    from='$pa/$e_pa_res'
     type='set'
     id='v2'>
   <vCard xmlns='vcard-temp'><FN>Test User</FN></vCard>
@@ -79,7 +82,7 @@ sub run_tests {
 
 
         $pa->send_xml("<iq
-    from='$pa/testsuite'
+    from='$pa/$e_pa_res'
     type='get'
     id='v3'>
   <vCard xmlns='vcard-temp'/>
@@ -91,7 +94,7 @@ sub run_tests {
 
 
         $pb->send_xml("<iq
-    from='$pb/testsuite'
+    from='$pb/$e_pb_res'
     to='$pa'
     type='get'
     id='v1'>
@@ -105,7 +108,7 @@ sub run_tests {
 
         $pa->send_xml("<presence type='unavailable'/>");
         $pa->send_xml("<iq
-    from='$pa/testsuite'
+    from='$pa/$e_pa_res'
     type='get'
     id='v1'>
   <vCard xmlns='vcard-temp'/>

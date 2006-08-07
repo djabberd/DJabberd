@@ -9,7 +9,7 @@ once_logged_in(sub {
     my $pa = shift;
     my $server = $pa->server;
 
-    my $res = $pa->resource;
+    my $res = DJabberd::Util::exml($pa->resource);
     $pa->send_xml("<iq type='get'
     from='$pa/$res'
     to='$server'

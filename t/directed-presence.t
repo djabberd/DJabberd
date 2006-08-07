@@ -15,7 +15,10 @@ two_parties(sub {
 
     pass "Test case where we send directed presence, then broadcast out unavailable";
 
-    $pa->send_xml(qq{<presence from="$pa/testsuite" to="$pb/testsuite"/>});
+    my $e_pa_res = DJabberd::Util::exml($pa->resource);
+    my $e_pb_res = DJabberd::Util::exml($pb->resource);
+
+    $pa->send_xml(qq{<presence from="$pa/$e_pa_res" to="$pb/$e_pb_res"/>});
 
     my $xml = $pb->recv_xml;
 
@@ -29,8 +32,8 @@ two_parties(sub {
 
     pass "Send a directed presence, then a directed unavailable, then verify we don't send broadcast out later";
 
-    $pb->send_xml(qq{<presence to="$pa/testsuite"/>});  # adds $pa to $pb's directed list
-    $pb->send_xml(qq{<presence to="$pa/testsuite" type="unavailable"/>}); # removes $pa from $pb's directed list
+    $pb->send_xml(qq{<presence to="$pa/$e_pa_res"/>});  # adds $pa to $pb's directed list
+    $pb->send_xml(qq{<presence to="$pa/$e_pa_res" type="unavailable"/>}); # removes $pa from $pb's directed list
     select undef, undef, undef, 0.25;
 
     # $pa should get that $pb is available
@@ -47,8 +50,8 @@ two_parties(sub {
     like($xml, qr{presence});
 
     # now verify the new presence broadcast doesn't incldue $pa
-    $pb->send_xml(qq{<presence from="$pb/testsuite" type="unavailable"/>});
-    $pb->send_xml(qq{<message from="$pb/testsuite" to="$pa/testsuite">$pa should get me and not a unavailable packet</message>});
+    $pb->send_xml(qq{<presence from="$pb/$e_pb_res" type="unavailable"/>});
+    $pb->send_xml(qq{<message from="$pb/$e_pb_res" to="$pa/$e_pa_res">$pa should get me and not a unavailable packet</message>});
 
     $xml = $pa->recv_xml;
     like($xml, qr/should get me and not a unavailable packet/, "Make sure we get the message and not the prescence broadcast");

@@ -1,14 +1,16 @@
 package DJabberd::JID;
 use strict;
+use DJabberd::Util qw(exml);
 
 use overload
-    '""' => \&as_string;
+    '""' => \&as_string_exml;
 
 use constant NODE       => 0;
 use constant DOMAIN     => 1;
 use constant RES        => 2;
 use constant AS_STRING  => 3;
 use constant AS_BSTRING => 4;
+use constant AS_STREXML => 5;
 
 # returns DJabberd::JID object, or undef on failure due to invalid format
 sub new {
@@ -57,6 +59,12 @@ sub as_string {
              ($self->[NODE] ? ($self->[NODE], '@') : ()),
              $self->[DOMAIN],
              ($self->[RES] ? ('/', $self->[RES]) : ()));
+}
+
+sub as_string_exml {
+    my $self = $_[0];
+    return $self->[AS_STREXML] ||=
+        exml($self->as_string);
 }
 
 sub as_bare_string {

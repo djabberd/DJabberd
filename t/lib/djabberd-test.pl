@@ -10,6 +10,7 @@ use DJabberd::RosterStorage::SQLite;
 use DJabberd::RosterStorage::Dummy;
 use DJabberd::RosterStorage::LiveJournal;
 use DJabberd::Plugin::MUC;
+use DJabberd::Util;
 use IO::Socket::UNIX;
 
 sub once_logged_in {
@@ -312,7 +313,7 @@ use overload
     '""' => \&as_string;
 
 sub resource {
-    return $_[0]{resource} ||= ($ENV{UNICODE_RESOURCE} ? "test\xe2\x80\x99s computer" : "testsuite");
+    return $_[0]{resource} ||= ($ENV{UNICODE_RESOURCE} ? "test\xe2\x80\x99s computer" : "testsuite_with_gibberish:'\"");
 }
 
 sub username {

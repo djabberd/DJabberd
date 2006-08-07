@@ -41,7 +41,8 @@ two_parties(sub {
     like($pa2->recv_xml, qr{HelloMsg from}, "message to pa2 from pb");
 
     # sent a message to a specific JID
-    $pb->send_xml("<message type='chat' to='$pa/testsuite'>you are testsuite</message>");
+    my $e_pa_res = DJabberd::Util::exml($pa->resource);
+    $pb->send_xml("<message type='chat' to='$pa/$e_pa_res'>you are testsuite</message>");
     $pb->send_xml("<message type='chat' to='$pa/conn2'>you are conn2</message>");
     like($pa->recv_xml,  qr{you are testsuite}, "pa got uniq message");
     like($pa2->recv_xml, qr{you are conn2}, "pb got uniq message");

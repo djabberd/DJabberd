@@ -58,8 +58,9 @@ two_parties_one_server(sub {
     like($xml, qr"http://jabber.org/protocol/muc#user", "Just a member");
 
 
+    my $e_pa_res = DJabberd::Util::exml($pa->resource);
     $pa->send_xml(qq { <message
-                           from='$pa/testsuite'
+                           from='$pa/$e_pa_res'
                            to='foobar\@conference.$server'
                            type='groupchat'>
                            <body>Sending message from $pa.</body>
