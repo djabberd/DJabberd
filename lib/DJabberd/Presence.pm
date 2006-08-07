@@ -366,26 +366,15 @@ sub _process_inbound_probe {
 
     my $jid = $self->to_jid;
 
-    my %map;  # fullstrres -> stanza
-    my $add_presence = sub {
-        my ($jid, $stanza) = @_;
-        $map{$jid->as_string} = $stanza;
-    };
-
-    # this hook chain is a little different, it's expected
-    # to always fall through to the end.
-    $vhost->run_hook_chain(phase => "PresenceCheck",
-                           args  => [ $jid, $add_presence ],
-                           fallback => sub {
-                               # send them
-                               foreach my $fullstr (keys %map) {
-                                   my $stanza = $map{$fullstr};
-                                   my $to_send = $stanza->clone;
-                                   $to_send->set_to($from_jid);
-                                   $to_send->deliver($vhost);
-                               }
-                           },
-                           );
+    $vhost->check_presence($jid, sub {
+        my $map = shift;
+        foreach my $fullstr (keys %$map) {
+            my $stanza = $map->{$fullstr};
+            my $to_send = $stanza->clone;
+            $to_send->set_to($from_jid);
+            $to_send->deliver($vhost);
+        }
+    });
 }
 
 sub _process_inbound_unsubscribe {
@@ -698,11 +687,6 @@ sub _process_outbound_subscribed_with_ritem {
 
     my $from_jid = $conn->bound_jid || die("lacking from_jid");
     my $to_jid = $self->to_jid;
-    my %map;  # fullstrres -> stanza
-    my $add_presence = sub {
-        my ($jid, $stanza) = @_;
-        $map{$jid->as_string} = $stanza;
-    };
 
     $conn->vhost->run_hook_chain(phase => "RosterSetItem",
                                  args  => [ $conn->bound_jid, $ritem ],
@@ -711,19 +695,18 @@ sub _process_outbound_subscribed_with_ritem {
                                          $conn->vhost->roster_push($conn->bound_jid, $ritem);
                                          $self->procdeliver($conn->vhost);
 
-                                         $vhost->run_hook_chain(phase => "PresenceCheck",
-                                                                args  => [ $conn->bound_jid, $add_presence ],
-                                                                fallback => sub {
-                                                                    # send them
-                                                                    foreach my $fullstr (keys %map) {
-                                                                        my $stanza = $map{$fullstr};
-                                                                        my $to_send = $stanza->clone;
-                                                                        $to_send->set_to($to_jid);
-
-                                                                        $to_send->deliver($vhost);
-                                                                    }
-                                                                });
-
+                                         # the spec's a little unclear as to whether, on successful subscribe,
+                                         # host A sends probes vs. host B sends the presence out.  we do both,
+                                         # as does ejabberd and other servers.
+                                         $vhost->check_presence($conn->bound_jid, sub {
+                                             my $map = shift;
+                                             foreach my $fullstr (keys %$map) {
+                                                 my $stanza = $map->{$fullstr};
+                                                 my $to_send = $stanza->clone;
+                                                 $to_send->set_to($to_jid);
+                                                 $to_send->deliver($vhost);
+                                             }
+                                         });
                                      },
                                      error => sub { my $reason = $_[1]; },
                                  },

@@ -500,6 +500,26 @@ sub get_roster {
                           });
 }
 
+# $jidarg can be a $jid for now.  future:  arrayref of jid objs
+# $cb is $cb->($map) where $map is hashref of fulljidstr -> $presence_stanza_obj
+sub check_presence {
+    my ($self, $jidarg, $cb) = @_;
+
+    my %map;
+    my $add_presence = sub {
+        my ($jid, $stanza) = @_;
+        $map{$jid->as_string} = $stanza;
+    };
+
+    # this hook chain is a little different, it's expected
+    # to always fall through to the end.
+    $self->run_hook_chain(phase => "PresenceCheck",
+                           args  => [ $jidarg, $add_presence ],
+                           fallback => sub {
+                               $cb->(\%map);
+                           });
+}
+
 sub debug {
     my $self = shift;
     return unless $self->{debug};
