@@ -106,6 +106,14 @@ sub finalize {
     $self->{'mysql_dbh'} = $dbh;
 }
 
+sub can_register_jids {
+    1;
+}
+
+sub can_unregister_jids {
+    1;
+}
+
 sub can_retrieve_cleartext {
     my $self = shift;
     return $self->{'mysql_encryptedpassword'} ? 0 : 1;
@@ -128,6 +136,57 @@ sub get_password {
     }
     $logger->info("Can't fetch password for '$username': user does not exist or did not satisfy WHERE clause");
     $cb->decline;
+}
+
+sub register_jid {
+    my ($self, $cb, %args) = @_;
+    my $username = $args{'username'};
+    my $password = $args{'password'};
+    my $dbh = $self->{'mysql_dbh'};
+
+    if (defined(($dbh->selectrow_array("SELECT * FROM $self->{'mysql_table'} WHERE $self->{'mysql_usernamecolumn'} = " . $dbh->quote($username)))[0])) { # if user exists
+        $logger->info("Registration failed for user '$username': user exists");
+        $cb->conflict;
+        return 0;
+    } else {
+        eval {
+            $dbh->do("INSERT INTO $self->{'mysql_table'} SET $self->{'mysql_usernamecolumn'} = " . $dbh->quote($username) .  ", $self->{'mysql_passwordcolumn'} = " . ($self->{'mysql_encryptedpassword'} ? 'PASSWORD(' . $dbh->quote($password) . ')' : $dbh->quote($password)));
+        };
+        if ($@) {
+            $logger->info("Registration failed for user '$username': database query failed");
+            $cb->error;
+            return 0;
+        } else {
+            $logger->debug("User '$username' registered successfully");
+            $cb->saved;
+            return 1;
+        }
+    }
+}
+
+sub unregister_jid {
+    my ($self, $cb, %args) = @_;
+    my $username = $args{'username'};
+    my $dbh = $self->{'mysql_dbh'};
+
+    if (defined(($dbh->selectrow_array("SELECT * FROM $self->{'mysql_table'} WHERE $self->{'mysql_usernamecolumn'} = " . $dbh->quote($username)))[0])) { # if user exists
+        eval {
+            $dbh->do("DELETE FROM $self->{'mysql_table'} WHERE $self->{'mysql_usernamecolumn'} = " . $dbh->quote($username));
+        };
+        if ($@) {
+            $logger->info("Cancellation of registration failed for user '$username': database query failed");
+            $cb->error;
+            return 0;
+        } else {
+            $logger->debug("User '$username' canceled registration successfully");
+            $cb->deleted;
+            return 1;
+        }
+    } else {
+        $logger->info("Cancellation of registration failed for user '$username': user not found");
+        $cb->notfound;
+        return 0;
+    }
 }
 
 sub check_cleartext {
@@ -163,7 +222,7 @@ sub check_cleartext {
 
 =head1 COPYRIGHT & LICENSE
 
-Copyright 2006 Alexander Karelas, Martin Atkins and Brad Fitzpatrick. All rights reserved.
+Copyright 2006 Alexander Karelas, Martin Atkins, Brad Fitzpatrick and Aleksandar Milanov. All rights reserved.
 
 This program is free software; you can redistribute it and/or modify it
 under the same terms as Perl itself.
