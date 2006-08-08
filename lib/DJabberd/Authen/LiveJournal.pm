@@ -6,6 +6,18 @@ use LWP::Simple;
 
 sub can_check_digest { 1 }
 
+our $cluster_if;
+
+sub cluster_if {
+    return $cluster_if;
+}
+
+sub set_config_clusterif {
+    my ($self, $val) = @_;
+    $cluster_if = $val;
+}
+
+
 sub check_digest {
     my ($self, $cb, %args) = @_;
 
@@ -25,7 +37,7 @@ sub check_digest {
 
     # non-blocking auth lookup, using gearman.
     if ($gc) {
-         $gc->add_task(Gearman::Task->new("ljtalk_auth_check" => \Storable::nfreeze([$user,$streamid,$digest,$resource, $conn->peer_ip_string]), {
+         $gc->add_task(Gearman::Task->new("ljtalk_auth_check" => \Storable::nfreeze([$user,$streamid,$digest,$resource, $conn->peer_ip_string], $self->cluster_if), {
             uniq        => "-",
             retry_count => 2,
             timeout     => 10,
