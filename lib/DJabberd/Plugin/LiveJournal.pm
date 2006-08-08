@@ -85,11 +85,11 @@ sub get_vcard {
             return;
         }
         $user = $iq->to_jid->as_bare_string;
-	$user_iq = $iq->to_jid;
+        $user_iq = $iq->to_jid;
     } else {
         # user is requesting their own vCard
         $user = $iq->connection->bound_jid->as_bare_string;
-	$user_iq = $iq->connection->bound_jid;
+        $user_iq = $iq->connection->bound_jid;
     }
 
     my ($username) = $user =~ /^(\w+)\@/;
@@ -102,8 +102,6 @@ sub get_vcard {
 
 
     my $keyword = $self->get_vcard_keyword($user_iq);
-
-    warn "get $keyword";
 
     $gc->add_task(Gearman::Task->new("ljtalk_avatar_data" => \Storable::nfreeze([$username, $keyword]), {
         uniq        => "-",
@@ -183,12 +181,12 @@ sub hook_on_initial_presence {
         },
         on_complete => sub {
             my $dataref = shift;
-	    if (length $$dataref) {
-		$conn->write( "<message to='$bj' from='livejournal.com' type='headline'>".
-			      $$dataref.
-			      "</message>"
-			      );
-	    }
+            if (length $$dataref) {
+                $conn->write( "<message to='$bj' from='livejournal.com' type='headline'>".
+                              $$dataref.
+                              "</message>"
+                              );
+            }
        }
     }));
 }
