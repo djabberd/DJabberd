@@ -50,7 +50,7 @@ sub register {
     my $gc = Gearman::Client->new;
     $gc->job_servers(@gearman_servers);
     my $rv = $gc->do_task("ljtalk_init", $vhost->server_name . "_cluster_ip_port", {timeout => 5});
-    die "Couldn't init LJ Plugin" unless $$rv eq 'OK';
+    die "Couldn't init LJ Plugin $$rv" unless ref($rv) && $$rv eq 'OK';
 
 }
 
@@ -115,6 +115,15 @@ sub get_vcard {
             my $dataref = shift;
             unless ($$dataref) {
                 $iq->send_error;
+                return;
+            }
+
+            #this is backwards compatible with the old calling convention
+            # so it is easier to upgrade
+
+            if($$dataref =~/^<vCard/) {
+                my $reply = $self->make_response($iq, $$dataref);
+                $reply->deliver($vhost);
                 return;
             }
 
@@ -235,7 +244,7 @@ sub hook_connection_closing {
     }
 
     $gc->add_task(Gearman::Task->new("ljtalk_connection_closing" => \Storable::nfreeze([$bj->node, $bj->resource]), {
-                                     uniq => '-',
+                                     uniq => '',
                                      retry_count => 2,
                                      timeout => 10,
                                      on_fail => sub {
@@ -245,6 +254,7 @@ sub hook_connection_closing {
                                          $DJabberd::Stats::counter{'ljtalk_alter_presence_success'}++;
                                      },
                                  }));
+
 
     $cb->decline;
 }
