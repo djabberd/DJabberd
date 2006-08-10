@@ -131,12 +131,12 @@ sub close {
 
     if ($self->vhost && $self->vhost->are_hooks("ConnectionClosing")) {
         $self->vhost->run_hook_chain(phase => "ConnectionClosing",
-                               args  => [ $self ],
-                               methods => {
-                                   fallback => sub {
-                                   },
-                               },
-                               );
+                                     args  => [ $self ],
+                                     methods => {
+                                         fallback => sub {
+                                         },
+                                     },
+                                     );
 
     }
     $self->SUPER::close;
