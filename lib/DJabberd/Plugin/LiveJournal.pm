@@ -191,9 +191,9 @@ sub hook_on_initial_presence {
         on_complete => sub {
             my $dataref = shift;
             if (length $$dataref) {
-                $conn->write( "<message to='$bj' from='livejournal.com' type='headline'>".
-                              $$dataref.
-                              "</message>"
+                $conn->write( "<message to='$bj' from='livejournal.com' type='headline'><body>".
+                              exml($$dataref).
+                              "</body></message>"
                               );
             }
        }
