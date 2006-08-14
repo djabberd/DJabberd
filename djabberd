@@ -14,7 +14,7 @@ $DEBUG = 0;
 
 my ($daemonize);
 
-my $conffile = "/etc/djabberd/djabberd.conf";
+my $conffile;
 
 Getopt::Long::GetOptions(
                          'd|daemon'     => \$daemonize,
@@ -27,7 +27,11 @@ my $server = DJabberd->new(
                            daemonize => $daemonize
                            );
 
-$server->load_config($conffile);
+my @try_conf = ( $conffile, "/etc/djabberd/djabberd.conf", "djabberd.conf" );
+shift @try_conf while @try_conf && ! -e $try_conf[0];
+die "No configuration file found, please specify --conffile argument.\n" unless @try_conf;
+
+$server->load_config($try_conf[0]);
 
 $server->run;
 
