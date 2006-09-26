@@ -7,6 +7,7 @@ use base 'Danga::Socket';
 use fields qw(buffer server handle);
 use vars qw($initial_memory);
 
+use Devel::Peek ();
 my $has_gladiator  = eval "use Devel::Gladiator; 1;";
 my $has_cycle      = eval "use Devel::Cycle; 1;";
 my $has_devel_leak = eval "use Devel::Leak; 1;";
@@ -245,6 +246,9 @@ sub arena_ref_counts {
         elsif (ref $it eq "DJabberd::Callback") {
             $ct{"DJabberd::Callback-" . $it->{_phase}}++ if $it->{_phase};
         }
+        elsif (ref $it eq "CODE") {
+            $ct{Devel::Peek::CvGV($it)}++;
+        }
     }
     $all = undef;
     return \%ct;
@@ -271,7 +275,6 @@ sub CMD_gladiator {
             next unless $delta;
         } elsif ($cmd eq "lite") {
             next if $k =~ /^REF-/;
-            next if $k =~ /^DJabberd::AnonSubFrom::lib_DJabberd_RosterStorage/;
             next if $k =~ /log4perl/i;
         } else {
             next unless $ct->{$k} > 1 || $cmd eq "all";
@@ -292,7 +295,6 @@ sub CMD_cycle {
     }
 
     my $array = Devel::Gladiator::walk_arena();
-    #my @list = grep { ref($_) =~ /^DJabberd::VHost|DJabberd::Connection::ClientIn|DJabberd::AnonSubFrom/ } @$array;
     my @list = grep { ref($_) =~ /^DJabberd|Gearman|CODE/ } @$array;
     $array = undef;
 
@@ -376,7 +378,14 @@ sub end {
 sub write {
     my $self = shift;
     my $string = shift;
-    $self->SUPER::write($string . "\r\n");
+
+    if (defined $string) {
+        $self->SUPER::write($string . "\r\n");
+    } else {
+        # because event_write by default just kicks off more events, calling
+        # write with undef...
+        $self->SUPER::write(undef);
+    }
 }
 
 sub close {

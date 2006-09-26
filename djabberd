@@ -1,7 +1,10 @@
 #!/usr/bin/perl
 
 BEGIN {
-    $^P |= 0x01 if $ENV{TRACE_DJABBERD};
+    # tell debugger of sub enter/exit,
+    $^P |= 0x01  if     $ENV{TRACE_DJABBERD};
+    # keep descriptive string value of all anon subs maintained per coderef:
+    $^P |= 0x200 unless $ENV{NDEBUG_SUB_NAMES};
 };
 
 use strict;
