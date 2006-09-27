@@ -15,7 +15,7 @@ $Test::DJabberd::Server::VHOST_CB = sub {
 
 my $server = Test::DJabberd::Server->new(id => 1);
 $server->start([
-                DJabberd::RosterStorage::SQLite->new(database => $server->roster),
+                DJabberd::RosterStorage::InMemoryOnly->new(),
                 DJabberd::Authen::InMemoryOnly->new,
                 ]);
 
