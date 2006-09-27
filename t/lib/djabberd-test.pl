@@ -298,7 +298,11 @@ sub start {
 
 sub kill {
     my $self = shift;
-    CORE::kill(9, $self->{pid}) if $self->{pid};
+    if ($self->{pid}) {
+        CORE::kill(9, $self->{pid});
+        my $pid = delete $self->{pid};
+        waitpid $pid, 0;
+    }
 }
 
 sub DESTROY {
