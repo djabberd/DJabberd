@@ -13,13 +13,9 @@ use DJabberd::Authen::AllowedUsers;
 use DJabberd::Authen::StaticPassword;
 use DJabberd::TestSAXHandler;
 use DJabberd::RosterStorage::InMemoryOnly;
-use DJabberd::RosterStorage::LiveJournal;
 use FindBin qw($Bin);
 
 my $client_port = 11001;
-
-my $roster = "$Bin/test-roster.dat";
-unlink($roster);
 
 my $vhost = DJabberd::VHost->new(
                                  server_name => 'jabber.example.com',
