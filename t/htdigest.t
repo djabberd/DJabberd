@@ -11,7 +11,7 @@ use DJabberd::Authen::HTDigest;
 
 my $server = Test::DJabberd::Server->new(id => 1);
 $server->start([
-        DJabberd::RosterStorage::SQLite->new(database => $server->roster),
+        DJabberd::RosterStorage::InMemoryOnly->new(),
         DJabberd::Authen::HTDigest->new(realm => 'djabberd', htdigest => 't/htdigest.t.conf')
         ]);
 
@@ -36,7 +36,7 @@ pass("Client logged in");
 eval {
     my $server2 = Test::DJabberd::Server->new(id => 1);
     $server2->{plugins} = [
-                           DJabberd::RosterStorage::SQLite->new(database => $server->roster),
+                           DJabberd::RosterStorage::InMemoryOnly->new(),
                            DJabberd::Authen::HTDigest->new(realm => 'djabberd', htdigest => 't/htdigest.t.conf.shouldnotbehere')
                            ];
     $server2->start();

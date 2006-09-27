@@ -6,7 +6,7 @@ use DJabberd;
 use DJabberd::Authen::AllowedUsers;
 use DJabberd::Authen::StaticPassword;
 use DJabberd::TestSAXHandler;
-use DJabberd::RosterStorage::SQLite;
+use DJabberd::RosterStorage::InMemoryOnly;
 use DJabberd::RosterStorage::Dummy;
 use DJabberd::RosterStorage::LiveJournal;
 use DJabberd::Plugin::MUC;
@@ -244,7 +244,7 @@ sub standard_plugins {
             DJabberd::Authen::AllowedUsers->new(policy => "deny",
                                                 allowedusers => [qw(partya partyb)]),
             DJabberd::Authen::StaticPassword->new(password => "password"),
-            DJabberd::RosterStorage::SQLite->new(database => $self->roster),
+            DJabberd::RosterStorage::InMemoryOnly->new(),
             ($ENV{T_MUC_ENABLE} ? (DJabberd::Plugin::MUC->new(subdomain => 'conference')) : ()),
             DJabberd::Delivery::Local->new,
             DJabberd::Delivery::S2S->new,
