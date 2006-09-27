@@ -24,7 +24,7 @@ sub blocking { 0 }
 sub get_roster {
     my ($self, $cb, $jid) = @_;
 
-    logger->debug("Getting roster for '$jid'");
+    $logger->debug("Getting roster for '$jid'");
 
     my $roster = DJabberd::Roster->new;
 
