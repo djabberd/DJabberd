@@ -301,6 +301,7 @@ sub kill {
     if ($self->{pid}) {
         CORE::kill(9, $self->{pid});
         my $pid = delete $self->{pid};
+        local $?; # we don't want to inherit the waited pid's exit status
         waitpid $pid, 0;
     }
 }
