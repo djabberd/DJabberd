@@ -5,6 +5,7 @@ use warnings;
 use base 'DJabberd::RosterStorage';
 
 use DJabberd::Log;
+use DJabberd::RosterItem;
 our $logger = DJabberd::Log->get_logger();
 
 sub finalize {
@@ -29,7 +30,7 @@ sub get_roster {
     my $roster = DJabberd::Roster->new;
 
     foreach my $item (values %{$self->{rosters}->{$jid} || {}}) {
-        $roster->add($item);
+        $roster->add(DJabberd::RosterItem->new($item));
     }
 
     $logger->debug("  ... got groups, calling set_roster..");
@@ -39,14 +40,37 @@ sub get_roster {
 
 sub set_roster_item {
     my ($self, $cb, $jid, $ritem) = @_;
+
+    $self->{rosters}->{$jid}->{$ritem->jid} = {
+        jid          => $ritem->jid,
+        name         => $ritem->name,
+        groups       => [$ritem->groups],
+        subscription => $ritem->subscription->as_bitmask,
+    };
+        
     $logger->debug("Set roster item");
     $self->addupdate_roster_item($cb, $jid, $ritem);
 }
 
 sub addupdate_roster_item {
     my ($self, $cb, $jid, $ritem) = @_;
-    # don't really need to do anything, cause the ritems update themselves in-memory.
-    # $self->{rosters}->{$jid}->{$ritem->jid} = $ritem;
+
+    my $olditem = $self->{rosters}->{$jid}->{$ritem->jid};
+
+    my $newitem = $self->{rosters}->{$jid}->{$ritem->jid} = {
+        jid          => $ritem->jid,
+        name         => $ritem->name,
+        groups       => [$ritem->groups],
+    };
+
+    if (defined $olditem) {
+        $ritem->set_subscription($olditem->{subscription});
+        $newitem->{subscription} = $olditem->{subscription};
+    }
+    else {
+        $newitem->{subscription} = $ritem->subscription->as_bitmask;
+    }
+    
     $cb->done($ritem);
 }
 
@@ -55,7 +79,6 @@ sub delete_roster_item {
     $logger->debug("delete roster item!");
 
     delete $self->{rosters}->{$jid}->{$ritem->jid};
-    my $dbh  = $self->{dbh};
 
     $cb->done;
 }
@@ -63,7 +86,11 @@ sub delete_roster_item {
 sub load_roster_item {
     my ($self, $jid, $contact_jid, $cb) = @_;
 
-    my $item = $self->{rosters}->{$jid}->{$contact_jid};
+    my $options = $self->{rosters}->{$jid}->{$contact_jid};
+
+    return unless defined $options;
+
+    my $item = DJabberd::RosterItem->new(%$options);
 
     $cb->set($item);
     return;
