@@ -1,26 +1,8 @@
-doc/cluster-notes.txt
-doc/conventions.txt
-doc/definitions.txt
-doc/hooks.txt
-doc/quirks-mode.txt
-doc/rfc3920-bugs.txt
-doc/rfc3920-notes.txt
-doc/rfc3920-rules.txt
-doc/rfc3920.txt
-doc/rfc3921-bugs.txt
-doc/rfc3921-notes.txt
-doc/rfc3921.txt
-doc/s2s-traces.txt
-doc/ssl.txt
-doc/status.txt
-doc/TODO
 lib/DJabberd.pm
 lib/DJabberd/Authen.pm
 lib/DJabberd/Authen/AllowedUsers.pm
 lib/DJabberd/Authen/HTDigest.pm
 lib/DJabberd/Authen/InMemoryOnly.pm
-lib/DJabberd/Authen/LiveJournal.pm
-lib/DJabberd/Authen/PAM.pm
 lib/DJabberd/Authen/StaticPassword.pm
 lib/DJabberd/Callback.pm
 lib/DJabberd/Connection.pm
@@ -52,9 +34,8 @@ lib/DJabberd/Queue/ServerOut.pm
 lib/DJabberd/Roster.pm
 lib/DJabberd/RosterItem.pm
 lib/DJabberd/RosterStorage.pm
+lib/DJabberd/RosterStorage/InMemoryOnly.pm
 lib/DJabberd/RosterStorage/Dummy.pm
-lib/DJabberd/RosterStorage/LiveJournal.pm
-lib/DJabberd/RosterStorage/SQLite.pm
 lib/DJabberd/SAXHandler.pm
 lib/DJabberd/Stanza.pm
 lib/DJabberd/Stanza/DialbackResult.pm
@@ -72,7 +53,6 @@ lib/DJabberd/XMLParser.pm
 Makefile.PL
 MANIFEST			This list of files
 META.yml
-t-roster-1.sqlite
 t/10-specimpl.t
 t/directed-presence.t
 t/disco.t
@@ -89,8 +69,6 @@ t/new-connects.t
 t/quirk-libgaim-iqerrorfrom.t
 t/s2s-no-dialback-to.t
 t/server_die.t
-t/t-roster-1.sqlite
-t/t-roster-2.sqlite
 t/test-roster.dat
 t/two-resources.t
 t/vcard.t
