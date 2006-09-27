@@ -12,8 +12,7 @@ use DJabberd;
 use DJabberd::Authen::AllowedUsers;
 use DJabberd::Authen::StaticPassword;
 use DJabberd::TestSAXHandler;
-use DJabberd::RosterStorage::SQLite;
-use DJabberd::RosterStorage::Dummy;
+use DJabberd::RosterStorage::InMemoryOnly;
 use DJabberd::RosterStorage::LiveJournal;
 use FindBin qw($Bin);
 
@@ -32,7 +31,7 @@ my $vhost = DJabberd::VHost->new(
                                                DJabberd::PresenceChecker::Local->new(),
                                                DJabberd::Delivery::Local->new(),
                                                DJabberd::Delivery::S2S->new(),
-                                               DJabberd::RosterStorage::SQLite->new(database => $roster),
+                                               DJabberd::RosterStorage::InMemoryOnly->new(),
                                                ],
                                  );
 
