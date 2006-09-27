@@ -11,9 +11,6 @@ WriteMakefile(
                              XML::LibXML::SAX             => 0,
                              Net::DNS                     => 0.48,
                              Net::SSLeay                  => 0,
-                             DBI                          => 0,
-                             LWP::Simple                  => 0,
-                             DBD::SQLite                  => 0,
                              Log::Log4perl                => 0,
                              Digest::HMAC_SHA1            => 0,
                             }, # e.g., Module::Name => 1.1
