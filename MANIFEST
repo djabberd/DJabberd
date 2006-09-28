@@ -1,7 +1,6 @@
 lib/DJabberd.pm
 lib/DJabberd/Authen.pm
 lib/DJabberd/Authen/AllowedUsers.pm
-lib/DJabberd/Authen/HTDigest.pm
 lib/DJabberd/Authen/InMemoryOnly.pm
 lib/DJabberd/Authen/StaticPassword.pm
 lib/DJabberd/Callback.pm
@@ -57,8 +56,6 @@ t/directed-presence.t
 t/disco.t
 t/exchange-messages.t
 t/hookchain.t
-t/htdigest.t
-t/htdigest.t.conf
 t/inband-reg.t
 t/iq-exchange.t
 t/lib/djabberd-test.pl
