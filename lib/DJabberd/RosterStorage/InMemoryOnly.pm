@@ -24,12 +24,13 @@ sub blocking { 0 }
 
 sub get_roster {
     my ($self, $cb, $jid) = @_;
+    my $jidstr = $jid->as_bare_string;
 
     $logger->debug("Getting roster for '$jid'");
 
     my $roster = DJabberd::Roster->new;
 
-    foreach my $item (values %{$self->{rosters}->{$jid} || {}}) {
+    foreach my $item (values %{$self->{rosters}->{$jidstr} || {}}) {
         my $subscription = DJabberd::Subscription->from_bitmask($item->{subscription});
         $roster->add(DJabberd::RosterItem->new(%$item, subscription => $subscription));
     }
@@ -41,9 +42,11 @@ sub get_roster {
 
 sub set_roster_item {
     my ($self, $cb, $jid, $ritem) = @_;
+    my $jidstr = $jid->as_bare_string;
+    my $rjidstr = $ritem->jid->as_bare_string;
 
-    $self->{rosters}->{$jid}->{$ritem->jid} = {
-        jid          => $ritem->jid->as_bare_string,
+    $self->{rosters}->{$jidstr}->{$rjidstr} = {
+        jid          => $rjidstr,
         name         => $ritem->name,
         groups       => [$ritem->groups],
         subscription => $ritem->subscription->as_bitmask,
@@ -55,11 +58,13 @@ sub set_roster_item {
 
 sub addupdate_roster_item {
     my ($self, $cb, $jid, $ritem) = @_;
+    my $jidstr = $jid->as_bare_string;
+    my $rjidstr = $ritem->jid->as_bare_string;
 
-    my $olditem = $self->{rosters}->{$jid}->{$ritem->jid};
+    my $olditem = $self->{rosters}->{$jidstr}->{$rjidstr};
 
-    my $newitem = $self->{rosters}->{$jid}->{$ritem->jid} = {
-        jid          => $ritem->jid->as_bare_string,
+    my $newitem = $self->{rosters}->{$jidstr}->{$rjidstr} = {
+        jid          => $rjidstr,
         name         => $ritem->name,
         groups       => [$ritem->groups],
     };
@@ -79,7 +84,10 @@ sub delete_roster_item {
     my ($self, $cb, $jid, $ritem) = @_;
     $logger->debug("delete roster item!");
 
-    delete $self->{rosters}->{$jid->as_bare_string}->{$ritem->jid};
+    my $jidstr = $jid->as_bare_string;
+    my $rjidstr = $ritem->jid->as_bare_string;
+    
+    delete $self->{rosters}->{$jidstr}->{$rjidstr};
 
     $cb->done;
 }
@@ -87,7 +95,10 @@ sub delete_roster_item {
 sub load_roster_item {
     my ($self, $jid, $contact_jid, $cb) = @_;
 
-    my $options = $self->{rosters}->{$jid->as_bare_string}->{$contact_jid};
+    my $jidstr = $jid->as_bare_string;
+    my $cjidstr = $contact_jid->as_bare_string;
+    
+    my $options = $self->{rosters}->{$jidstr}->{$cjidstr};
 
     unless (defined $options) {
         $cb->set(undef);
@@ -105,7 +116,9 @@ sub load_roster_item {
 sub wipe_roster {
     my ($self, $cb, $jid) = @_;
 
-    delete $self->{rosters}->{$jid->as_bare_string};
+    my $jidstr = $jid->as_bare_string;
+
+    delete $self->{rosters}->{$jidstr};
 
     $cb->done;
 }
