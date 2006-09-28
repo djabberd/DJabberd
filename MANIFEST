@@ -23,8 +23,6 @@ lib/DJabberd/JID.pm
 lib/DJabberd/Log.pm
 lib/DJabberd/Message.pm
 lib/DJabberd/Plugin.pm
-lib/DJabberd/Plugin/MUC.pm
-lib/DJabberd/Plugin/MUC/Room.pm
 lib/DJabberd/Presence.pm
 lib/DJabberd/PresenceChecker.pm
 lib/DJabberd/PresenceChecker/Local.pm
@@ -58,7 +56,6 @@ t/hookchain.t
 t/inband-reg.t
 t/iq-exchange.t
 t/lib/djabberd-test.pl
-t/muc.t
 t/mutual-add-and-presence.t
 t/new-connects.t
 t/quirk-libgaim-iqerrorfrom.t
