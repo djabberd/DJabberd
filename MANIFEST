@@ -69,7 +69,6 @@ t/new-connects.t
 t/quirk-libgaim-iqerrorfrom.t
 t/s2s-no-dialback-to.t
 t/server_die.t
-t/test-roster.dat
 t/two-resources.t
 t/vcard.t
 t/versions.t
