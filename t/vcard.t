@@ -7,15 +7,18 @@ use lib 't/lib';
 #BEGIN {  $ENV{LOGLEVEL} ||= "FATAL" }
 BEGIN { require 'djabberd-test.pl' }
 
-$ENV{DJABBERD_TEST_SQLITE} ||= 1 unless exists($ENV{DJABBERD_TEST_SQLITE});
-
+# this will be done later, in a plugin, when this is a separate module.
+$ENV{DJABBERD_TEST_SQLITE} ||= 0 unless exists($ENV{DJABBERD_TEST_SQLITE});
 
 SKIP: {
     skip "Not testing DJabberd::Plugin::VCard::SQLite", 13 unless $ENV{DJABBERD_TEST_SQLITE};
     use_ok("DJabberd::Plugin::VCard::SQLite");
     $Test::DJabberd::Server::PLUGIN_CB = sub {
         my $self = shift;
-        my $plugins = $self->standard_plugins();
+
+        warn "unlink = ", unlink $self->roster_name;  # HACK.  was done implicitly before.  this whole test needs to be neutral to the storage mode being used
+
+        my $plugins = $self->standard_plugins;
         push @$plugins, DJabberd::Plugin::VCard::SQLite->new(storage => $self->roster_name);
         return $plugins;
     };
