@@ -13,6 +13,21 @@ use DJabberd;
 use Getopt::Long;
 use FindBin qw($Bin);
 use vars qw($DEBUG);
+BEGIN {
+    # while the core ("use DJabberd" above) must be in normal paths,
+    # we open up the lib paths here, so make it easy to work in
+    # the subversion directories and have cousin plugins in their
+    # dev locations, but not system-wide installed.
+    if (-e "$Bin/Makefile.PL") {  # lame check to see if we're in dev directory
+        opendir(my $dh, "$Bin/../");
+        foreach my $d (grep { /^DJabberd-/ } readdir($dh)) {
+            my $dir = "$Bin/../$d/lib";
+            next unless -d $dir;
+            unshift(@INC, $dir);
+        }
+    }
+}
+
 $DEBUG = 0;
 
 my ($daemonize);
@@ -24,7 +39,6 @@ Getopt::Long::GetOptions(
                          'debug=i'      => \$DEBUG,
                          'conffile=s'   => \$conffile,
                          );
-
 
 my $server = DJabberd->new(
                            daemonize => $daemonize
