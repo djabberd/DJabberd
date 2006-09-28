@@ -7,8 +7,6 @@ use DJabberd::Authen::AllowedUsers;
 use DJabberd::Authen::StaticPassword;
 use DJabberd::TestSAXHandler;
 use DJabberd::RosterStorage::InMemoryOnly;
-use DJabberd::RosterStorage::Dummy;
-use DJabberd::RosterStorage::LiveJournal;
 use DJabberd::Plugin::MUC;
 use DJabberd::Util;
 use IO::Socket::UNIX;

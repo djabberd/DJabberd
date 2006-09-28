@@ -33,7 +33,6 @@ lib/DJabberd/Roster.pm
 lib/DJabberd/RosterItem.pm
 lib/DJabberd/RosterStorage.pm
 lib/DJabberd/RosterStorage/InMemoryOnly.pm
-lib/DJabberd/RosterStorage/Dummy.pm
 lib/DJabberd/SAXHandler.pm
 lib/DJabberd/Stanza.pm
 lib/DJabberd/Stanza/DialbackResult.pm
