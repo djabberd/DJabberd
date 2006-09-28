@@ -416,7 +416,7 @@ sub recv_xml {
     my ($self, $timeout) = @_;
     my $ev = $self->get_event($timeout, 1);
     return undef if $timeout && !$ev;
-    die unless UNIVERSAL::isa($ev, "DJabberd::XMLElement");
+    die "Expecting a DJabberd::XMLElement, got a $ev" unless UNIVERSAL::isa($ev, "DJabberd::XMLElement");
     return $ev->as_xml;
 }
 
