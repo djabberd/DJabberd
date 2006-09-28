@@ -41,7 +41,7 @@ use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
 use Carp qw(croak);
 use DJabberd::Util qw(tsub as_bool as_num as_abs_path);
 
-our $VERSION = 0.1;
+our $VERSION = '0.80';
 
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
