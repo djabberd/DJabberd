@@ -41,7 +41,7 @@ use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
 use Carp qw(croak);
 use DJabberd::Util qw(tsub as_bool as_num as_abs_path);
 
-our $VERSION = '0.80';
+our $VERSION = '0.81';
 
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
@@ -546,3 +546,91 @@ sub daemonize {
 # End:
 
 1;
+
+__END__
+
+=head1 NAME
+
+DJabberd - scalable, extensible Jabber/XMPP server.
+
+=head1 SYNOPSIS
+
+ $ djabberd --conf=config-file.conf --daemonize
+
+=head1 DESCRIPTION
+
+DJabberd was the answer to LiveJournal's Jabber (XMPP)
+server needs.  We needed:
+
+=over 4
+
+=item * good performance for tons of connected users
+
+=item * ability to scale to multiple nodes
+
+=item * ability to hook into LiveJournal at all places, not just auth
+
+=back
+
+Basically we wanted the swiss army knife of Jabber servers (think
+qpsmtpd or mod_perl), but none existed in any language.  While some
+popular Jabber servers let us do pluggable auth, none let us get our
+hands into roster storage, vcards, avatars, presence, etc.
+
+So we made DJabberd.  It's a Jabber server where almost everything
+defers to hooks to be implemented by plugins.  It does the core spec
+itself (including SSL, StartTLS, server-to-server, etc), but it
+doesn't come with any way to do authentication or storage or rosters,
+etc.  You'll need to go pick up a plugin to do those.
+
+You should be able to plop DJabberd into your existing systems /
+userbase with minimal pain.  Just find a plugin that's close (if a
+perfect match doesn't already exist!) and tweak.
+
+DJabberd is event-based so we can have really low per-connection
+memory requirements, smaller than is possible with a threaded jabber
+server.  Because of this, all plugins can operate asynchronously,
+taking as long as they want to finish their work, or to decline to the
+next handler.  (in the meantime, while plugins wait on a response from
+whatever they're talking to, the DJabberd event loop continues at full
+speed) However, that's more work, so some plugins may choose to
+operate synchronously, but they do so with the understanding that
+those plugins will cause the whole server to get bogged down.  If
+you're running a Jabber server for 5 users, you may not care that the
+SQLite authentication backend pauses your server for milliseconds at a
+time, but on a site with hundreds of thousands of connections, that
+wouldn't be acceptable.  Watch out for those plugins.
+
+=head1 HACKING
+
+Read HookDocs.pm, read the major base classes (Authen, RosterStorage,
+PresenceChecker), join the mailing list, ask questions ... we're here
+to help.  If you want more hooks, let us know!  If we forgot one, it
+doesn't hurt us to add more.
+
+=head1 COPYRIGHT
+
+This module is Copyright (c) 2006 Six Apart, Ltd.
+All rights reserved.
+
+You may distribute under the terms of either the GNU General Public
+License or the Artistic License, as specified in the Perl README file.
+
+=head1 WARRANTY
+
+This is free software. IT COMES WITHOUT WARRANTY OF ANY KIND.
+
+=head1 WEBSITE
+
+Visit:
+
+   http://danga.com/djabberd/
+
+=head1 AUTHORS
+
+Brad Fitzpatrick <brad@danga.com>
+
+Artur Bergman <sky@crucially.net>
+
+Jonathan Steinert <jsteinert@sixapart.com>
+

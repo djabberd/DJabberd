@@ -5,6 +5,7 @@ WriteMakefile(
               NAME         => 'DJabberd',
               VERSION_FROM => 'lib/DJabberd.pm',
               EXE_FILES    => ['djabberd'],
+              ABSTRACT_FROM => 'lib/DJabberd.pm',
               PREREQ_PM    => {
                   'Danga::Socket'                => 1.51,
                   'XML::SAX'                     => 0,
