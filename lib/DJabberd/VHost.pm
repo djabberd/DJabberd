@@ -194,6 +194,7 @@ sub hook_chain_fast {
     if ($self && ! ref $phase && ! @{ $self->{hooks}->{$phase} || []}) {
         $fallback->($self,
                     DJabberd::Callback->new({
+                        _phase     => $phase,
                         decline    => $dummy_sub,
                         declined   => $dummy_sub,
                         stop_chain => $dummy_sub,
