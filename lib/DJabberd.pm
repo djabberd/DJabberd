@@ -409,6 +409,19 @@ sub _load_config_ref {
     my $plugin; # current plugin in scope
     my @vhost_stack = ();
 
+    my $expand_var = sub {
+        my ($type, $key) = @_;
+        $type = uc $type;
+
+        if ($type eq "ENV") {
+            # expands ${ENV:KEY} on a line into $ENV{'KEY'} or dies if not defined
+            my $val = $ENV{$key};
+            die "Undefined environment variable '$key'\n" unless defined $val;
+            return $val;
+        }
+        die "Unknown variable type '$type'\n";
+    };
+
     foreach my $line (split(/\n/, $$configref)) {
         $linenum++;
 
@@ -418,6 +431,9 @@ sub _load_config_ref {
         next unless $line =~ /\S/;
 
         eval {
+            # expand environment variables
+            $line =~ s/\$\{(\w+):(\w+)\}/$expand_var->($1, $2)/eg;
+
             if ($line =~ /^(\w+)\s+(.+)/) {
                 my $pkey = $1;
                 my $key = lc $1;
