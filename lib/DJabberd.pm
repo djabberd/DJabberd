@@ -152,9 +152,7 @@ sub set_config_intradomainlisten {
 
 sub set_config_pidfile {
     my ($self, $val) = @_;
-    open(PIDFILE,'>',$val) or croak("Can't open pidfile $val for writing");
-    print PIDFILE "$$\n";
-    close(PIDFILE);
+    $self->{pid_file} = $val;
 }
 
 our %fake_peers;
@@ -270,7 +268,12 @@ sub run {
     my $self = shift;
     daemonize() if $self->{daemonize};
     local $SIG{'PIPE'} = "IGNORE";  # handled manually
-
+    if ($self->{pid_file}) {
+        $logger->debug("Logging PID to file $self->{pid_file}");
+        open(PIDFILE,'>',$self->{pid_file}) or $logger->logdie("Can't open pidfile $self->{pid_file} for writing");
+        print PIDFILE "$$\n";
+        close(PIDFILE);
+    }
     $self->start_c2s_server();
 
     # {=s2soptional}
@@ -282,6 +285,7 @@ sub run {
 
     DJabberd::Connection::Admin->on_startup;
     Danga::Socket->EventLoop();
+    unlink($self->{pid_file}) if (-f $self->{pid_file});
 }
 
 sub _start_server {
