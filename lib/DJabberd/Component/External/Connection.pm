@@ -104,6 +104,12 @@ sub on_stanza_received {
     unless ($self->{authenticated}) {
         my $type = $node->element;
         
+        if ($type eq '{urn:ietf:params:xml:ns:xmpp-tls}starttls') {
+            my $stanza = DJabberd::Stanza::StartTLS->downbless($node, $self);
+            $stanza->process($self);
+            return;
+        }
+        
         unless ($type eq '{jabber:component:accept}handshake') {
             $logger->warn("Component sent $type stanza before handshake. Discarding.");
             return;
