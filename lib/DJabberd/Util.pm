@@ -2,7 +2,7 @@ package DJabberd::Util;
 use strict;
 require Exporter;
 our @ISA = qw(Exporter);
-our @EXPORT_OK = qw(exml tsub lbsub as_bool as_num as_abs_path);
+our @EXPORT_OK = qw(exml tsub lbsub as_bool as_num as_abs_path as_bind_addr);
 
 sub as_bool {
     my $val = shift;
@@ -14,7 +14,16 @@ sub as_bool {
 sub as_num {
     my $val = shift;
     return $val if $val =~ /^\d+$/;
-    die "Not a number\n";
+    die "'$val' is not a number\n";
+}
+
+sub as_bind_addr {
+    my $val = shift;
+    # Must either be like 127.0.0.1:1234, a bare port number or an absolute path to a unix domain socket
+    if ($val =~ /^(\d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?:)?\d+$/ || ($val =~ m!^/! && -e $val)) {
+        return $val;
+    }
+    die "'$val' is not a valid bind address or port\n";
 }
 
 sub as_abs_path {

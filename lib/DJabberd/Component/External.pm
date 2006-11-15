@@ -50,7 +50,7 @@ our $logger = DJabberd::Log->get_logger();
 sub set_config_listenport {
     my ($self, $port) = @_;
     
-    $self->{listenport} = $port;
+    return $self->set_config_listenaddr($port);
 }
 
 sub set_config_secret {
@@ -62,20 +62,14 @@ sub set_config_secret {
 sub set_config_listenaddr {
     my ($self, $addr) = @_;
     
-    $self->{listenaddr} = $addr;
+    $self->{listenaddr} = DJabberd::Util::as_bind_addr($addr);
 }
 
 sub finalize {
     my ($self) = @_;
     
-    # If the address starts with a slash, it's a unix domain socket
-    if ($self->{listenaddr} =~ m!^/!) {
-        $logger->logdie("Can't specify ListenPort for external component on a UNIX domain socket") if $self->{listenport};
-    }
-    else {
-        $logger->logdie("No ListenPort specified for external component") unless $self->{listenport};
-        $self->{listenaddr} ||= "127.0.0.1";
-    }
+    $logger->logdie("No ListenPort specified for external component") unless $self->{listenaddr};
+    $self->{listenaddr} = "127.0.0.1:".$self->{listenaddr} if $self->{listenaddr} =~ /^\d+$/;
 
     $logger->logdie("No Secret specified for external component") unless $self->{secret};
     
@@ -155,18 +149,16 @@ sub _start_listener {
         $logger->logdie("Error creating UNIX domain socket $bindaddr: $@") unless $server;
         $logger->info("Started listener for component ".$self->domain." on UNIX domain socket $bindaddr");
     } else {
-        my $localaddr = $bindaddr.":".$self->{listenport};
-
         $server = IO::Socket::INET->new(
-            LocalAddr => $localaddr,
+            LocalAddr => $bindaddr,
             Type      => SOCK_STREAM,
             Proto     => IPPROTO_TCP,
             Blocking  => 0,
             Reuse     => 1,
             Listen    => 10
         );
-        $logger->logdie("Error creating listen socket for <$localaddr>: $@") unless $server;
-        $logger->info("Started listener for component ".$self->domain." on TCP socket <$localaddr>");
+        $logger->logdie("Error creating listen socket for <$bindaddr>: $@") unless $server;
+        $logger->info("Started listener for component ".$self->domain." on TCP socket <$bindaddr>");
     }
 
     # Brad thinks this is necessary under Perl 5.6, and who am I to argue?

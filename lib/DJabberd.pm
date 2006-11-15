@@ -39,7 +39,7 @@ package DJabberd;
 use strict;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
 use Carp qw(croak);
-use DJabberd::Util qw(tsub as_bool as_num as_abs_path);
+use DJabberd::Util qw(tsub as_bool as_num as_abs_path as_bind_addr);
 
 our $VERSION = '0.81';
 
@@ -132,17 +132,17 @@ sub set_config_unixdomainsocket {
 
 sub set_config_clientport {
     my ($self, $val) = @_;
-    $self->{c2s_port} = as_num($val);
+    $self->{c2s_port} = as_bind_addr($val);
 }
 
 sub set_config_serverport {
     my ($self, $val) = @_;
-    $self->{s2s_port} = as_num($val);
+    $self->{s2s_port} = as_bind_addr($val);
 }
 
 sub set_config_adminport {
     my ($self, $val) = @_;
-    $self->{admin_port} = as_num($val);
+    $self->{admin_port} = as_bind_addr($val);
 }
 
 sub set_config_intradomainlisten {
