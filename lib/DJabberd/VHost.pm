@@ -38,6 +38,7 @@ sub new {
         roster_wanters  => {},  # $barejid_str -> [ [$on_success, $on_fail]+ ]
 
         disco_kids      => {},  # $jid_str -> "Description" - children of this vhost for service discovery
+        plugin_types    => {},  # ref($plugin instance) -> 1
     };
 
     croak("Missing/invalid vhost name") unless
@@ -94,9 +95,24 @@ sub features {
 sub setup_default_plugins {
     my $self = shift;
     unless ($self->are_hooks("deliver")) {
-        $self->add_plugin(DJabberd::Delivery::Local->new);
-        $self->add_plugin(DJabberd::Delivery::S2S->new);
+        unless ($self->has_plugin_of_type("DJabberd::Delivery::Local")) {
+            $logger->logwarn("Adding implicit plugin DJabberd::Delivery::Local");
+            $self->add_plugin(DJabberd::Delivery::Local->new);
+        }
+        if ($self->s2s && ! $self->has_plugin_of_type("DJabberd::Delivery::S2S")) {
+            $logger->logwarn("Adding implicit plugin DJabberd::Delivery::S2S");
+            $self->add_plugin(DJabberd::Delivery::S2S->new);
+        }
     }
+
+    unless ($self->has_plugin_of_type("DJabberd::Delivery::Local")) {
+        $logger->logwarn("No DJabberd::Delivery::Local delivery plugin configured");
+    }
+
+    if ($self->s2s && ! $self->has_plugin_of_type("DJabberd::Delivery::S2S")) {
+        $logger->logdie("s2s enabled, but no implicit or explicit DJabberd::Delivery::S2S plugin.");
+    }
+
     unless ($self->are_hooks("PresenceCheck")) {
         $self->add_plugin(DJabberd::PresenceChecker::Local->new);
     }
@@ -277,6 +293,7 @@ sub name {
 sub add_plugin {
     my ($self, $plugin) = @_;
     $logger->info("Adding plugin: $plugin");
+    $self->{plugin_types}{ref $plugin} = 1;
     $plugin->register($self);
 }
 
@@ -289,6 +306,11 @@ sub require_ssl {
 sub are_hooks {
     my ($self, $phase) = @_;
     return scalar @{ $self->{hooks}{$phase} || [] } ? 1 : 0;
+}
+
+sub has_plugin_of_type {
+    my ($self, $class) = @_;
+    return $self->{plugin_types}{$class};
 }
 
 sub register_hook {
