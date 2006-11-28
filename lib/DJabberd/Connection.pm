@@ -45,7 +45,7 @@ our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
 use constant POLLIN        => 1;
 use constant POLLOUT       => 4;
 
-use constant XMLDEBUG      => "/tmp/djabberd/";
+use constant XMLDEBUG      => "/var/log/djabberd/xmllog/";
 our %LOGMAP;
 
 sub new {
