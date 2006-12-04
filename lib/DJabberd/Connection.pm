@@ -45,7 +45,15 @@ our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
 use constant POLLIN        => 1;
 use constant POLLOUT       => 4;
 
-use constant XMLDEBUG      => "/var/log/djabberd/xmllog/";
+BEGIN {
+    my $xmldebug = $ENV{XMLDEBUG};
+    eval "use constant XMLDEBUG => $xmldebug";
+
+    if ($xmldebug) {
+        die "XMLDEBUG path '$xmldebug' needs to be a directory writable by the user you are running $0 as\n" unless -w $xmldebug;
+    }
+}
+
 our %LOGMAP;
 
 sub new {
