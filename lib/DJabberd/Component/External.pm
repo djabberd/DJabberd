@@ -40,7 +40,7 @@ use base 'DJabberd::Component';
 use strict;
 use DJabberd::Log;
 use DJabberd::Util qw(exml);
-use DJabberd::Component::External::Connection;
+use DJabberd::Connection::ComponentIn;
 use IO::Socket::UNIX;
 use IO::Socket::INET;
 use Socket qw(IPPROTO_TCP TCP_NODELAY SOL_SOCKET SOCK_STREAM);
@@ -177,7 +177,7 @@ sub _start_listener {
             setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or $logger->logdie("Couldn't set TCP_NODELAY");
         }
 
-        my $connection = DJabberd::Component::External::Connection->new($csock, $vhost->server, $self);
+        my $connection = DJabberd::Connection::ComponentIn->new($csock, $vhost->server, $self);
         $connection->watch_read(1);
         $self->{connection} = $connection;
 
