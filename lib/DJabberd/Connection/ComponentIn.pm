@@ -1,7 +1,7 @@
 
 =head1 NAME
 
-DJabberd::Connection::ComponentIn - JEP-0114 Server Connection
+DJabberd::Connection::ComponentIn - JEP-0114 Server
 
 =head1 INTRODUCTION
 
@@ -33,7 +33,7 @@ use fields (
 sub new {
     my ($class, $socket, $server, $handler) = @_;
 
-    $logger->debug("Making a $class for fd %d.\n", fileno($socket));
+    $logger->debug("Making a $class for fd ".fileno($socket));
     
     my $self = $class->SUPER::new($socket, $server);
 
