@@ -459,6 +459,7 @@ sub _load_config_ref {
             if ($line =~ /<VHost\s+(\S+?)>/i) {
                 die "Can't configure a vhost in a vhost\n" if $vhost;
                 $vhost = DJabberd::VHost->new(server_name => $1);
+                $vhost->set_server($self);
                 next;
             }
             if ($line =~ m!</VHost>!i) {
@@ -477,6 +478,7 @@ sub _load_config_ref {
                 push @vhost_stack, $old_vhost;
 
                 $vhost = DJabberd::VHost->new(server_name => $subdomain_name);
+                $vhost->set_server($self);
 
                 # Automatically add the LocalVHosts delivery plugin so that these
                 # VHosts can talk to one another without S2S.
