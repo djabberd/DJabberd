@@ -47,7 +47,7 @@ use constant POLLIN        => 1;
 use constant POLLOUT       => 4;
 
 BEGIN {
-    my $xmldebug = $ENV{XMLDEBUG};
+    my $xmldebug = $ENV{XMLDEBUG} || '';
     eval "use constant XMLDEBUG => $xmldebug";
 
     if ($xmldebug) {
@@ -133,11 +133,13 @@ sub new_iq_id {
 
 sub log_outgoing_data {
     my ($self, $text) = @_;
+    my $id = $self->{id} ||= 'no_id';
+    
     if($self->xmllog->is_debug) {
-        $self->xmllog->debug("$self->{id} > " . $text);
+        $self->xmllog->debug("$id > " . $text);
     } else {
         local $DJabberd::ASXML_NO_TEXT = 1;
-        $self->xmllog->info("$self->{id} > " . $text);
+        $self->xmllog->info("$id > " . $text);
     }
 }
 
