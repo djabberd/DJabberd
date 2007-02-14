@@ -169,6 +169,7 @@ sub clone {
     $clone->{element}  = $self->{element};
     $clone->{attrs}    = { %{ $self->{attrs} } };
     $clone->{children} = [ map { ref($_) ? $_->clone : $_ } @{ $self->{children} } ];
+    $clone->{raw}      = $self->{raw};
     return $clone;
 }
 
