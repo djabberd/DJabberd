@@ -92,21 +92,32 @@ sub handle_iq_vcard {
 
     my $response = $stanza->make_response();
     $response->set_raw("<vCard xmlns='vcard-temp'>".$vcard."</vCard>");
-    $response->deliver($vhost);    
+    $response->deliver($vhost);
 }
 
 sub handle_iq_disco_info {
     my ($self, $vhost, $stanza) = @_;
+    
+    my $query = $stanza->first_element();
+    my $disco_node = $query && $query->attr('{}node');
 
-    my $features = $self->features($stanza->from_jid);
-    my $identities = $self->identities($stanza->from_jid);
+    my $features = $self->features($stanza->from_jid, $disco_node);
+    my $identities = $self->identities($stanza->from_jid, $disco_node);
     
     my $response = $stanza->make_response();
 
-    my $xml = "<query xmlns='http://jabber.org/protocol/disco#info'>" .
-              join('',map({ "<identity category='".exml($_->[0])."' type='".exml($_->[1])."' name='".exml($_->[2])."'/>" } @$identities)) .
-              join('',map({ "<feature var='".exml($_)."' />" } @$features)) .
-              "</query>";
+    my $xml = "<query xmlns='http://jabber.org/protocol/disco#info'"
+              . ($disco_node? " node='".exml($disco_node)."'" : '');
+    if (@$features || @$identities) {
+      $xml .= '>'
+              . join('',map({ "<identity category='".exml($_->[0])."' type='".exml($_->[1])."' name='".exml($_->[2])."'/>" } @$identities))
+              . join('',map({ "<feature var='".exml($_)."' />" } @$features))
+              . "</query>";
+     }
+     else {
+       $xml .= ' />';
+     }
+    
     $response->set_raw($xml);
     $response->deliver($vhost);
 }
@@ -114,13 +125,25 @@ sub handle_iq_disco_info {
 sub handle_iq_disco_items {
     my ($self, $vhost, $stanza) = @_;
 
-    my $items = $self->child_services($stanza->from_jid);
+    my $query = $stanza->first_element();
+    my $disco_node = $query && $query->attr('{}node');
+
+    my $items = $self->child_services($stanza->from_jid, $disco_node);
     
     my $response = $stanza->make_response();
 
-    my $xml = "<query xmlns='http://jabber.org/protocol/disco#items'>" .
-              join('',map({ "<item jid='".exml($_->[0])."' name='".exml($_->[1])."'/>" } @$items)) .
-              "</query>";
+    my $xml = "<query xmlns='http://jabber.org/protocol/disco#items'"
+              . ($disco_node? " node='".exml($disco_node)."'" : '');
+    
+    if (@$items) {
+      $xml .= '>'
+              . join('',map({ "<item jid='".exml($_->[0])."' name='".exml($_->[1])."'/>" } @$items))
+              . "</query>";
+    }
+    else {
+      $xml .= ' />';
+    }
+      
     $response->set_raw($xml);
     $response->deliver($vhost);
 }
