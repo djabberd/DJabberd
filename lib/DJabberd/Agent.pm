@@ -81,8 +81,8 @@ sub handle_iq {
 sub register_iq_handler {
     my ($self, $signature, $handler) = @_;
     
-    $self->{easier_node_iqcb} ||= {};
-    $self->{easier_node_iqcb}{$signature} = $handler;
+    $self->{djabberd_agent_iqcb} ||= {};
+    $self->{djabberd_agent_iqcb}{$signature} = $handler;
 }
 
 sub handle_iq_vcard {
