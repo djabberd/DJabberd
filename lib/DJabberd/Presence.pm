@@ -100,7 +100,7 @@ sub make_subscribed {
     croak "Invalid options" if %opts;
 
     my $xml = DJabberd::XMLElement->new("", "presence", { '{}type' => 'subscribed',
-                                                          '{}from' => $from->as_string,
+                                                          '{}from' => $from->as_bare_string,
                                                           '{}to'   => $to->as_bare_string }, []);
     return $class->downbless($xml);
 }
