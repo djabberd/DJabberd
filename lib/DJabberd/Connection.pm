@@ -47,11 +47,13 @@ use constant POLLIN        => 1;
 use constant POLLOUT       => 4;
 
 BEGIN {
-    my $xmldebug = $ENV{XMLDEBUG} || 0;
-    eval "use constant XMLDEBUG => $xmldebug";
+    my $xmldebug = $ENV{XMLDEBUG};
 
     if ($xmldebug) {
+        eval 'use constant XMLDEBUG => "' . quotemeta($xmldebug) . '"';
         die "XMLDEBUG path '$xmldebug' needs to be a directory writable by the user you are running $0 as\n" unless -w $xmldebug;
+    } else {
+        eval "use constant XMLDEBUG => ''";
     }
 }
 
