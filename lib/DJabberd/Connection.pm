@@ -47,7 +47,7 @@ use constant POLLIN        => 1;
 use constant POLLOUT       => 4;
 
 BEGIN {
-    my $xmldebug = $ENV{XMLDEBUG} || '';
+    my $xmldebug = $ENV{XMLDEBUG} || 0;
     eval "use constant XMLDEBUG => $xmldebug";
 
     if ($xmldebug) {
