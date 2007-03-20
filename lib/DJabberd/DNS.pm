@@ -196,7 +196,7 @@ sub event_read_srv {
     my @targets = sort {
         $a->priority <=> $b->priority ||
         $a->weight   <=> $b->weight
-    } grep { ref $_ eq "Net::DNS::RR::SRV"} @ans;
+    } grep { ref $_ eq "Net::DNS::RR::SRV" && $_->port } @ans;
 
     unless (@targets) {
         # no result, fallback to an A lookup
