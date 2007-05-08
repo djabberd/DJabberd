@@ -1,4 +1,5 @@
 .*sqlite
+.shipit
 
 # Avoid version control files.
 \bRCS\b
