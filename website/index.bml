@@ -8,7 +8,7 @@ body<=
 
 <h2>Status</h2>
 
-<p>Current status:  2006-04-11, still under heavy development, but now ~90% done, though very much still in development mode.  Cleaning stuff up now, adding polish.  There will be no official release until it's been used in production and hasn't blown up on us.  For now, the brave can get it from <a href="http://code.sixapart.com/svn/djabberd/">subversion</a>.</p>
+<p>Current status:  2007-05-08, been in production on LiveJournal, running "LJ Talk" for 8+ months now.  Considered mature.  Used by many other sites now too.  Download the core from <a href="http://danga.com/dist/djabberd/">danga.com/dist/djabberd/</a>, or <a href="http://search.cpan.org/~bradfitz/">from CPAN</a>, where you can find complementary plugins as well.  Subversion access available from <a href="http://code.sixapart.com/svn/djabberd/">here</a>.</p>
 
 <a name='ext'></a><h2>Extensible</h2>
 
