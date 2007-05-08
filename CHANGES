@@ -1,8 +1,40 @@
-0.82  2007-05-08
+0.83  2007-05-08
   - the "yes, this project is still alive" release
-  - no functional changes from 0.81,
-  - just packaging fixes, tree clean, dist managed by ShipIt,
-  - just prepping for renewed hacking
+
+  - packaging fixes, tree clean, dist now managed by ShipIt, for more
+    regular releases
+
+  - ClientPort, ServerPort, AdminPort can include IPs to bind to, not
+    just port numbers.
+
+  - better pidfile support
+
+  - optional expansion of environment in config files, using
+    syntax:  ${ENV:KEY}, which expands to environment variable KEY
+
+  - vhost/server/plugin nesting issues in config files.  more
+    tolerant now
+
+  - DJabberd::Delivery::ComponentConnection - Delivery through a
+    JEP-0114 component connection
+
+  - DJabberd::Connection::ComponentIn - JEP-0114 Server
+
+  - DJabberd::Connection::ComponentOut - JEP-0114 Client
+
+  - when closing an XMLElement, also clone the raw field
+
+  - don't crash when DNS SRV records have no port defined
+
+  - Component::External bug fixes, enhancements
+
+  - warnings about implicit delivery/etc plugins auto-added
+    for you (like Local deliver, S2S deliver, local presence
+    checks, etc...)
+
+0.82 2007-05-08
+  - accidental release in which I mistakenly claimed nothing was new
+    since 0.81... whoops!
 
 0.81  2006-10-01
   - fix the MANIFEST to include the dozen some missing files.
