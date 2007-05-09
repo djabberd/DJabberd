@@ -23,6 +23,8 @@ use fields (
             'in_stream',      # bool:  true if we're in a stream tag
             'counted_close',  # bool:  temporary here to track down the overcounting of disconnects
             'disconnect_handlers',  # array of coderefs to call when this connection is closed for any reason
+
+            'ssl_empty_read_ct', # int: number of consecutive empty SSL reads.
             );
 
 our $connection_id = 1;
@@ -484,7 +486,17 @@ sub event_read {
 
         # Net::SSLeays buffers internally, so if we didn't read anything, it's
         # in its buffer
-        return unless $data && length $data;
+        unless ($data && length $data) {
+            # a few of these in a row implies an EOF.  else it could
+            # just be the underlying socket was readable, but there
+            # wasn't enough of an SSL packet for OpenSSL/etc to return
+            # any unencrypted data back to us.
+            if (++$self->{'ssl_empty_read_ct'} >= 3) {
+                $self->close('ssl_eof');
+            }
+            return;
+        }
+        $self->{'ssl_empty_read_ct'} = 0;
         $bref = \$data;
     } else {
         # non-ssl mode:
