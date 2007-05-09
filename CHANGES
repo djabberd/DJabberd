@@ -1,3 +1,5 @@
+  - don't leak UDP sockets on DNS SRV lookup timeouts
+
   - handle improper SSL disconnects without spinning CPU
 
 0.83  2007-05-08
