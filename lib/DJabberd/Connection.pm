@@ -491,7 +491,7 @@ sub event_read {
             # just be the underlying socket was readable, but there
             # wasn't enough of an SSL packet for OpenSSL/etc to return
             # any unencrypted data back to us.
-            if (++$self->{'ssl_empty_read_ct'} >= 3) {
+            if (++$self->{'ssl_empty_read_ct'} >= 10) {
                 $self->close('ssl_eof');
             }
             return;
