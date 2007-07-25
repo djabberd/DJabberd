@@ -68,11 +68,34 @@ sub is_initial_presence {
 
 sub on_initial_presence {
     my $self = shift;
+    $self->send_resource_presences;
     $self->send_presence_probes;
     $self->send_pending_sub_requests;
 
     $self->vhost->hook_chain_fast('OnInitialPresence',
                                   [ $self ], {});
+}
+
+sub send_resource_presences {
+    my $self = shift;
+
+    my $vhost = $self->vhost;
+    my $my_jid = $self->bound_jid;
+
+    foreach my $otherconn ($vhost->find_conns_of_bare($my_jid)) {
+        my $from_jid = $otherconn->bound_jid;
+        next if $from_jid->eq($my_jid);
+        $vhost->check_presence($from_jid, sub {
+            my $map = shift;
+            foreach my $k (keys %$map) {
+                my $stanza = $map->{$k};
+                my $to_send = $stanza->clone;
+                $to_send->set_from($from_jid);
+                $to_send->set_to($my_jid);
+                $to_send->deliver($self);
+            }
+        });
+    }
 }
 
 sub send_presence_probes {

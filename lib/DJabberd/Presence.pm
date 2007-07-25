@@ -424,6 +424,21 @@ sub broadcast_from {
             $dpres->set_from($from_jid);
             $dpres->procdeliver($vhost);
         }
+
+        # For the purpose of presence broadcasting
+        # we act as if all of the other resources
+        # for this bare JID are on the roster.
+        # This means that resources of the same
+        # JID are aware of each other and can send
+        # messages to each other, etc.
+        foreach my $otherconn ($vhost->find_conns_of_bare($from_jid)) {
+            my $to_jid = $otherconn->bound_jid;
+            next if $from_jid->eq($to_jid);
+            my $dpres = $self->clone;
+            $dpres->set_to($to_jid);
+            $dpres->set_from($from_jid);
+            $dpres->procdeliver($vhost);
+        }
     };
 
     $vhost->get_roster($from_jid, on_success => $broadcast);

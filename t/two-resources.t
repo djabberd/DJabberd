@@ -9,7 +9,7 @@ two_parties(sub {
     my ($pa, $pb) = @_;
     $pa->login;
     $pb->login;
-    $pa->send_xml("<presence/>");
+    $pa->send_xml("<presence><status>PA1IsHere</status></presence>");
     $pb->send_xml("<presence/>");
     select(undef,undef,undef,0.25);
 
@@ -22,9 +22,19 @@ two_parties(sub {
                                           resource => "conn2",
                                           );
     $pa2->login;
-    $pa2->send_xml("<presence/>");
+    $pa2->send_xml("<presence><status>PA2IsHere</status></presence>");
+
+    # The first thing pa2 will see after sending that presence stanza
+    # is the presence of pa1, which the server injects in there.
+    $xml = $pa2->recv_xml;
+    like($xml, qr{PA1IsHere}, "partya2 now knows of partya1 being online");
+
     $xml = $pa2->recv_xml;
     like($xml, qr{^<presence.+from=.partyb}, "partya2 now also knows of partyb being online");
+
+    # pa1 gets the presence from pa2
+    $xml = $pa->recv_xml;
+    like($xml, qr{PA2IsHere}, "partya1 now knows of partya2 being online");
 
     $pb->send_xml(qq{<presence><status>BisHere</status></presence>});
 
