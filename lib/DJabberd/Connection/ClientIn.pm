@@ -82,20 +82,18 @@ sub send_resource_presences {
     my $vhost = $self->vhost;
     my $my_jid = $self->bound_jid;
 
-    foreach my $otherconn ($vhost->find_conns_of_bare($my_jid)) {
-        my $from_jid = $otherconn->bound_jid;
-        next if $from_jid->eq($my_jid);
-        $vhost->check_presence($from_jid, sub {
-            my $map = shift;
-            my $stanza = $map->{$from_jid->as_string};
-            if ($stanza) {
-                my $to_send = $stanza->clone;
-                $to_send->set_from($from_jid);
-                $to_send->set_to($my_jid);
-                $to_send->deliver($self);
-            }
-        });
-    }
+    $vhost->check_presence($my_jid, sub {
+        my $map = shift;
+        foreach my $from_jid_str (keys %$map) {
+            next if $from_jid_str eq $my_jid->as_string;
+
+	        my $stanza = $map->{$from_jid_str};
+            my $to_send = $stanza->clone;
+            #$to_send->set_from($from_jid_str); # set_from is happy to recieve a string instead of a JID object
+            $to_send->set_to($my_jid);
+            $to_send->deliver($self);
+        }
+    });
 }
 
 sub send_presence_probes {
