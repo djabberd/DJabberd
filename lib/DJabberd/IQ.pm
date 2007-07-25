@@ -102,8 +102,10 @@ sub send_reply {
     $raw ||= "";
     my $id = $self->id;
     my $bj = $conn->bound_jid;
-    my $to = $bj ? ("to='" . $bj->as_string_exml . "'") : "";
-    my $xml = qq{<iq $to type='$type' id='$id'>$raw</iq>};
+    my $from_jid = $self->to;
+    my $to = $bj ? (" to='" . $bj->as_string_exml . "'") : "";
+    my $from = $from_jid ? (" from='" . $from_jid . "'") : "";
+    my $xml = qq{<iq$to$from type='$type' id='$id'>$raw</iq>};
     $conn->xmllog->info($xml);
     $conn->write(\$xml);
 }
