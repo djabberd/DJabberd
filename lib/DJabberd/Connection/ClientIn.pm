@@ -87,8 +87,8 @@ sub send_resource_presences {
         next if $from_jid->eq($my_jid);
         $vhost->check_presence($from_jid, sub {
             my $map = shift;
-            foreach my $k (keys %$map) {
-                my $stanza = $map->{$k};
+            my $stanza = $map->{$from_jid->as_string};
+            if ($stanza) {
                 my $to_send = $stanza->clone;
                 $to_send->set_from($from_jid);
                 $to_send->set_to($my_jid);
