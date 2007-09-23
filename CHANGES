@@ -1,6 +1,12 @@
   - Michael Scherer <misc@mandriva.org>: more helpful error
     messages in logs after dialback failure (shows hosts in question)
 
+  - Piers Harding <piers@ompka.net>: Fix bug where server wasn't
+    including a "from" attribute in IQ responses.
+
+  - Multiple resources of the same local JID are now made aware of
+    one another via presence stanzas as required by the spec.
+
   - don't leak UDP sockets on DNS SRV lookup timeouts
 
   - handle improper SSL disconnects without spinning CPU
