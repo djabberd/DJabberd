@@ -1,3 +1,6 @@
+  - Michael Scherer <misc@mandriva.org>: more helpful error
+    messages in logs after dialback failure (shows hosts in question)
+
   - don't leak UDP sockets on DNS SRV lookup timeouts
 
   - handle improper SSL disconnects without spinning CPU

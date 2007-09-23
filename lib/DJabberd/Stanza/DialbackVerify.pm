@@ -53,7 +53,8 @@ sub process {
                                 },
                                 on_failure => sub {
                                     $logger->warn("Dialback verify success for connection $conn->{id}");
-                                    $conn->dialback_verify_invalid;
+                                    $conn->dialback_verify_invalid(recv_server => $self->recv_server,
+                                                                   orig_server => $self->orig_server);
                                 });
 }
 

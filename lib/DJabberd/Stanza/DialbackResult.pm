@@ -43,7 +43,9 @@ sub process {
         },
         fail => sub {
             my ($self_cb, $reason) = @_;
-            $conn->dialback_result_invalid($reason);;
+            $conn->dialback_result_invalid(reason => $reason,
+                                           orig_server => $orig_server, 
+                                           recv_server => $recv_server);
         },
     });
     # async DNS lookup

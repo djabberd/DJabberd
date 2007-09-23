@@ -110,8 +110,10 @@ sub dialback_verify_valid {
 }
 
 sub dialback_verify_invalid {
-    my ($self, $reason) = @_;
-    warn "Dialback verify invalid for $self, reason: $reason\n";
+    my $self = shift;
+    my %opts = @_;
+
+    $self->log->warn("Dialback verify invalid for $self, from $opts{orig_server} to $opts{recv_server}, reason: $opts{reason}");
     $self->close_stream;
 }
 
@@ -127,8 +129,10 @@ sub dialback_result_valid {
 }
 
 sub dialback_result_invalid {
-    my ($self, $reason) = @_;
-    $self->log->warn("Dialback result invalid for $self, reason: $reason");
+    my $self = shift;
+    my %opts = @_;
+
+    $self->log->warn("Dialback result invalid for $self, from $opts{orig_server} to $opts{recv_server}, reason: $opts{reason}");
     $self->close_stream;
 }
 
