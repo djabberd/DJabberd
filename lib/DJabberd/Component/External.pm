@@ -3,12 +3,7 @@
 
 DJabberd::Component::External - Interface to external plugins implementing JEP-0114
 
-=head1 SYNOPSIS
-
-  <Plugin DJabberd::Component::External>
-    ListenPort 23534
-    Secret somesecret
-  </Plugin>
+=head1 DESCRIPTION
 
 This component provides support for connecting external components that support the
 Jabber Component Protocol specified in JEP-0114. Specify the TCP port that the external component
@@ -24,6 +19,13 @@ support UNIX domain sockets, however.
 Please note that this component only implements the "accept" variation of the protocol,
 where DJabberd opens a listen socket and waits for the component to connect. The "connect"
 variation, where the component waits for DJabberd to connect to it, is not supported.
+
+=head1 SYNOPSIS
+
+  <Plugin DJabberd::Component::External>
+    ListenPort 23534
+    Secret somesecret
+  </Plugin>
 
 =head1 LICENCE
 

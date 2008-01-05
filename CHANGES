@@ -14,6 +14,9 @@
   - Updated DJabberd::Component::Example which uses the correct
     API. The previous example didn't actually work anymore.
 
+  - Add POD for DJabberd::Agent, DJabberd::Component and a bunch of
+    other related modules.
+
 0.83  2007-05-08
   - the "yes, this project is still alive" release
 
