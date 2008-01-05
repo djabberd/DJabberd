@@ -31,6 +31,14 @@ sub jid {
     return $_[0]->{jid};
 }
 
+sub bound_jid {
+    return $_[0]->jid;
+}
+
+sub vhost {
+    return $_[0]->{vhost};
+}
+
 sub register {
     my ($self, $vhost) = @_;
     $self->{jid} = DJabberd::JID->new("$self->{nodename}\@" . $vhost->server_name . "/$self->{resource}");
@@ -110,6 +118,59 @@ sub send_stanza {
         $self->process_text($text, $stanza->from_jid, $ctx);
         return;
     }
+    elsif ($stanza->isa('DJabberd::Presence')) {
+        # Most presence-related stuff is handled by the server itself, However, we still
+        # need to handle presence subscription requests.
+        my $type = $stanza->attr('{}type');
+        
+        if ($type eq 'subscribe') {
+            $logger->debug("Accepting presence subscripton request from ", $stanza->from_jid->as_string);
+            my $response = DJabberd::Presence->new('jabber:client', 'presence', {
+                '{}type' => 'chat',
+                '{}to' => $stanza->from_jid->as_string,
+                '{}type' => 'subscribed',
+            }, []);
+            $self->send_stanza_as_client($response);
+        }
+
+    }
+
+}
+
+# Since DJabberd::Bot is acting like a client, it must deliver messages using
+# this method which does the same thing as a DJabberd::Connection::ClientIn would
+# do if a stanza was recieved from a real client.
+sub send_stanza_as_client {
+    my ($self, $stanza) = @_;
+    $self->vhost->hook_chain_fast(
+        "filter_incoming_client",
+        [ $stanza, $self ],
+        {
+            reject => sub { },  # just stops the chain
+        },
+        \&filter_incoming_client_builtin,
+    );
+}
+sub filter_incoming_client_builtin {
+    my ($vhost, $cb, $stanza, $self) = @_;
+
+    # if no from, we set our own
+    if (! $stanza->from_jid) {
+        my $bj = $self->jid;
+        $stanza->set_from($bj->as_string) if $bj;
+    }
+
+    $vhost->hook_chain_fast(
+        "switch_incoming_client",
+        [ $stanza ],
+        {
+            process => sub { }, # Do nothing, because we don't actually have a $conn object to pass into $stanza->process
+            deliver => sub { $stanza->deliver($vhost) },
+        },
+        sub {
+            $stanza->on_recv_from_client($self);
+        },
+    );
 }
 
 1;
