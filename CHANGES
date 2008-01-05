@@ -11,6 +11,9 @@
 
   - handle improper SSL disconnects without spinning CPU
 
+  - Updated DJabberd::Component::Example which uses the correct
+    API. The previous example didn't actually work anymore.
+
 0.83  2007-05-08
   - the "yes, this project is still alive" release
 

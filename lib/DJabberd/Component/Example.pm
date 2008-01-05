@@ -5,18 +5,30 @@ DJabberd::Component::Example - An example DJabberd service component
 
 =head1 SYNOPSIS
 
-  <Plugin DJabberd::Plugin::Component>
-     Subdomain example
-     Class DJabberd::Component::Example
-     Greeting Hello, world!
-  </Plugin>
+  <Subdomain example>
+      <Plugin DJabberd::Component::Example>
+          Greeting Hello, world!
+      </Plugin>
+  </Subdomain>
 
 This class implements a very simple component that responds to all incoming messages
 with a predefined greeting and which returns a vCard for itself when one is requested.
 You can change the greeting returned using the optional Greeting configuration setting
 as above.
 
-This example also exposes a node called "eliza" that allows you to talk to an Eliza chatbot.
+This example also exposes a node called "somebloke" that responds to all messages with
+authentic British surprise.
+
+This example uses the higher-level API provided by L<DJabberd::Agent|DJabberd::Agent>, from which
+L<DJabberd::Component|DJabberd::Component> inherits.
+L<DJabberd::Component::External|DJabberd::Component::External> serves as an example of
+how to handle stanzas at a lower level by overriding the C<handle_stanza> method.
+
+=head1 COPYRIGHT
+
+This module is Copyright (c) 2008 Martin Atkins
+
+This module is distributed under the same terms as the main DJabberd distribution.
 
 =cut
 
@@ -24,132 +36,83 @@ package DJabberd::Component::Example;
 use base DJabberd::Component;
 use DJabberd::Util qw(exml);
 use DJabberd::Log;
-use DJabberd::Bot::Eliza;
 use DJabberd::JID;
 
 our $logger = DJabberd::Log->get_logger();
 
-sub initialize {
-    my ($self, $opts) = @_;
+sub set_config_greeting {
+    my ($self, $greeting) = @_;
     
-    $self->{greeting} = $opts->{greeting} || "Hi! I'm an example DJabberd component!";
-    $self->{eliza} = new DJabberd::Bot::Eliza();
+    $self->{greeting} = $greeting;
 }
 
-sub handle_stanza {
-    my ($self, $vhost, $cb, $stanza) = @_;
+sub finalize {
+    my ($self, $opts) = @_;
+    
+    $logger->info("initializing");
+    $logger->info("My greeting is ", $self->{greeting});
+    
+    $self->{greeting} ||= "Hi! I'm an example DJabberd component!";
+    $self->SUPER::finalize;
+}
 
-    $logger->info("Got stanza: ".$stanza->as_summary);
-
+sub handle_message {
+    my ($self, $vhost, $stanza) = @_;
+    
     my $from = $stanza->from_jid;
     my $to = $stanza->to_jid;
 
-    # Expose an Eliza bot on node "eliza"
-    if ($to->node eq 'eliza' || $to->node eq '3l1z4') {
+    $logger->info("Got message from ".$from->as_string);
     
-        if ($stanza->isa('DJabberd::Message')) {
-
-            $logger->info("It's a message to our Eliza bot.");
-
-            my $responsetext = $self->{eliza}->handle_message($stanza);
-
-            if ($responsetext) {
-                
-                if ($to->node eq '3l1z4') {
-                    # l33t eliza
-                    $responsetext = uc($responsetext);
-                    $responsetext =~ s/CK/X/g;
-                    $responsetext =~ s/ER(\b)/0R$1/g;
-                    $responsetext =~ tr/AIETO/41370/;
-                    $responsetext =~ s/X/></;
-                    $responsetext =~ s/([A-Z])/ ( rand(1) > 0.6 ? lc($1) : $1 ) /eg;
-                }
-            
-                my $response = $self->_make_response($stanza);
-                $response->set_raw("<body>".exml($responsetext)."</body>");
-                $response->deliver($vhost);
-            }
-
-        }
-        elsif ($stanza->isa('DJabberd::IQ') && $stanza->signature eq 'get-{vcard-temp}vCard') {
-        
-            $logger->info("It's a vCard request for our Eliza bot.");
-        
-            my $response = $self->_make_response($stanza);
-            $response->attrs->{"{}type"} = "result";
-            $response->set_raw("<vCard xmlns='vcard-temp'><FN>Example Eliza Bot</FN></vCard>");
-            $logger->info("Responding with ".$response->as_xml);
-            $response->deliver($vhost);
-        }
-
-        $cb->delivered;
-        return;
-    }
-
-    # Other than for Eliza, we only want stanzas addressed to the domain, since there
-    # aren't any other nodes under this component.
-    if ($to->as_string ne $self->domain) {
-        $logger->info("Message to ".$stanza->to_jid->as_string.", not ".$self->domain.". Discarding.");
-        $cb->decline;
-        return;
-    }
-
-    if ($stanza->isa('DJabberd::IQ')) {
+    my $response = $stanza->make_response();
     
-        if ($stanza->signature eq 'get-{vcard-temp}vCard') {
-        
-            $logger->info("Got vCard request from ".$stanza->from_jid->as_string);
+    $response->attrs->{"{}type"} = "normal";
+    $response->set_raw("<body>".exml($self->{greeting})."</body>");
 
-            my $response = $self->_make_response($stanza);
-            $response->attrs->{"{}type"} = "result";
-            $response->set_raw("<vCard xmlns='vcard-temp'><FN>Example DJabberd component</FN></vCard>");
-            $logger->info("Responding with ".$response->as_xml);
-            $response->deliver($vhost);
-
-            $cb->delivered;
-            return;
-        
-        }
-        else {
-            $logger->info("Got unrecognized IQ stanza from ".$stanza->from_jid->as_string);
-            $cb->decline;
-            return;
-        }
-    }
-    elsif ($stanza->isa('DJabberd::Message')) {
-        
-        $logger->info("Got message from ".$from->as_string);
-        
-        my $response = $self->_make_response($stanza);
-        
-        $response->attrs->{"{}type"} = "normal";
-        $response->set_raw("<body>".exml($self->{greeting})."</body>");
-
-        $logger->info("Responding with ".$response->as_xml);
-        
-        $response->deliver($vhost);
-        
-        $cb->delivered;
-        return;
-    }
+    $logger->info("Responding with ".$response->as_xml);
     
-    $logger->info("I don't know what to do with $stanza");
-    $cb->decline;
+    $response->deliver($vhost);
+
 }
 
+sub vcard {
+    my ($self, $requester_jid) = @_;
 
-sub _make_response {
-    my ($self, $stanza) = @_;
-
-    my $response = $stanza->clone;
-    my $from = $stanza->from;
-    my $to   = $stanza->to;
-
-    $response->set_to($from);
-    $to ? $response->set_from($to) : delete($response->attrs->{"{}from"});
-
-    return $response;
+    return "<FN>Example DJabberd component</FN>";
 }
 
+sub get_node {
+    my ($self, $nodename) = @_;
+
+    if ($nodename eq 'somebloke') {
+        return DJabberd::Component::Example::ExampleNode->new(
+            nodename => 'somebloke',
+        );
+    }
+    else {
+        return undef;
+    }
+}
+
+package DJabberd::Component::Example::ExampleNode;
+
+use base DJabberd::Agent::Node;
+use DJabberd::Util qw(exml);
+
+sub handle_message {
+    my ($self, $vhost, $stanza) = @_;
+    
+    $logger->info("It's a message to some bloke.");
+
+    my $responsetext = "Gaw blimey, guvna!";
+
+    my $response = $stanza->make_response();
+    $response->set_raw("<body>".exml($responsetext)."</body>");
+    $response->deliver($vhost);
+}
+
+sub vcard {
+    return "<FN>Some Bloke</FN>";
+}
 
 1;
