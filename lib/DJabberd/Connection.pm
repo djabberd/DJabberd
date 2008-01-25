@@ -764,6 +764,7 @@ sub close {
     $self->_run_callback_list($self->{disconnect_handlers});
 
     if (my $ssl = $self->{ssl}) {
+        $self->set_writer_func(sub { return 0 });
         Net::SSLeay::free($ssl);
         $self->{ssl} = undef;
     }
