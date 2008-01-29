@@ -1,3 +1,6 @@
+  - Correct support for re-using an S2S connection for multiple source
+    domains. (Adrian Ulrich <slack@blinkenlights.ch>)
+
   - Jacob Burkhart <igotimac@gmail.com>: Fix memory leak when using SSL
 
   - Michael Scherer <misc@mandriva.org>: more helpful error
