@@ -14,9 +14,9 @@ sub set_vhost {
     return $self->SUPER::set_vhost($vhost);
 }
 
-sub peer_domain {
-    my $self = shift;
-    return $self->{verified_remote_domain};
+sub peer_domain_is_verified {
+    my ($self, $domain) = @_;
+    return $self->{verified_remote_domain}->{$domain};
 }
 
 sub on_stream_start {
@@ -122,8 +122,7 @@ sub dialback_result_valid {
     my %opts = @_;
 
     my $res = qq{<db:result from='$opts{recv_server}' to='$opts{orig_server}' type='valid'/>};
-    $self->{verified_remote_domain} = $opts{orig_server};
-
+    $self->{verified_remote_domain}->{$opts{orig_server}} = $opts{orig_server};
     $self->log->debug("Dialback result valid for connection $self->{id}.  from=$opts{recv_server}, to=$opts{orig_server}: $res\n");
     $self->write($res);
 }

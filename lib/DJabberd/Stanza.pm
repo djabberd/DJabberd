@@ -95,7 +95,7 @@ sub acceptable_from_server {
     my ($self, $conn) = @_;  # where $conn is a serverin connection
     my ($to, $from) = ($self->to_jid, $self->from_jid);
     return 0 unless $to && $from;
-    return 0 unless $from->domain eq $conn->peer_domain;
+    return 0 unless $conn->peer_domain_is_verified($from->domain);
     #return 0 unless $conn->vhost;  FIXME?  yes?
     return 1;
 }
