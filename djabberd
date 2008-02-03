@@ -10,10 +10,41 @@ BEGIN {
 };
 
 use lib 'lib';
-use DJabberd;
+use vars qw($DEBUG $daemonize $conffile $logconf);
 use Getopt::Long;
+
+BEGIN {
+    # We need to set up the logger before we "use DJabberd", because
+    # most of the DJabberd libs will immediately make calls into
+    # DJabberd::Log.
+
+    $DEBUG = 0;
+    $daemonize = 0;
+    $conffile = undef;
+    $logconf = undef;
+
+    Getopt::Long::GetOptions(
+        'd|daemon'     => \$daemonize,
+        'debug=i'      => \$DEBUG,
+        'conffile=s'   => \$conffile,
+        'logconf=s'    => \$logconf,
+    );
+
+    my @try_logconf_conf = ();
+    if (defined($logconf)) {
+        die "Can't find logging configuration file $logconf" unless -e $logconf;
+        @try_logconf_conf = ( $logconf );
+    }
+    else {
+        @try_logconf_conf = ( "etc/log.conf", "/etc/djabberd/log.conf", "etc/log.conf.default" );
+    }
+    use DJabberd::Log;
+    DJabberd::Log->set_logger(@try_logconf_conf);
+
+}
+
+use DJabberd;
 use FindBin qw($Bin);
-use vars qw($DEBUG);
 BEGIN {
     # while the core ("use DJabberd" above) must be in normal paths,
     # we open up the lib paths here, so make it easy to work in
@@ -29,25 +60,17 @@ BEGIN {
     }
 }
 
-$DEBUG = 0;
-
-my ($daemonize);
-
-my $conffile;
-
-Getopt::Long::GetOptions(
-                         'd|daemon'     => \$daemonize,
-                         'debug=i'      => \$DEBUG,
-                         'conffile=s'   => \$conffile,
-                         );
 
 my $server = DJabberd->new(
                            daemonize => $daemonize
                            );
 
-my @try_conf = ( $conffile, "/etc/djabberd/djabberd.conf", "djabberd.conf" );
+if (defined $conffile) {
+    die "Can't find configuration file ".$conffile unless -e $conffile;
+}
+my @try_conf = defined $conffile ? ($conffile) : ( "/etc/djabberd/djabberd.conf", "djabberd.conf" );
 shift @try_conf while @try_conf && ! -e $try_conf[0];
-die "No configuration file found, please specify --conffile argument.\n" unless @try_conf;
+die "No configuration file found; please specify --conffile argument.\n" unless @try_conf;
 
 $server->load_config($try_conf[0]);
 

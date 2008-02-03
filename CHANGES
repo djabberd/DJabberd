@@ -1,3 +1,11 @@
+  - If an explicit configuration file location is given to djabberd,
+    don't fall back on the built-in default locations. If the user
+    wanted the defaults, he wouldn't have used the --conffile option.
+
+  - Allow the location of the log4perl configuration file to be
+    set via a command-line argument to djabberd.
+    (Jakob Burkhart <igotimac@gmail.com>)
+
   - Correct support for re-using an S2S connection for multiple source
     domains. (Adrian Ulrich <slack@blinkenlights.ch>)
 

@@ -8,22 +8,36 @@ use strict;
 use warnings;
 
 no warnings 'redefine';
-sub get_logger {
-    my ($class, $category) = @_;
-    my ($package, $filename, $line) = caller;
-    return Log::Log4perl->get_logger($category || $package);
-}
 
 our $has_run;
 our $logger;
-unless ($has_run) {
+
+sub get_logger {
+    my ($class, $category) = @_;
+    my ($package, $filename, $line) = caller;
+
+    my $autostarted = 0;
+    unless ($has_run) {
+        my @locations = (
+            "etc/log.conf",
+            "/etc/djabberd/log.conf",
+            "etc/log.conf.default"
+        );
+        DJabberd::Log->set_logger(@locations);
+        $autostarted = 1;
+    }
+
+    my $ret = Log::Log4perl->get_logger($category || $package);
+    # Let user know that we've used the hardcoded list of locations from above
+    # rather than any special settings he might have wanted.
+    $ret->logwarn("Logger was started on demand from ", $filename, " line ", $line) if $autostarted;
+    return $ret;
+}
+
+sub set_logger {
+    my ($class, @locations) = @_;
 
     my $used_file;
-    my @locations = (
-        "etc/log.conf",
-        "/etc/djabberd/log.conf",
-        "etc/log.conf.default"
-    );
     @locations = () if $ENV{LOGLEVEL};
     foreach my $conffile (@locations) {
         next unless -e $conffile;
