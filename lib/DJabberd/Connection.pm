@@ -2,6 +2,7 @@ package DJabberd::Connection;
 use strict;
 use warnings;
 use base 'Danga::Socket';
+use bytes;
 use fields (
             'saxhandler',
             'parser',

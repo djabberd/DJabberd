@@ -1,3 +1,6 @@
+  - "use bytes" in Connection.pm, which reportedl fixes UTF-8
+    corruption in rosters (Aleksey Luzin <subscr@p34.net>)
+
   - If an explicit configuration file location is given to djabberd,
     don't fall back on the built-in default locations. If the user
     wanted the defaults, he wouldn't have used the --conffile option.
