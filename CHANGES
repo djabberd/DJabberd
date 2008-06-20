@@ -1,3 +1,6 @@
+  - SARTAK caught a typo in BotContext.pm where a qr was used in a place
+    that obviously should have been qq.
+
   - "use bytes" in Connection.pm, which reportedl fixes UTF-8
     corruption in rosters (Aleksey Luzin <subscr@p34.net>)
 

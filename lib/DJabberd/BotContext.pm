@@ -47,7 +47,7 @@ sub reply {
         $body .= "<body>". DJabberd::Util::exml($text) . "</body>";
     }
     if ($html) {
-        $body .= qr{<html xmlns='http://jabber.org/protocol/xhtml-im'><body xmlns='http://www.w3.org/1999/xhtml'>$html</body></html>};
+        $body .= qq{<html xmlns='http://jabber.org/protocol/xhtml-im'><body xmlns='http://www.w3.org/1999/xhtml'>$html</body></html>};
     }
 
     my $reply = DJabberd::Message->new('jabber:client', 'message', {
