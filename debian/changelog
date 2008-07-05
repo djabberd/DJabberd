@@ -1,0 +1,5 @@
+djabberd (0.83) unstable; urgency=low
+
+  * Initial Debian Packaging
+
+ -- Nick Andrew <nick@nick-andrew.net>  Sat,  5 Jul 2008 03:14:15 +1000

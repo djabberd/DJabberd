@@ -1,0 +1,86 @@
+#!/usr/bin/make -f
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
+
+# # If set to a true value then MakeMaker's prompt function will
+# # always return the default without waiting for user input.
+# export PERL_MM_USE_DEFAULT=1
+
+ifndef PERL
+PERL = /usr/bin/perl
+endif
+
+TMP     =$(CURDIR)/debian/tmp
+
+build: build-stamp
+
+build-stamp:
+	dh_testdir
+
+# Add commands to compile the package here
+	(cd DJabberd ; $(PERL) Makefile.PL verbose INSTALLDIRS=vendor )
+	(cd DJabberd ; $(MAKE) )
+
+# 'make test' does not currently work
+#	$(MAKE) test
+
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+
+# Add commands to clean up after the build process here
+	-(cd DJabberd ; $(MAKE) distclean )
+
+	dh_clean build-stamp install-stamp
+
+install: build install-stamp
+
+install-stamp:
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+
+	dh_installdirs -A
+
+# Add commands to install the package into $(TMP) here
+	(cd DJabberd ; $(MAKE) pure_install DESTDIR=$(TMP) PREFIX=/usr )
+
+	find $(TMP) -name .packlist -exec rm '{}' \;
+	find $(TMP) -depth -type d -empty -exec rmdir '{}' \;
+
+# This copies all files into the correct directory for the
+# package
+	dh_install --fail-missing
+
+	touch install-stamp
+
+binary-arch:
+# We have nothing to do for an architecture-independent package
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+#	dh_installcron
+#	dh_installmenu
+	dh_installexamples
+	dh_installinit
+#	dh_installdocs doc/hacking/todo.txt
+	dh_installchangelogs DJabberd/CHANGES
+	dh_perl
+	dh_link
+	dh_strip
+	dh_compress
+	dh_fixperms
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb
+
+source diff:
+	@echo >&2 'source and diff are obsolete - use dpkg-source -b'; false
+
+binary: binary-indep binary-arch
+.PHONY: build clean binary-indep binary-arch binary
