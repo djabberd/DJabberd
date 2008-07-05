@@ -12,6 +12,7 @@ Section: perl
 Priority: optional
 Architecture: all
 Depends: ${perl:Depends}, liblog-log4perl-perl, libnet-dns-perl, libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl, libdanga-socket-perl
+Provides: libdjabberd-perl
 Suggests: djabberd-doc, openssl
 Description: Distributed Jabber server
  djabberd is a high-performance, scalable, extensible Jabber/XMPP
@@ -28,6 +29,7 @@ Section: perl
 Priority: optional
 Architecture: all
 Depends: djabberd
+Suggests: apache2-utils | apache-common (<< 1.3.28.0.1-1)
 Description: HTDigest Authentication module for DJabberd
  This module provides htdigest-based authentication for DJabberd.
 
@@ -35,7 +37,7 @@ Package: libdjabberd-authen-mysql-perl
 Section: perl
 Priority: optional
 Architecture: all
-Depends: djabberd
+Depends: djabberd, libdbi-perl, libdbd-mysql-perl
 Description: MySQL Authentication module for DJabberd
  This module allows DJabberd to authenticate through MySQL.
 
@@ -43,7 +45,7 @@ Package: libdjabberd-authen-pam-perl
 Section: perl
 Priority: optional
 Architecture: all
-Depends: djabberd
+Depends: djabberd, libauthen-pam-perl
 Description: PAM Authentication module for DJabberd
  This module allows DJabberd to authenticate through PAM.
 
@@ -60,7 +62,7 @@ Package: djabberd-livejournal
 Section: perl
 Priority: optional
 Architecture: all
-Depends: djabberd
+Depends: djabberd, libgearman-client-async-perl, libgearman-client-perl, libwww-perl
 Description: LiveJournal module for DJabberd
  This module allows DJabberd to talk to LiveJournal.
 
@@ -84,7 +86,7 @@ Package: djabberd-rosterstorage-sqlite
 Section: perl
 Priority: optional
 Architecture: all
-Depends: djabberd
+Depends: djabberd, libdbi-perl, libdbd-sqlite3-perl
 Description: DJabberd RosterStorage using SQLite
  Provides DJabberd RosterStorage using SQLite
 
@@ -100,6 +102,6 @@ Package: djabberd-webadmin
 Section: perl
 Priority: optional
 Architecture: all
-Depends: djabberd
+Depends: djabberd, libperlbal-perl
 Description: DJabberd WebAdmin
  Provides DJabberd::WebAdmin
