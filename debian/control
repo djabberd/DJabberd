@@ -3,7 +3,7 @@ Section: perl
 Priority: optional
 Maintainer: Nick Andrew <nick@nick-andrew.net>
 Build-Depends: debhelper (>= 5)
-Build-Depends-Indep: perl (>= 5.6.10-12), liblog-log4perl-perl, libnet-dns-perl, libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl
+Build-Depends-Indep: perl (>= 5.6.10-12), liblog-log4perl-perl, libnet-dns-perl, libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl, libdanga-socket-perl
 Standards-Version: 3.8.0
 Homepage: http://danga.com/djabberd
 
@@ -11,7 +11,7 @@ Package: djabberd
 Section: perl
 Priority: optional
 Architecture: all
-Depends: ${perl:Depends}, liblog-log4perl-perl, libnet-dns-perl, libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl
+Depends: ${perl:Depends}, liblog-log4perl-perl, libnet-dns-perl, libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl, libdanga-socket-perl
 Suggests: djabberd-doc, openssl
 Description: Distributed Jabber server
  djabberd is a high-performance, scalable, extensible Jabber/XMPP
