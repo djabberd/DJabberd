@@ -335,6 +335,8 @@ sub _start_server {
     IO::Handle::blocking($server, 0);
 
     my $accept_handler = sub {
+        local *__ANON__ = " Accept handler in ". __FILE__ ." on line ". __LINE__;
+
         my $csock = $server->accept;
         return unless $csock;
 
