@@ -5,7 +5,7 @@ no warnings 'redefine';
 use base 'Danga::Socket';
 
 use fields qw(buffer server handle);
-use vars qw($initial_memory);
+use vars qw($initial_memory @Help);
 
 use Devel::Peek ();
 my $has_gladiator  = eval "use Devel::Gladiator; 1;";
@@ -67,10 +67,12 @@ sub process_line {
     }
 }
 
+push @Help, 'close | exit | quit';
 sub CMD_close { $_[0]->close }
 sub CMD_quit { $_[0]->close }
 sub CMD_exit { $_[0]->close }
 
+push @Help, 'conns | connections';
 *CMD_conns = \&CMD_connections;
 sub CMD_connections {
     my ($self, $filter) = @_;
@@ -88,6 +90,7 @@ sub CMD_connections {
     $self->write($conns);
 }
 
+push @Help, 'latency_log';
 sub CMD_latency_log {
    my $self = shift;
     foreach my $le (@DJabberd::Stats::stanza_process_latency_log) {
@@ -97,6 +100,7 @@ sub CMD_latency_log {
    $self->end;
 }
 
+push @Help, 'latency';
 sub CMD_latency {
     my $self = shift;
     my %hist;
@@ -123,24 +127,13 @@ sub CMD_latency {
     $self->end;
 }
 
+push @Help, 'help';
 sub CMD_help {
     my $self = shift;
-    $self->write($_) foreach split(/\n/, <<EOC);
-Available commands:
-   version
-   help
-   list vhosts
-   quit
-   connections
-   conns
-   conns servers
-   conns clients
-   latency
-   users
-.
-EOC
+    $self->write($_) for 'Available commands:', (sort @Help), '.';
 }
 
+push @Help, 'list vhosts';
 sub CMD_list {
     my $self = shift;
     my $type = shift;
@@ -154,6 +147,7 @@ sub CMD_list {
 
 }
 
+push @Help, 'stats';
 sub CMD_stats {
     my $self = shift;
 
@@ -179,6 +173,7 @@ sub CMD_stats {
     $self->end;
 }
 
+push @Help, 'counters';
 sub CMD_counters {
     my $self = shift;
 
@@ -188,6 +183,7 @@ sub CMD_counters {
     $self->end;
 }
 
+push @Help, 'users';
 sub CMD_users {
     my $self = shift;
 
@@ -201,6 +197,7 @@ sub CMD_users {
     $self->end;
 }
 
+push @Help, 'version';
 sub CMD_version {
     $_[0]->write($DJabberd::VERSION);
 }
@@ -254,6 +251,7 @@ sub arena_ref_counts {
     return \%ct;
 }
 
+push @Help, 'gladiator [lite | delta | all] ' . ( $has_gladiator ? '' : '(unavailable)' );
 my %last_gladiator;
 sub CMD_gladiator {
     my ($self, $cmd) = @_;
@@ -286,6 +284,7 @@ sub CMD_gladiator {
     $self->end;
 }
 
+push @Help, 'cycle ' . ( $has_gladiator ? '' : '(unavailable)' );
 sub CMD_cycle {
     my $self = shift;
 
@@ -308,6 +307,7 @@ sub CMD_cycle {
 
 }
 
+push @Help, 'fields package_name';
 sub CMD_fields {
     my ($self, $arg) = @_;
     my $flist = eval "\\%${arg}::FIELDS";
@@ -317,6 +317,7 @@ sub CMD_fields {
     $self->end;
 }
 
+push @Help, 'note_arena ' . ( $has_devel_leak ? '' : '(unavailable)' );
 sub CMD_note_arena {
     my ($self, $arg) = @_;
     return unless $has_devel_leak;
@@ -325,6 +326,7 @@ sub CMD_note_arena {
     $self->end;
 }
 
+push @Help, 'check_arena ' . ( $has_devel_leak ? '' : '(unavailable)' );
 sub CMD_check_arena {
     my ($self, $arg) = @_;
     return unless $has_devel_leak;
@@ -332,6 +334,7 @@ sub CMD_check_arena {
     $self->end;
 }
 
+push @Help, 'reload';
 sub CMD_reload {
     my $self = shift;
     delete $INC{"DJabberd/Connection/Admin.pm"};
@@ -343,6 +346,7 @@ sub CMD_reload {
     }
 }
 
+push @Help, 'send_stanza JID STANZA';
 sub CMD_send_stanza {
     my ($self, $params) = @_;
     my ($vname, $barejid_str, $e_stanza) = split(/\s+/, $params);
