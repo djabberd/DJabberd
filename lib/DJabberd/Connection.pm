@@ -91,7 +91,7 @@ sub new {
     }
 
     if (XMLDEBUG) {
-        system("mkdir -p " . XMLDEBUG ."$$/");
+        system("mkdir -p " . XMLDEBUG ."/$$/");
         my $handle = IO::Handle->new;
         no warnings;
         my $from = $fromip || "outbound";
