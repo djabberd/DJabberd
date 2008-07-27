@@ -22,8 +22,16 @@ sub peer_domain_is_verified {
 sub on_stream_start {
     my ($self, $ss) = @_;
     $self->{in_stream} = 1;
-    return $self->close unless $ss->xmlns eq $self->namespace; # FIXME: should be stream error
 
+    ### namespace mismatch is a streamerror
+    unless( $ss->xmlns eq $self->namespace ) {
+        $self->stream_error( 
+            sprintf "namespace mismatch: client->%s server->%s",
+            $ss->xmlns, $self->namespace
+        );
+        $self->close;
+    }              
+    
     if ($ss->announced_dialback) {
         $self->{announced_dialback} = 1;
         $self->start_stream_back($ss,
