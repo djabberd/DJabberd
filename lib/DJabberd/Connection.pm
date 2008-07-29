@@ -67,8 +67,8 @@ sub new {
     my ($class, $sock, $server) = @_;
     my $self = $class->SUPER::new($sock);
 
-    croak("Server param not a DJabberd (server) object, actually a '$server'")
-        unless ref $server eq "DJabberd";
+    croak("Server param not a DJabberd (server) object, '" . ref($server) . "'")
+        unless $server->isa("DJabberd");
 
     $self->{vhost}   = undef;  # set once we get a stream start header from them.
     $self->{server}  = $server;
