@@ -504,9 +504,17 @@ sub process_iq_setauth {
 
 
     my $accept = sub {
+        my $cb = shift;
+        my $authjid = shift;
+
+        # create default JID
+        unless (defined $authjid) {
+            my $sname = $vhost->name;
+            $authjid = "$username\@$sname";
+        }
+
         # register
-        my $sname = $vhost->name;
-        my $jid = DJabberd::JID->new("$username\@$sname/$resource");
+        my $jid = DJabberd::JID->new("$authjid/$resource");
 
         unless ($jid) {
             $reject->();
