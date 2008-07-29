@@ -25,7 +25,7 @@ sub concat_params {
 sub generate_dialback_result {
     my ($self, $cb) = @_;
     my $vhost = $self->{vhost};
-    $logger->info("Generating diablack result for vhost $vhost->{server_name}");
+    $logger->info("Generating dialback result for vhost $vhost->{server_name}");
     $vhost->get_secret_key(sub {
         my ($shandle, $secret) = @_;
         my $params = $self->concat_params;
