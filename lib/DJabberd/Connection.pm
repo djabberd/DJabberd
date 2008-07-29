@@ -13,6 +13,7 @@ use fields (
             'server',         # our DJabberd server object, which we used to find the VHost
             'ssl',            # undef when not in ssl mode, else the $ssl object from Net::SSLeay
             'stream_id',      # undef until set first time
+            'to_host',        # undef until stream start
             'version',        # the DJabberd::StreamVersion we negotiated
             'rcvd_features',  # the features stanza we've received from the other party
             'log',            # Log::Log4perl object for this connection
@@ -250,6 +251,17 @@ sub set_bound_jid {
     my ($self, $jid) = @_;
     die unless $jid && $jid->isa('DJabberd::JID');
     $self->{bound_jid} = $jid;
+}
+
+sub set_to_host {
+    my ($self, $host) = @_;
+    $self->{to_host} = $host;
+}
+
+sub to_host {
+    my $self = shift;
+    return $self->{to_host} or
+        die "To host accessed before it was set";
 }
 
 sub set_version {
@@ -594,6 +606,7 @@ sub start_stream_back {
 
     # bind us to a vhost now.
     my $to_host     = $ss->to;
+    $self->set_to_host($to_host) if $to_host;
 
     # Spec rfc3920 (dialback section) says: Note: The 'to' and 'from'
     # attributes are OPTIONAL on the root stream element.  (during
