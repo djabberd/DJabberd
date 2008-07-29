@@ -53,7 +53,7 @@ install-stamp:
 
 # This copies all files into the correct directory for the
 # package
-	dh_install --fail-missing
+	dh_install --fail-missing --exclude=.svn
 
 	touch install-stamp
 
