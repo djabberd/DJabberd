@@ -26,6 +26,7 @@ use fields (
             'counted_close',  # bool:  temporary here to track down the overcounting of disconnects
             'disconnect_handlers',  # array of coderefs to call when this connection is closed for any reason
             'sasl',           # the sasl connection object, when sasl has been or is being negotiated
+            'client_info',    # array containing the 'node' and 'ver' fields from a presence stanza, for quirk handling
             );
 
 our $connection_id = 1;
@@ -266,6 +267,39 @@ sub to_host {
 sub set_version {
     my ($self, $verob) = @_;
     $self->{version} = $verob;
+}
+
+sub set_client_info {
+    my ($self, $client, $version) = @_;
+    if ($self->{client_info}) {
+        my ($oclient, $oversion) = @{$self->{client_info}};
+        warn "CLIENT INFO CHANGED $oclient -> $client, $oversion -> $version\n"
+          unless ($oclient eq $client and $oversion eq $version);
+    }
+    $self->{client_info} = [$client, $version];
+}
+
+# check if the client is known to have any quirky behaviour
+#
+# SendsIqWithoutId - some clients have bugs that make them send
+#                    iq messages without an ID.  Accept them here.
+sub client_has_quirk {
+    my ($self, $quirk) = @_;
+
+    return undef unless $self->{client_info}; # unknown
+
+    my ($client, $version) = @{$self->{client_info}};
+
+    # As a bugfix for trillian clients, djabberd discarded all
+    # iq stanzas without an id, but Miranda sends roster updates
+    # with no ID, so they don't apply.  Check for this.
+    if ($quirk eq 'SendsIqWithoutId') {
+        # fixed in svn, but not in the current stable clients
+        return 1 if $client =~ m/miranda-im/ and $version =~ m/^0\.7/;
+    }
+
+    # we don't know of this quirk existing on this client
+    return 0;
 }
 
 sub version {

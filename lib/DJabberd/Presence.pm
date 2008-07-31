@@ -474,6 +474,16 @@ sub _process_outbound_available {
 
     if ($conn->is_initial_presence) {
         $conn->on_initial_presence;
+
+        # capture the client information for quirks detection, since the
+        # presence notification seems to be the cleanest way to find this.
+        foreach my $child ($self->children()) {
+            next unless ref $child;
+            next unless $child->element() eq '{http://jabber.org/protocol/caps}c';
+            my $client = $child->attr('{}node');
+            my $version = $child->attr('{}ver');
+            $conn->set_client_info($client, $version);
+        }
     }
 
     $self->broadcast_from($conn);
