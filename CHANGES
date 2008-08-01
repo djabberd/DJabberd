@@ -1,3 +1,5 @@
+0.84_01 (2009-07-31) dev release because it's beeen awhile
+
   - SARTAK caught a typo in BotContext.pm where a qr was used in a place
     that obviously should have been qq.
 

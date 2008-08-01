@@ -93,3 +93,4 @@ t/unsubscribe.t
 t/versions.t
 t/write-error-and-close.t
 t/xmlparsing.t
+t/89_xmldebug.t
