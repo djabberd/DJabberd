@@ -1,5 +1,7 @@
 BEGIN {
     $ENV{LOGLEVEL} ||= "WARN";
+    use DJabberd::Log;
+    DJabberd::Log->set_logger();
 }
 use strict;
 use DJabberd;

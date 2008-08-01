@@ -4,12 +4,18 @@ use strict;
 use Test::More tests => 4;
 BEGIN {
     $ENV{LOGLEVEL} = "WARN";
+    use DJabberd::Log;
+    DJabberd::Log->set_logger();
 }
 use DJabberd;
+use DJabberd::Delivery::Local;
 use Scalar::Util qw(weaken);
 
+
 my $server = DJabberd->new;
+my $local = DJabberd::Delivery::Local->new();
 my $vhost = DJabberd::VHost->new(server_name => "foo");
+$vhost->add_plugin($local);
 $server->add_vhost($vhost);
 DJabberd::HookDocs->allow_hook("Foo");
 DJabberd::HookDocs->allow_hook("Nothing");

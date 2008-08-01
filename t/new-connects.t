@@ -6,6 +6,8 @@ use Test::More 'no_plan';
 
 BEGIN {
     $ENV{LOGLEVEL} = "WARN";
+    use DJabberd::Log;
+    DJabberd::Log->set_logger();
 }
 
 use DJabberd;
