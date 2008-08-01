@@ -12,7 +12,9 @@ two_parties(sub {
 
     # pb isn't yet an available resource, so should not get the message
     $pa->send_xml("<message type='chat' to='$pb'>Hello.  I am $pa.</message>");
-    unlike($pb->recv_xml(1.5), qr/type=.chat.*Hello.*I am \Q$pa\E/, "pb getting message as unavailable resource");
+    my $response = $pb->recv_xml(1.5);
+    $response = '' unless defined $response;
+    unlike($response, qr/type=.chat.*Hello.*I am \Q$pa\E/, "pb getting message as unavailable resource");
 
     # now pa/pb send presence to become available resources
     $pa->send_xml("<presence/>");
