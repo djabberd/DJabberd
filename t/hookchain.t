@@ -2,14 +2,9 @@
 
 use strict;
 use Test::More tests => 4;
-BEGIN {
-    $ENV{LOGLEVEL} = "WARN";
-    use DJabberd::Log;
-    DJabberd::Log->set_logger();
-}
-use DJabberd;
-use DJabberd::Delivery::Local;
 use Scalar::Util qw(weaken);
+use lib 't/lib';
+require 'djabberd-test.pl';
 
 
 my $server = DJabberd->new;

@@ -1,21 +1,9 @@
 #!/usr/bin/perl
 
 use strict;
-use lib 'lib';
 use Test::More 'no_plan';
-
-BEGIN {
-    $ENV{LOGLEVEL} = "WARN";
-    use DJabberd::Log;
-    DJabberd::Log->set_logger();
-}
-
-use DJabberd;
-use DJabberd::Authen::AllowedUsers;
-use DJabberd::Authen::StaticPassword;
-use DJabberd::TestSAXHandler;
-use DJabberd::RosterStorage::InMemoryOnly;
-use FindBin qw($Bin);
+use lib 't/lib';
+require 'djabberd-test.pl';
 
 my $client_port = 11001;
 
