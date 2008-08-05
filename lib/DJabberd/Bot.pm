@@ -56,7 +56,10 @@ sub register {
     });
 
     $vhost->register_jid($self->{jid}, $self , $regcb);
-    DJabberd::Presence->set_local_presence($self->{jid}, DJabberd::Presence->available(from => $self->{jid}));
+    DJabberd::Presence->set_local_presence(
+        $self->{jid}, 
+        DJabberd::Presence->available( from => $self->{jid} )
+    );
 }
 
 # no-op bot logic:
