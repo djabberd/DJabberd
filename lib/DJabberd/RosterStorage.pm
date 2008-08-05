@@ -6,6 +6,18 @@ use base 'DJabberd::Plugin';
 use DJabberd::Roster;
 use DJabberd::RosterItem;
 
+### store the object in a closure, so we can retrieve it later
+### this allows us to manipulate the roster storage from other
+### places, to for example pre-link users.
+{   my $singleton;
+    sub singleton { $singleton };
+    
+    sub new {
+        my $self = shift;
+        $singleton = $self->SUPER::new( @_ );
+    }
+}
+
 # don't override, or at least call SUPER to this if you do.
 sub register {
     my ($self, $vhost) = @_;

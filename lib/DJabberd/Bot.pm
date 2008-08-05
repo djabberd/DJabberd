@@ -10,6 +10,16 @@ use DJabberd::BotContext;
 
 our $logger = DJabberd::Log->get_logger();
 
+### store the object in a closure, so we can retrieve it later
+{   my $singleton;
+    sub singleton { $singleton };
+    
+    sub new {
+        my $self = shift;
+        $singleton = $self->SUPER::new( @_ );
+    }
+}
+
 sub set_config_nodename {
     my ($self, $nodename) = @_;
     $self->{nodename} = $nodename;
