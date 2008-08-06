@@ -237,13 +237,28 @@ sub hook_chain_fast {
     }
     push @hooks, $fallback if $fallback;
 
-    my ($cb, $try_another);  # pre-declared here so they're captured by closures below
+    # pre-declared here so they're captured by closures below
+    my ($cb, $try_another, $depth);
+    my $hook_count = scalar @hooks;
+    
     my $stopper = sub {
         $try_another = undef;
     };
     $try_another = sub {
         my $hk = shift @hooks
             or return;
+        
+        $depth++;
+        
+        ### XXX this logging is somewhat expensive. Logging should probably
+        ### only be done if loglevel is set to debug --kane
+        {   use B;
+            my $cv = B::svref_2object( $hk );
+            $logger->debug( 
+                "For phase [@$phase] invoking hook $depth of $hook_count defined at: ". 
+                $cv->FILE .':'. $cv->ROOT->first->first->line 
+            );
+        }
 
         $cb->{_has_been_called} = 0;  # cheating version of: $cb->reset;
         $hk->($self || $hook_inv,

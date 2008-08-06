@@ -167,6 +167,9 @@ use strict;
 use overload
     '""' => \&as_string;
 
+use Data::Dumper    qw[Dumper];
+local $Data::Dumper::Indent = 1;
+
 our $PLUGIN_CB;
 our $VHOST_CB;
 our @SUBDOMAINS;
@@ -315,6 +318,9 @@ use strict;
 
 use overload
     '""' => \&as_string;
+
+use Data::Dumper    qw[Dumper];
+local $Data::Dumper::Indent = 1;
 
 sub resource {
     return $_[0]{resource} ||= ($ENV{UNICODE_RESOURCE} ? "test\xe2\x80\x99s computer" : "testsuite_with_gibberish:'\"");
