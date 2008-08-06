@@ -24,10 +24,12 @@ sub on_stream_start {
     $self->{in_stream} = 1;
 
     ### namespace mismatch is a streamerror
-    unless( $ss->xmlns eq $self->namespace ) {
+    unless ($ss->xmlns eq $self->namespace) {
         $self->stream_error( 
-            sprintf "namespace mismatch: client->%s server->%s",
-            $ss->xmlns, $self->namespace
+            sprintf( 
+                "namespace mismatch: client->%s server->%s",
+                $ss->xmlns, $self->namespace
+            )
         );
         $self->close;
     }              
