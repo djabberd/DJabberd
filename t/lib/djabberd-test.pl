@@ -180,7 +180,7 @@ sub new {
     my $class = shift;
     my $self = bless {@_}, $class;
 
-    die unless $self->{id};
+    die 'ID required. Pass it as ->new(id => $id)' unless $self->{id};
     return $self;
 }
 
