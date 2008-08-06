@@ -36,9 +36,12 @@ sub AUTOLOAD {
     # ignore perl-generated methods
     return unless $meth =~ /[a-z]/;
 
-    ### XXX this logging is somewhat expensive. Logging should probably
-    ### only be done if loglevel is set to debug --kane
-    {   my @c = caller;
+    # conditional debug statement -- computing this is costly, so only do this
+    # when we are actually running in debug mode --kane
+    if ($logger->is_debug) {   
+        # show who (file:linenumber) called which method on the callback 
+        # and what it's arguments were
+        my @c = caller;
         $logger->debug( '$callback->'."$meth( @_ ) has been called from $c[1]:$c[2]" );
     }        
 

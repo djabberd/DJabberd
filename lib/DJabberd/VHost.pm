@@ -1,5 +1,6 @@
 package DJabberd::VHost;
 use strict;
+use B ();       # improved debugging when hooks are called
 use Carp qw(croak);
 use DJabberd::Util qw(tsub as_bool);
 use DJabberd::Log;
@@ -248,12 +249,16 @@ sub hook_chain_fast {
         my $hk = shift @hooks
             or return;
         
-        $depth++;
-        
-        ### XXX this logging is somewhat expensive. Logging should probably
-        ### only be done if loglevel is set to debug --kane
-        {   use B;
-            my $cv = B::svref_2object( $hk );
+        # conditional debug statement -- computing this is costly, so only do this
+        # when we are actually running in debug mode --kane
+        if ($logger->is_debug) {   
+            $depth++;
+            
+            # most hooks are anonymous sub refs, and it's hard to determine where they
+            # came from. Sub::Identify gives you only the name (which is __ANON__) and
+            # the filename. This gives us both the filename and line number it's defined
+            # on, giving the user a very clear pointer to which subref will be invoked --kane
+            my $cv = B::svref_2object($hk);
             $logger->debug( 
                 "For phase [@$phase] invoking hook $depth of $hook_count defined at: ". 
                 $cv->FILE .':'. $cv->ROOT->first->first->line 
