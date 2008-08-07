@@ -539,9 +539,7 @@ sub process_iq_setauth {
         $vhost->register_jid($jid, $conn, $regcb);
     };
 
-    my $can_get_password = $vhost->are_hooks("GetPassword");
-
-    if ($can_get_password) {
+    if ($vhost->are_hooks("GetPassword")) {
         $vhost->run_hook_chain(phase => "GetPassword",
                               args  => [ username => $username, conn => $conn ],
                               methods => {
