@@ -539,6 +539,12 @@ sub process_iq_setauth {
         $vhost->register_jid($jid, $conn, $regcb);
     };
 
+
+    # XXX FIXME
+    # If the client ignores your wishes get a digest or password
+    # We should throw an error indicating so
+    # Currently we will just return authentication denied -- artur
+
     if ($vhost->are_hooks("GetPassword")) {
         $vhost->run_hook_chain(phase => "GetPassword",
                               args  => [ username => $username, conn => $conn ],
