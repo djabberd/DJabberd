@@ -91,7 +91,7 @@ sub on_stream_start {
     $self->log->debug("Connection $self->{id} supports dialback");
 
     my $vhost       = $self->{queue}->vhost;
-    my $orig_server = $vhost->name;
+    my $orig_server = $self->{queue}->origin;
     my $recv_server = $self->{queue}->domain;
 
     my $db_params = DJabberd::DialbackParams->new(

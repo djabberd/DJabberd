@@ -6,6 +6,7 @@ use base 'DJabberd::Queue';
 use DJabberd::Queue qw(NO_CONN RESOLVING);
 use fields (
             'domain',
+            'origin',
             'del_source',
             );
 
@@ -23,12 +24,15 @@ sub new {
 
     my $domain = delete $opts{domain}
         or Carp::confess "domain required";
+    my $origin = delete $opts{origin}
+        or Carp::confess "origin required";
     my $del_source = delete $opts{source}
         or die "delivery 'source' required";
     my $self = fields::new($class);
     $self->SUPER::new( %opts );
 
     $self->{domain} = $domain;
+    $self->{origin} = $origin;
     $self->{del_source} = $del_source;
 
     return $self;
@@ -42,6 +46,11 @@ sub give_up_connecting {
 sub domain {
     my $self = shift;
     return $self->{domain};
+}
+
+sub origin {
+    my $self = shift;
+    return $self->{origin};
 }
 
 sub queue_stanza {
