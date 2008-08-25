@@ -504,7 +504,11 @@ sub event_read {
             # just be the underlying socket was readable, but there
             # wasn't enough of an SSL packet for OpenSSL/etc to return
             # any unencrypted data back to us.
-            if (++$self->{'ssl_empty_read_ct'} >= 10) {
+            # We call 'actual_error_on_empty_read' to avoid counting
+            # SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE as 'actual' errors
+            my $err = DJabberd::Stanza::StartTLS->actual_error_on_empty_read($ssl);
+            if($err && ++$self->{'ssl_empty_read_ct'} >= 10) {
+                $self->log->warn("SSL Read error: $err (assuming ssl_eof)");
                 $self->close('ssl_eof');
             }
             return;

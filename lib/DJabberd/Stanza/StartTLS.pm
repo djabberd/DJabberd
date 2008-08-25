@@ -9,6 +9,8 @@ Net::SSLeay::randomize();
 
 use constant SSL_ERROR_WANT_READ     => 2;
 use constant SSL_ERROR_WANT_WRITE    => 3;
+use constant SSL_ERROR_WANT_CONNECT  => 4;
+use constant SSL_ERROR_WANT_ACCEPT   => 5;
 
 sub on_recv_from_server { &process }
 sub on_recv_from_client { &process }
@@ -66,6 +68,23 @@ sub process {
 
     $conn->set_writer_func(DJabberd::Stanza::StartTLS->danga_socket_writerfunc($conn));
 }
+
+sub actual_error_on_empty_read {
+    my ($class, $ssl) = @_;
+    my $err = Net::SSLeay::get_error($ssl, -1);
+    if ($err == SSL_ERROR_WANT_READ || 
+        $err == SSL_ERROR_WANT_WRITE || 
+        $err == SSL_ERROR_WANT_CONNECT || 
+        $err == SSL_ERROR_WANT_ACCEPT) {
+        # Not an actual error, SSL is busy doing something like renegotiating encryption
+        # just try again next time
+        return 0;
+    }
+    # This is actually an error (return the SSL err code)
+    # unlike the 'no-op' WANT_READ and WANT_WRITE
+    return $err;
+}
+
 
 sub danga_socket_writerfunc {
     my ($class, $conn) = @_;
