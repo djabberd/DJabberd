@@ -13,6 +13,7 @@ Priority: optional
 Architecture: all
 Depends: ${perl:Depends}, liblog-log4perl-perl, libnet-dns-perl, libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl, libdanga-socket-perl
 Provides: libdjabberd-perl
+Conflicts: libdjabberd-perl
 Suggests: djabberd-doc, openssl
 Description: Distributed Jabber server
  djabberd is a high-performance, scalable, extensible Jabber/XMPP
