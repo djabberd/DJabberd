@@ -15,17 +15,13 @@ sub downbless {
     my $class = shift;
     if (ref $_[0]) {
         my ($self, $conn) = @_;
-        # 'fields' hackery.  this will break in Perl 5.10
-        {
-            no strict 'refs';
-            $self->[0] = \%{$class . "::FIELDS" }
-        }
-        bless $self, $class;
+        my $new = fields::new($class);
+        %$new = %$self; # copy fields
         if ($conn) {
-            $self->{connection} = $conn;
-            Scalar::Util::weaken($self->{connection});
+            $new->{connection} = $conn;
+            Scalar::Util::weaken($new->{connection});
         }
-        return $self;
+        return $new;
     } else {
         croak("Bogus use of downbless.");
     }
