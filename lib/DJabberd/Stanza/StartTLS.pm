@@ -1,16 +1,11 @@
 package DJabberd::Stanza::StartTLS;
 use strict;
 use base qw(DJabberd::Stanza);
-use Net::SSLeay;
+use Net::SSLeay qw(ERROR_WANT_READ ERROR_WANT_WRITE ERROR_SYSCALL);
 
 Net::SSLeay::load_error_strings();
 Net::SSLeay::SSLeay_add_ssl_algorithms();
 Net::SSLeay::randomize();
-
-use constant SSL_ERROR_WANT_READ     => 2;
-use constant SSL_ERROR_WANT_WRITE    => 3;
-use constant SSL_ERROR_WANT_CONNECT  => 4;
-use constant SSL_ERROR_WANT_ACCEPT   => 5;
 
 sub on_recv_from_server { &process }
 sub on_recv_from_client { &process }
@@ -72,17 +67,18 @@ sub process {
 sub actual_error_on_empty_read {
     my ($class, $ssl) = @_;
     my $err = Net::SSLeay::get_error($ssl, -1);
-    if ($err == SSL_ERROR_WANT_READ || 
-        $err == SSL_ERROR_WANT_WRITE || 
-        $err == SSL_ERROR_WANT_CONNECT || 
-        $err == SSL_ERROR_WANT_ACCEPT) {
+    if ($err == ERROR_WANT_READ || $err == ERROR_WANT_WRITE) {
         # Not an actual error, SSL is busy doing something like renegotiating encryption
         # just try again next time
-        return 0;
+        return undef;
+    }
+    if ($err == ERROR_SYSCALL) {
+        # return the specific syscall error
+        return "syscall error: $!"; 
     }
     # This is actually an error (return the SSL err code)
     # unlike the 'no-op' WANT_READ and WANT_WRITE
-    return $err;
+    return "ssl error $err: " . Net::SSLeay::ERR_error_string($err);
 }
 
 
@@ -109,11 +105,11 @@ sub danga_socket_writerfunc {
         if ($written == -1) {
             my $err = Net::SSLeay::get_error($ssl, $written);
 
-            if ($err == SSL_ERROR_WANT_READ) {
+            if ($err == ERROR_WANT_READ) {
                 $conn->write_when_readable;
                 return 0;
             }
-            if ($err == SSL_ERROR_WANT_WRITE) {
+            if ($err == ERROR_WANT_WRITE) {
                 # unclear here.  it just wants to write some more?  okay.
                 # easy enough.  do nothing?
                 return 0;

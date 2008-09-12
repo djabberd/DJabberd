@@ -26,7 +26,6 @@ use fields (
             'counted_close',  # bool:  temporary here to track down the overcounting of disconnects
             'disconnect_handlers',  # array of coderefs to call when this connection is closed for any reason
 
-            'ssl_empty_read_ct', # int: number of consecutive empty SSL reads.
             );
 
 our $connection_id = 1;
@@ -507,13 +506,12 @@ sub event_read {
             # We call 'actual_error_on_empty_read' to avoid counting
             # SSL_ERROR_WANT_READ or SSL_ERROR_WANT_WRITE as 'actual' errors
             my $err = DJabberd::Stanza::StartTLS->actual_error_on_empty_read($ssl);
-            if($err && ++$self->{'ssl_empty_read_ct'} >= 10) {
+            if ($err) {
                 $self->log->warn("SSL Read error: $err (assuming ssl_eof)");
                 $self->close('ssl_eof');
             }
             return;
         }
-        $self->{'ssl_empty_read_ct'} = 0;
         $bref = \$data;
     } else {
         # non-ssl mode:
