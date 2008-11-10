@@ -39,24 +39,8 @@ sub new {
     my $ssl = Net::SSLeay::new($ctx) or die_now("Failed to create SSL $!");
     $self->{ssl} = $ssl;
 
-#    Net::SSLeay::set_verify($ssl, Net::SSLeay::VERIFY_PEER(), 0);
+    DJabberd::Stanza::StartTLS->finalize_ssl_negotiation($self, $ssl, $ctx);
 
-    my $fileno = $self->{sock}->fileno;
-    warn "setting ssl ($ssl) fileno to $fileno\n";
-    Net::SSLeay::set_fd($ssl, $fileno);
-
-    $Net::SSLeay::trace = 2;
-
-    my $rv = Net::SSLeay::accept($ssl);
-    if (!$rv) {
-        warn "SSL accept error on $self\n";
-        $self->close;
-        return;
-    }
-
-    warn "$self:  Cipher `" . Net::SSLeay::get_cipher($ssl) . "'\n";
-
-    $self->set_writer_func(DJabberd::Stanza::StartTLS->danga_socket_writerfunc($self));
     return $self;
 }
 

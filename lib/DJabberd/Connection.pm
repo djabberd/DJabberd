@@ -779,12 +779,6 @@ sub close {
     $self->log->debug("DISCONNECT: $self->{id}\n") if $self->{id};
     $self->_run_callback_list($self->{disconnect_handlers});
 
-    if (my $ssl = $self->{ssl}) {
-        $self->set_writer_func(sub { return 0 });
-        Net::SSLeay::free($ssl);
-        $self->{ssl} = undef;
-    }
-
     if (my $p = $self->{parser}) {
         # libxml isn't reentrant apparently, so we can't finish_push
         # from inside an existint callback.  so schedule immediately,

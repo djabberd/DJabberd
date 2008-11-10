@@ -41,16 +41,36 @@ sub process {
     my $ssl = Net::SSLeay::new($ctx) or die_now("Failed to create SSL $!");
     $conn->{ssl} = $ssl;
     $conn->restart_stream;
+    
+    DJabberd::Stanza::StartTLS->finalize_ssl_negotiation($conn, $ssl, $ctx);
+}
 
-#    Net::SSLeay::set_verify($ssl, Net::SSLeay::VERIFY_PEER(), 0);
+# Complete the transformation of stream from tcp socket into ssl socket:
+# 1. setup disconnect handler to free memory for $ssl and $ctx on connection close
+# 2. SSL object is connected to underlying connection socket
+# 3. 'accept' tells SSL to start negotiating encryption
+# 4. set a socket write function that encrypts data before writting to the underlying socket
+sub finalize_ssl_negotiation {
+    my ($class, $conn, $ssl, $ctx) = @_;
+
+    # Add a disconnect handler to this connection that will free memory
+    # and remove references to junk no longer needed on close
+    $conn->add_disconnect_handler(sub { 
+         $conn->set_writer_func(sub { return 0 });
+         Net::SSLeay::free($ssl);
+         # Currently, a CTX_new is being called for every SSL connection.
+         # It would be more efficient to create one $ctx per-vhost instead of per-connection
+         # and to re-use that $ctx object for each new connection to that vhost.
+         # This would eliminate the need to free $ctx here.
+         Net::SSLeay::CTX_free($ctx);
+         $conn->{ssl} = undef;
+    });
 
     my $fileno = $conn->{sock}->fileno;
     warn "setting ssl ($ssl) fileno to $fileno\n";
     Net::SSLeay::set_fd($ssl, $fileno);
 
     $Net::SSLeay::trace = 2;
-
-    #Net::SSLeay::connect($ssl) or Net::SSLeay::die_now("Failed SSL connect ($!)");
 
     my $rv = Net::SSLeay::accept($ssl);
     if (!$rv) {

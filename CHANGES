@@ -1,3 +1,5 @@
+  - SSL memory leak fix (http://codereview.appspot.com/2326)
+
   - hook chain callback logging fix merged from 'kane-hacking' branch
 
 0.84_01 (2009-07-31) dev release because it's beeen awhile
