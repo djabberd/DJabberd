@@ -170,7 +170,12 @@ $hook{'ConnectionClosing'} = {
     des => "Gets called when a connection is in closing state, you can't do anything but let it fall through",
 };
 
-#Note: HandleStanza is a synchronous hook, the connection involved will stall waiting for callback
+# HandleStanza hook is designed to allow plugins to support and respond to additional stanza types.
+# Recipients of the HandleStanza hook must execute thier callbacks synchonously (blocking), 
+# or else we will fall though to the unsupported-stanza-type stream error.
+# This make makes sense, because handling the hook should be a very simple operation:
+# simply provide a class name that implements the processing of the stanza.
+# The actual processing will happen via call to 'process' (should be overriden in class provided).
 $hook{'HandleStanza'} = {
     args => ['Node', 'Stanza'],
     callback => {
