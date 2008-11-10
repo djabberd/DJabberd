@@ -258,10 +258,20 @@ sub hook_chain_fast {
             # came from. Sub::Identify gives you only the name (which is __ANON__) and
             # the filename. This gives us both the filename and line number it's defined
             # on, giving the user a very clear pointer to which subref will be invoked --kane
-            my $cv = B::svref_2object($hk);
+            # 
+            # Since this is B pokery, protect us from doing anything wrong and exiting the 
+            # server accidentally. 
+            my $cv   = B::svref_2object($hk); 
+            my $line = eval { 
+                # $obj is either a B::LISTOP or a B::COP, keep walking up 
+                # till we reach the B::COP, so we can get the line number; 
+                my $obj     = $cv->ROOT->first; 
+                $obj = $obj->first while $obj->can('first'); 
+                $obj->line; 
+            } || "Unknown ($@)"; 
             $logger->debug( 
                 "For phase [@$phase] invoking hook $depth of $hook_count defined at: ". 
-                $cv->FILE .':'. $cv->ROOT->first->first->line 
+                $cv->FILE .':'. $line
             );
         }
 

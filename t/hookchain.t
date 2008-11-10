@@ -116,6 +116,22 @@ is($track_obj, undef, "ref in fallback destroyed");
 }
 is($track_obj, undef, "ref in executed fallback destroyed");
 
+# testing running the default fallback (to test for bug in callback logging)
+# nothing to assert because nothing is supposed to happen
+# just supposed to run the fallback sub defined in VHost.pm
+{
+    DJabberd::HookDocs->allow_hook("NoFallback");
+    
+    $vhost->register_hook("NoFallback", sub {
+        my ($srv, $cb, @args) = @_;
+        $cb->decline;
+    });
+
+    $vhost->run_hook_chain(phase   => "NoFallback",
+                            args    => [ "arg1", "arg2" ],
+                            methods => {});
+}
+
 Danga::Socket->SetLoopTimeout(1000);
 my $left = 2;
 Danga::Socket->SetPostLoopCallback(sub {
