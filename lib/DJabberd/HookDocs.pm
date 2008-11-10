@@ -170,4 +170,14 @@ $hook{'ConnectionClosing'} = {
     des => "Gets called when a connection is in closing state, you can't do anything but let it fall through",
 };
 
+#Note: HandleStanza is a synchronous hook, the connection involved will stall waiting for callback
+$hook{'HandleStanza'} = {
+    args => ['Node', 'Stanza'],
+    callback => {
+      handle => [ 'class' ]
+    },
+    des => "When recieving an unknown stanza, one handler must run 'handle' callback with the class to bless stanza to or result is stream error.",
+};
+
+
 1;

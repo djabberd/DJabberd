@@ -205,8 +205,17 @@ sub on_stanza_received {
         $self->log_incoming_data($node);
     }
 
-    my $class = $element2class{$node->element} or
-        return $self->stream_error("unsupported-stanza-type");
+    my $class = $element2class{$node->element};
+    $self->vhost->hook_chain_fast("HandleStanza",
+                                  [ $node, $self ],
+                                  {
+                                      handle => sub {
+                                        my ($self, $handling_class) = @_;
+                                        $class = $handling_class;
+                                      },
+                                  }
+                                  ) unless $class;
+    return $self->stream_error("unsupported-stanza-type") unless $class;
 
     $DJabberd::Stats::counter{"ClientIn:$class"}++;
 

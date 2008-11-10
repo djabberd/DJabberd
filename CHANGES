@@ -1,3 +1,6 @@
+  - new hook chain called "HandleStanza" allows plugins to register 
+    for and then handle what would otherwise be unsupported-stanza-type
+
   - SSL memory leak fix (http://codereview.appspot.com/2326)
 
   - hook chain callback logging fix merged from 'kane-hacking' branch
