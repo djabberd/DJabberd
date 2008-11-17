@@ -281,7 +281,11 @@ sub start {
         $server->set_config_serverport($self->serverport);
         $server->set_config_clientport($self->clientport);
         $server->set_config_adminport($self->adminport) if $self->adminport;
-
+        
+        if( my $server_callback = shift ){
+          $server_callback->($server);
+        }
+        
         my $childpid = fork;
         if (!$childpid) {
             $server->run;

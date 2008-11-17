@@ -1,3 +1,6 @@
+  - new hook chain called "SendFeatures" allows plugins to add xml
+    to the stream:features stanza returned by the server
+
   - new hook chain called "HandleStanza" allows plugins to register 
     for and then handle what would otherwise be unsupported-stanza-type
 

@@ -184,5 +184,16 @@ $hook{'HandleStanza'} = {
     des => "When recieving an unknown stanza, one handler must run 'handle' callback with the class to bless stanza to or result is stream error.",
 };
 
+# SendFeatures hook is designed to allow plugins to send additional items in the stream:features stanza to clients.
+# Recipients of the SendFeatures hook must execute thier callbacks synchonously (blocking), 
+# or else we will fall though to sending only the default features.
+$hook{'SendFeatures'} = {
+  args => ['Connection'],
+  callback => {
+    stanza => [ 'xml_string' ]
+  },
+  des => "When features stanza is sent to the client right after stream start, adds extra xml to the contents of features.",
+};
+
 
 1;

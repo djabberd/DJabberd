@@ -650,6 +650,17 @@ sub start_stream_back {
             && !$self->isa("DJabberd::Connection::ServerIn")) {
             $features_body .= "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls' />";
         }
+        if( $self->vhost ){
+          $self->vhost->hook_chain_fast("SendFeatures",
+                                        [ $self ],
+                                        {
+                                            stanza => sub {
+                                              my ($self, $xml_string) = @_;
+                                              $features_body .= $xml_string;
+                                            },
+                                        }
+                                        );          
+        }
         $features = qq{<stream:features>$features_body</stream:features>};
     }
 
