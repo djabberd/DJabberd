@@ -1,3 +1,6 @@
+  - Don't treat hostnames that look like 192.168.0.1.domain.com as IP
+    addresses. (Reported by Domrachev Ivan <domrachev.ivan@gmail.com>).
+
   - new hook chain called "SendFeatures" allows plugins to add xml
     to the stream:features stanza returned by the server
 

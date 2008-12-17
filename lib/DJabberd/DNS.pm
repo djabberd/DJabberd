@@ -86,7 +86,7 @@ sub new {
     my $recurse_count = delete($opts{'recurse_count'}) || 0;
     croak "unknown opts" if %opts;
 
-    if ($hostname =~/^\d+\.\d+\.\d+\.\d+/) {
+    if ($hostname =~/^\d+\.\d+\.\d+\.\d+$/) {
         # we already have the IP, lets not looking it up
         $logger->debug("Skipping lookup for '$hostname', it is already the IP");
         $callback->(DJabberd::IPEndPoint->new($hostname, $port));
