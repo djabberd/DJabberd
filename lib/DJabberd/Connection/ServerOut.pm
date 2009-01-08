@@ -28,12 +28,18 @@ sub new {
         $queue->on_connection_failed("Cannot alloc socket");
         return;
     }
+    my $self = $class->SUPER::new($sock, $queue->vhost->server);
     IO::Handle::blocking($sock, 0);
     $ip = $endpt->addr;
+    my $localaddr = $queue->vhost->localaddr();
+    if ($localaddr) {
+        $self->log->debug("Binding outbound connection to $localaddr");
+        # XXX: support setting the local port too?
+        bind $sock, Socket::sockaddr_in(0, Socket::inet_aton($localaddr));
+    }
     connect $sock, Socket::sockaddr_in($endpt->port, Socket::inet_aton($ip));
     $DJabberd::Stats::counter{connect}++;
 
-    my $self = $class->SUPER::new($sock, $queue->vhost->server);
     $self->log->debug("Connecting to '$ip' for '$queue->{domain}'");
     $self->{state}     = "connecting";
     $self->{queue}     = $queue;

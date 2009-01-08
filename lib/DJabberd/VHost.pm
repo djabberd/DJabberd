@@ -19,6 +19,7 @@ sub new {
         's2s'           => delete $opts{s2s},
         'hooks'         => {},
         'server'        => undef,  # set when added to a server
+        'localaddr'     => delete $opts{localaddr},
 
         # local connections
         'jid2sock'      => {},  # bob@207.7.148.210/rez -> DJabberd::Connection
@@ -82,6 +83,11 @@ sub handles_domain {
 sub server_name {
     my $self = shift;
     return $self->{server_name};
+}
+
+sub localaddr {
+    my $self = shift;
+    return $self->{localaddr};
 }
 
 sub add_feature {
