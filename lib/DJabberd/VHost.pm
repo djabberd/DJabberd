@@ -13,33 +13,38 @@ sub new {
     my ($class, %opts) = @_;
 
     my $self = {
-        'server_name'   => lc(delete $opts{server_name} || ""),
-        'require_ssl'   => delete $opts{require_ssl},
-        's2s'           => delete $opts{s2s},
-        'hooks'         => {},
-        'server'        => undef,  # set when added to a server
+        'server_name'     => lc(delete $opts{server_name} || ""),
+        'require_ssl'     => delete $opts{require_ssl},
+        # I heard that there is sasl authentication in s2s too. Might want
+        # to revise the following accordingly
+        'sasl_optional'   => delete $opts{sasl_optional},
+        'sasl_mechanisms' => delete $opts{sasl_mechanisms},
+        'sasl_security'   => delete $opts{sasl_security},
+        's2s'             => delete $opts{s2s},
+        'hooks'           => {},
+        'server'          => undef,  # set when added to a server
 
         # local connections
-        'jid2sock'      => {},  # bob@207.7.148.210/rez -> DJabberd::Connection
-        'bare2fulls'    => {},  # barejids -> { fulljid -> 1 }
+        'jid2sock'        => {},  # bob@207.7.148.210/rez -> DJabberd::Connection
+        'bare2fulls'      => {},  # barejids -> { fulljid -> 1 }
 
-        'quirksmode'    => 1,
+        'quirksmode'      => 1,
 
-        'server_secret' => undef,  # server secret we use for dialback HMAC keys.  trumped
-                                   # if a plugin implements a cluster-wide keyed shared secret
+        'server_secret'   => undef,  # server secret we use for dialback HMAC keys.  trumped
+                                     # if a plugin implements a cluster-wide keyed shared secret
 
-        features        => [],     # list of features
+        features          => [],     # list of features
 
-        subdomain       => {},  # subdomain => plugin mapping of subdomains we should accept
+        subdomain         => {},  # subdomain => plugin mapping of subdomains we should accept
 
-        inband_reg      => 0,   # bool: inband registration
+        inband_reg        => 0,   # bool: inband registration
 
-        roster_cache    => {},  # $barejid_str -> DJabberd::Roster
+        roster_cache      => {},  # $barejid_str -> DJabberd::Roster
 
-        roster_wanters  => {},  # $barejid_str -> [ [$on_success, $on_fail]+ ]
+        roster_wanters    => {},  # $barejid_str -> [ [$on_success, $on_fail]+ ]
 
-        disco_kids      => {},  # $jid_str -> "Description" - children of this vhost for service discovery
-        plugin_types    => {},  # ref($plugin instance) -> 1
+        disco_kids        => {},  # $jid_str -> "Description" - children of this vhost for service discovery
+        plugin_types      => {},  # ref($plugin instance) -> 1
     };
 
     croak("Missing/invalid vhost name") unless
@@ -159,6 +164,78 @@ sub allow_inband_registration {
 sub set_config_requiressl {
     my ($self, $val) = @_;
     $self->{require_ssl} = as_bool($val);
+}
+
+sub set_config_sasloptional {
+    my ($self, $val) = @_;
+    $self->{sasl_optional} = as_bool($val);
+}
+
+sub set_config_saslmechanisms {
+    my ($self, $val) = @_;
+    $val =~ s/^\s*\b(.+)\b\s*$/$1/;
+    $self->{sasl_mechanisms} = $val;
+}
+
+sub set_config_saslsecurity {
+    my ($self, $val) = @_;
+    $val =~ s/^\s*\b(.+)\b\s*$/$1/;
+    $self->{sasl_security} = $val;
+}
+
+use Authen::SASL 'Perl';
+sub sasl {
+    my $self = shift;
+    my $mechanisms = $self->{sasl_mechanisms};
+    if (!$self->{sasl} && $mechanisms) {
+        $self->{sasl} = Authen::SASL->new(
+            debug => 8,
+            mechanism => $mechanisms,
+            callback => {
+                pass => sub {
+                    my $sasl = shift;
+                    my ($user, $authname, $realm) = @_;
+                    if ($vhost->are_hooks("GetPassword")) {
+        $vhost->run_hook_chain(phase => "GetPassword",
+                              args  => [ username => $username, conn => $conn ],
+                              methods => {
+                                  set => sub {
+                                      my (undef, $good_password) = @_;
+                                      if ($password && $password eq $good_password) {
+                                          $accept->();
+                                      } elsif ($digest) {
+                                          my $good_dig = lc(Digest::SHA1::sha1_hex($conn->{stream_id} . $good_password));
+                                          if ($good_dig eq $digest) {
+                                              $accept->();
+                                          } else {
+                                              $reject->();
+                                          }
+                                      } else {
+                                          $reject->();
+                                      }
+                                  },
+                              },
+                              fallback => $reject);
+    } elsif ($vhost->are_hooks("CheckDigest")) {
+        $vhost->run_hook_chain(phase => "CheckDigest",
+                              args => [ username => $username, conn => $conn, digest => $digest, resource => $resource ],
+                              methods => {
+                                  accept => $accept,
+                                  reject => $reject,
+                              });
+    } else {
+        $vhost->run_hook_chain(phase => "CheckCleartext",
+                              args => [ username => $username, conn => $conn, password => $password ],
+                              methods => {
+                                  accept => $accept,
+                                  reject => $reject,
+                              });
+    }
+                },
+            },
+        );
+    }
+    return $self->{sasl};
 }
 
 # true if vhost has s2s enabled
@@ -370,6 +447,7 @@ sub register_jid {
     my $barestr = $jid->as_bare_string;
     my $fullstr = $jid->as_string;
 
+    ## Yann asking: XXX is this scenario 2?
     if (my $econn = $self->{jid2sock}{$fullstr}) {
         $econn->stream_error("conflict");
     }

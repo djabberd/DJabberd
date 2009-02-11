@@ -264,6 +264,7 @@ sub start {
                                          server_name => $self->hostname,
                                          s2s         => 1,
                                          plugins     => $plugins,
+                                         sasl_mechanisms => "PLAIN DIGEST_MD5", # XXX
                                          );
         my $server = DJabberd->new;
         $server->set_config_unixdomainsocket($self->{unixdomainsocket}) if $self->{unixdomainsocket};
@@ -318,6 +319,7 @@ sub DESTROY {
 }
 
 package Test::DJabberd::Client;
+use MIME::Base64;
 use strict;
 
 use overload
@@ -526,18 +528,98 @@ sub connect {
     $self->{sock} = $sock
         or die "Cannot connect to server " . $self->server->id . " ($addr)";
 
-    my $to = $self->server->hostname;
 
+    $self->send_stream_start;
+    $self->{ss} = $self->get_stream_start();
+
+    my $features = $self->recv_xml;
+    warn "FEATURES: $features" if $ENV{TESTDEBUG};
+    die "no features" unless $features =~ /^<features\b/;
+    return 1;
+}
+
+sub send_stream_start {
+    my $self = shift;
+    my $sock = $self->{sock};
+    my $to = $self->server->hostname;
     print $sock "
    <stream:stream
        xmlns:stream='http://etherx.jabber.org/streams'
        xmlns='jabber:client' to='$to' version='1.0'>";
+}
 
-    $self->{ss} = $self->get_stream_start();
+sub sasl_login {
+    my $self = shift;
+    my $sasl = shift;
+    my $sec  = shift;
+
+    warn "connecting for login..\n" if $ENV{TESTDEBUG};
+    $self->connect or die "Failed to connect";
+
+    warn ".. connected after login.\n" if $ENV{TESTDEBUG};
+
+    my $ss = $self->{ss};
+    my $sock = $self->{sock};
+    my $to = $self->server->hostname;
+    my $conn = $sasl->client_new("xmpp", $to, $sec);
+
+    my $mechanism = $conn->mechanism;
+    my $init = $conn->client_start();
+    warn "sending conn auth...$init\n" if $ENV{TESTDEBUG};
+    $init = $init ? encode_base64($init, '') : "=";
+    print $sock "<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='$mechanism'>$init</auth>";
+
+    while ($conn->need_step) {
+        my $challenge = $self->recv_xml;
+        warn "challenge response: [$challenge]\n" if $ENV{TESTDEBUG};
+        die "didn't get reply" unless $challenge =~ /challenge\b/;
+        $challenge =~ s/^.*>(.+)<.*$/$1/sm;
+        $challenge = decode_base64($challenge);
+        warn "decoded challenge: [$challenge]\n" if $ENV{TESTDEBUG};
+
+        my $response = $conn->client_step($challenge);
+        warn "sending conn response [$response]\n" if $ENV{TESTDEBUG};
+        $response = encode_base64($response, '');
+        print $sock "<response>$response</response>";
+    }
+    if (my $error = $conn->error) {
+        die "error in SASL $error";
+    }
+
+    my $final = $self->recv_xml;
+    warn "auth result: [$final]\n" if $ENV{TESTDEBUG};
+
+    die "failure: $final" unless $final && $final =~ /success/;
+
+    $self->{ss} = undef;
+    delete $self->{ss};
+
+    $self->send_stream_start;
+    $self->get_stream_start;
 
     my $features = $self->recv_xml;
+    warn "FEATURES: $features" if $ENV{TESTDEBUG};
     die "no features" unless $features =~ /^<features\b/;
+    die "no bind"     unless $features =~ /bind\b/sm;
+    die "no session"  unless $features =~ /session\b/sm;
+
+    $self->bind_resource;
     return 1;
+}
+
+sub bind_resource {
+    my $self = shift;
+    my $sock = $self->{sock};
+
+    print $sock <<EOB;
+<iq type='set' id='purple81e4b57b'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>yann</resource></bind></iq>
+EOB
+    my $iq = $self->recv_xml_obj;
+    die "invalid bind response" unless $iq->element_name eq 'iq';
+    my $bind = $iq->first_element;
+    die "invalid bind response" unless $bind->element_name eq 'bind';
+    my $jid_el = $bind  ->first_element or die "no jid elt...";
+    my $jid    = $jid_el->first_child   or die "no jid...";
 }
 
 sub login {

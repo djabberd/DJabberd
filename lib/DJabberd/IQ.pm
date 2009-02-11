@@ -24,6 +24,8 @@ my $iq_handler = {
     'set-{jabber:iq:roster}query' => \&process_iq_setroster,
     'get-{jabber:iq:auth}query' => \&process_iq_getauth,
     'set-{jabber:iq:auth}query' => \&process_iq_setauth,
+    'set-{urn:ietf:params:xml:ns:xmpp-session}session' => \&process_iq_session,
+    'set-{urn:ietf:params:xml:ns:xmpp-bind}bind' => \&process_iq_bind,
     'get-{http://jabber.org/protocol/disco#info}query'  => \&process_iq_disco_info_query,
     'get-{http://jabber.org/protocol/disco#items}query' => \&process_iq_disco_items_query,
     'get-{jabber:iq:register}query' => \&process_iq_getregister,
@@ -585,6 +587,103 @@ sub process_iq_setauth {
     return 1;  # signal that we've handled it
 }
 
+## sessions have been deprecated, see appendix E of:
+## http://xmpp.org/internet-drafts/draft-saintandre-rfc3921bis-07.html
+## BUT, we have to advertise session support since, libpurple REQUIRES it
+## (sigh)
+sub process_iq_session {
+    my ($conn, $iq) = @_;
+
+    my $from = $iq->from;
+    my $id   = $iq->id;
+
+    my $xml = qq{<iq from='$from' type='result' id='$id'/>};
+    $conn->xmllog->info($xml);
+    $conn->write(\$xml);
+}
+
+sub process_iq_bind {
+    my ($conn, $iq) = @_;
+
+    # <iq type='set' id='purple88621b5d'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>yann</resource></bind></iq>
+    my $id = $iq->id;
+
+    my $query = $iq->bind
+        or die;
+
+    my $bindns = 'urn:ietf:params:xml:ns:xmpp-bind';
+    my @children = $query->children;
+
+    my $get = sub {
+        my $lname = shift;
+        foreach my $c (@children) {
+            next unless ref $c && $c->element eq "{$bindns}$lname";
+            my $text = $c->first_child;
+            return undef if ref $text;
+            return $text;
+        }
+        return undef;
+    };
+
+    my $resource = $get->("resource") || "";
+
+    my $vhost = $conn->vhost;
+
+    my $reject = sub {
+        ## probably need to be more elaborate than that XXX
+        my $xml = <<EOX;
+<iq id='$id' type='error'>
+    <error type='modify'>
+        <bad-request xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>
+    </error>
+</iq>
+EOX
+        $conn->xmllog->info($xml);
+        $conn->write(\$xml);
+        return 1;
+    };
+
+    my $sasl = $conn->{sasl} or die;
+
+    my $authjid = $conn->{sasl_authenticated_jid};
+
+    # register
+    my $jid = DJabberd::JID->new("$authjid/$resource");
+    # XXX check for conflicts
+
+    unless ($jid) {
+        $reject->();
+        return;
+    }
+
+    my $regcb = DJabberd::Callback->new({
+        registered => sub {
+            $conn->set_bound_jid($jid);
+            ## XXX wonder if this should go in SASL...
+            $DJabberd::Stats::counter{'auth_success'}++;
+            my $xml = <<EOX;
+<iq id='$id' type='result'>
+    <bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'>
+        <jid>$jid</jid>
+    </bind>
+</iq>
+EOX
+            $conn->xmllog->info($xml);
+            $conn->write(\$xml);
+        },
+        error => sub {
+            $reject->();
+        },
+        _post_fire => sub {
+            $conn = undef;
+            $iq   = undef;
+        },
+    });
+
+    $vhost->register_jid($jid, $conn, $regcb);
+    return 1;
+}
+
 sub process_iq_set_djabberd_test {
     my ($conn, $iq) = @_;
     # <iq type='set' id='foo'><query xmlns='djabberd:test'>some command</query></iq>
@@ -620,6 +719,10 @@ sub type {
     return $_[0]->attr("{}type");
 }
 
+sub from {
+    return $_[0]->attr("{}from");
+}
+
 sub query {
     my $self = shift;
     my $child = $self->first_element
@@ -627,6 +730,16 @@ sub query {
     my $ele = $child->element
         or return;
     return undef unless $child->element =~ /\}query$/;
+    return $child;
+}
+
+sub bind {
+    my $self = shift;
+    my $child = $self->first_element
+        or return;
+    my $ele = $child->element
+        or return;
+    return unless $child->element =~ /\}bind$/;
     return $child;
 }
 

@@ -19,6 +19,7 @@ use DJabberd::Connection::OldSSLClientIn;
 use DJabberd::Connection::Admin;
 
 use DJabberd::Stanza::StartTLS;
+use DJabberd::Stanza::SASL;
 use DJabberd::Stanza::StreamFeatures;
 use DJabberd::Stanza::DialbackVerify;
 use DJabberd::Stanza::DialbackResult;

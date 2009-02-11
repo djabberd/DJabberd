@@ -25,7 +25,8 @@ use fields (
             'in_stream',      # bool:  true if we're in a stream tag
             'counted_close',  # bool:  temporary here to track down the overcounting of disconnects
             'disconnect_handlers',  # array of coderefs to call when this connection is closed for any reason
-
+            'sasl',           # the sasl connection object, when sasl has been or is being negotiated
+            'sasl_authenticated_jid', # when sasl negotiation is successful
             );
 
 our $connection_id = 1;
@@ -650,16 +651,40 @@ sub start_stream_back {
             && !$self->isa("DJabberd::Connection::ServerIn")) {
             $features_body .= "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls' />";
         }
-        if( $self->vhost ){
-          $self->vhost->hook_chain_fast("SendFeatures",
-                                        [ $self ],
-                                        {
-                                            stanza => sub {
-                                              my ($self, $xml_string) = @_;
-                                              $features_body .= $xml_string;
-                                            },
-                                        }
-                                        );          
+        ## XXX I broke the formatting here :)
+        if (my $vh = $self->vhost) {
+            ## this connection might already have been SASL negotiated
+            ## send SASL features only if it's not the case and SASL is
+            ## configured
+            my $send_sasl_features;
+            if (my $sasl = $self->{sasl}) {
+                unless ($sasl->is_success) {
+                    $send_sasl_features = 1;
+                    # XXX should we send features after an error? $sasl->error
+                }
+            }
+            elsif ($vh->sasl) {
+                $send_sasl_features = 1;
+            }
+            if ($send_sasl_features) {
+                ## XXX should be more readable
+                my @mech = split /\s+/, $vh->{sasl_mechanisms};
+                my $xml_mechanisms =
+                    "<mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>";
+                $xml_mechanisms .= join "",
+                                map { "<mechanism>$_</mechanism>" } @mech;
+                $xml_mechanisms .= "<optional/>" if $vh->{sasl_optional};
+                $xml_mechanisms .= "</mechanisms>";
+                $features_body  .= $xml_mechanisms;
+            }
+            $vh->hook_chain_fast("SendFeatures",
+                                  [ $self ],
+                                  {
+                                      stanza => sub {
+                                        my ($self, $xml_string) = @_;
+                                      },
+                                  }
+                                  );
         }
         $features = qq{<stream:features>$features_body</stream:features>};
     }

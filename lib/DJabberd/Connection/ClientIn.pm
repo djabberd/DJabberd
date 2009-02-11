@@ -175,6 +175,7 @@ sub on_stream_start {
     $self->{in_stream} = 1;
 
     my $to_host = $ss->to;
+    DJabberd::Log->get_logger->info($to_host);
     my $vhost = $self->server->lookup_vhost($to_host);
     return $self->close_no_vhost($to_host)
         unless ($vhost);
@@ -183,10 +184,23 @@ sub on_stream_start {
 
     # FIXME: bitch if we're starting a stream when we already have one, and we aren't
     # expecting a new stream to start (like after SSL or SASL)
-    $self->start_stream_back($ss,
-                             namespace  => 'jabber:client',
-                             features   => qq{<auth xmlns='http://jabber.org/features/iq-auth'/>},
-                             );
+    ## check that logic XXX
+    my %opts = ( namespace => 'jabber:client' );
+    ## If sasl successfully completed, we shouldn't propose deprecated iq-auth method anymore
+    if ($self->{sasl} && $self->{sasl}->is_success) {
+        # XXX check in_stream as written above?
+        $opts{features} = qq{<bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><required/></bind>};
+        # The protocol for session establishment was determined to be unnecessary and
+        # therefore the content previously defined in Section 3 of RFC 3921
+        # was removed. However, for the sake of backward-compatibility server
+        # implementations are encouraged to advertise support for the feature,
+        # even though session establishment is a "no-op". 
+        $opts{features} .= qq{<session xmlns='urn:ietf:params:xml:ns:xmpp-session'/>};
+    }
+    else {
+        $opts{features} = qq{<auth xmlns='http://jabber.org/features/iq-auth'/>};
+    }
+    $self->start_stream_back($ss, %opts);
 }
 
 sub is_server { 0 }
@@ -195,7 +209,10 @@ my %element2class = (
              "{jabber:client}iq"       => 'DJabberd::IQ',
              "{jabber:client}message"  => 'DJabberd::Message',
              "{jabber:client}presence" => 'DJabberd::Presence',
-             "{urn:ietf:params:xml:ns:xmpp-tls}starttls"  => 'DJabberd::Stanza::StartTLS',
+             "{urn:ietf:params:xml:ns:xmpp-tls}starttls"   => 'DJabberd::Stanza::StartTLS',
+             "{urn:ietf:params:xml:ns:xmpp-sasl}auth"      => 'DJabberd::Stanza::SASL',
+             "{urn:ietf:params:xml:ns:xmpp-sasl}challenge" => 'DJabberd::Stanza::SASL',
+             "{urn:ietf:params:xml:ns:xmpp-sasl}response"  => 'DJabberd::Stanza::SASL',
              );
 
 sub on_stanza_received {
@@ -206,6 +223,7 @@ sub on_stanza_received {
     }
 
     my $class = $element2class{$node->element};
+    $self->log->debug("node is " . $node->as_xml);
     $self->vhost->hook_chain_fast("HandleStanza",
                                   [ $node, $self ],
                                   {
