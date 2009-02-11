@@ -1,12 +1,21 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Test::More tests => 46;
+use Test::More;
 use lib 't/lib';
 
 require 'djabberd-test.pl';
 
-use Authen::SASL 'Perl';
+BEGIN {
+    eval "use Authen::SASL 2.13";
+    if ($@) {
+        plan skip_all => 'Tests require Authen::SASL 2.13+';
+    }
+    else {
+        plan tests => 46;
+        eval "use Authen::SASL 'Perl';";
+    }
+}
 
 my $login_and_be = sub {
     my ($pa, $pb, $sasl, $res) = @_;

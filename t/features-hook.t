@@ -4,6 +4,9 @@ use Test::More tests => 11;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
+my $HAS_SASL;
+eval "use Authen::SASL 2.13";
+$HAS_SASL = 1 unless $@;
 
 sub connect_and_get_features{
    my $client = shift;
@@ -53,23 +56,26 @@ sub connect_and_get_features{
   }
   $server->kill;  
 
-  $server = Test::DJabberd::Server->new(id => 1);
-  $server->start( ); # by default we have SASL plugin enabled
-  my $client = Test::DJabberd::Client->new(server => $server, name => "client");
-  {
-     my $features = connect_and_get_features($client);
+  SKIP: {
+    skip "These tests require SASL", 8 unless $HAS_SASL;
+    $server = Test::DJabberd::Server->new(id => 1);
+    $server->start( ); # by default we have SASL plugin enabled
+    my $client = Test::DJabberd::Client->new(server => $server, name => "client");
+    {
+        my $features = connect_and_get_features($client);
 
-     like($features, qr{^<features xmlns='http://etherx.jabber.org/streams'>.*</features>$});
-     like($features, qr{<auth xmlns='http://jabber.org/features/iq-auth'/>});
-     like($features, qr{<mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>.*</mechanisms>});
-     like($features, qr{<optional/>}, "our test setup makes sasl optional, bc of history of djabberd");
-     for my $mech (qw/PLAIN DIGEST-MD5 LOGIN/) {
-         like($features, qr{<mechanism>$mech</mechanism>}, "supports $mech");
-     } 
+        like($features, qr{^<features xmlns='http://etherx.jabber.org/streams'>.*</features>$});
+        like($features, qr{<auth xmlns='http://jabber.org/features/iq-auth'/>});
+        like($features, qr{<mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>.*</mechanisms>});
+        like($features, qr{<optional/>}, "our test setup makes sasl optional, bc of history of djabberd");
+        for my $mech (qw/PLAIN DIGEST-MD5 LOGIN/) {
+            like($features, qr{<mechanism>$mech</mechanism>}, "supports $mech");
+        } 
 
-     like($features, qr{<mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>.*</mechanisms>});
-  }
-  $server->kill;  
+        like($features, qr{<mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>.*</mechanisms>});
+    }
+    $server->kill;  
+  };
 }
 
 

@@ -10,8 +10,14 @@ use DJabberd::Authen::StaticPassword;
 use DJabberd::TestSAXHandler;
 use DJabberd::RosterStorage::InMemoryOnly;
 use DJabberd::Util;
-use DJabberd::SASL::AuthenSASL;
 use IO::Socket::UNIX;
+
+my $HAS_SASL;
+eval "use Authen::SASL 2.13";
+unless ($@) {
+    require DJabberd::SASL::AuthenSASL;
+    $HAS_SASL = 1;
+}
 
 sub once_logged_in {
     my $cb = shift;
@@ -249,6 +255,11 @@ sub roster {
 
 sub standard_plugins {
     my $self = shift;
+    my @sasl;
+    @sasl = ( DJabberd::SASL::AuthenSASL->new(
+                mechanisms => "LOGIN PLAIN DIGEST-MD5",
+                optional   => "yes",
+            )) if $HAS_SASL;
     return [
             DJabberd::Authen::AllowedUsers->new(policy => "deny",
                                                 allowedusers => [qw(partya partyb)]),
@@ -257,10 +268,7 @@ sub standard_plugins {
             ($ENV{T_MUC_ENABLE} ? (DJabberd::Plugin::MUC->new(subdomain => 'conference')) : ()),
             DJabberd::Delivery::Local->new,
             DJabberd::Delivery::S2S->new,
-            DJabberd::SASL::AuthenSASL->new(
-                mechanisms => "LOGIN PLAIN DIGEST-MD5",
-                optional   => "yes",
-            ),
+            @sasl
             ];
 }
 
