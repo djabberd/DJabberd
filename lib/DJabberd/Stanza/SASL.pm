@@ -15,6 +15,7 @@ use MIME::Base64 qw/encode_base64 decode_base64/;
 ## - invalid-authzid
 ## - temporary-auth-failure
 ## these hooks should probably additions to parameters taken by GetPassword, CheckClearText
+## right now all these errors results in not-authorized being returned
 
 sub on_recv_from_client {
     my $self = shift;
@@ -42,19 +43,14 @@ sub handle_auth {
     my ($self, $conn) = @_;
 
     my $vhost = $conn->vhost
-        # XXX
-        or die "Send a proper error here"; # For now it must exists
+        or die "There is no VHost for this connection";
 
     my $sasl = $vhost->sasl
-        # XXX
-        or die "Send a proper error here";
+        or return $self->send_failure("invalid-mechanism" => $conn);
 
     ## TODO: §7.4.4.  encryption-required
 
-    ## XXX should use a hash stored in vh directly
     my $mechanism = $self->attr("{}mechanism");
-
-    #XXX proper error
     return $self->send_failure("invalid-mechanism" => $conn)
         unless $vhost->{sasl_mechanisms} =~ /$mechanism/;
 
@@ -124,13 +120,15 @@ sub handle_response {
     my $self = shift;
     my ($conn) = @_;
 
-    my $sasl = $conn->{sasl};
+    my $sasl = $conn->{sasl}
+        or return $self->send_failure("malformed-request" => $conn);
+
     if (my $error = $sasl->error) {
-        $self->send_failure($error => $conn);
-        return;
+        return $self->send_failure("not-authorized" => $conn);
     }
     if (! $sasl->need_step) {
-        die "Weird this shouldn't happen ? XXX " . $sasl->is_success;
+        $conn->log->info("sasl negotiation unexpected end");
+        return $self->send_failure("malformed-request" => $conn);
     }
 
     my $response = $self->first_child;
@@ -138,7 +136,6 @@ sub handle_response {
     $conn->log->info("Got the response $response");
 
     my $challenge = $sasl->server_step($response);
-
     return $self->send_reply($sasl, $challenge => $conn);
 }
 
