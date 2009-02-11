@@ -27,8 +27,13 @@ sub get_sasl_manager {
         or die "No VHost for this connection";
 
     my $class = $self->manager_class || $default;
-    eval "use $class; 1;";
-    die $@ if $@;
+
+    no strict 'refs';
+    unless (defined ${"${class}::"}) {
+        eval "use $class"; ## no critic
+        die $@ if $@;
+    }
+
     return $class->new($self, $conn);
 }
 
