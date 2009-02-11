@@ -14,10 +14,16 @@ use IO::Socket::UNIX;
 
 sub once_logged_in {
     my $cb = shift;
+    my $sasl = shift;
     my $server = Test::DJabberd::Server->new(id => 1);
     $server->start;
     my $pa = Test::DJabberd::Client->new(server => $server, name => "partya");
-    $pa->login;
+    if ($sasl) {
+        $pa->sasl_login($sasl);
+    }
+    else {
+        $pa->login;
+    }
     $cb->($pa);
     $server->kill;
 }
@@ -573,7 +579,7 @@ sub sasl_login {
     while ($conn->need_step) {
         my $challenge = $self->recv_xml;
         warn "challenge response: [$challenge]\n" if $ENV{TESTDEBUG};
-        die "didn't get reply $challenge" unless $challenge =~ /challenge|success\b/;
+        die "Didn't get expected response: $challenge" unless $challenge =~ /challenge|success\b/;
         $challenge =~ s/^.*>(.+)<.*$/$1/sm;
         $challenge = decode_base64($challenge);
         warn "decoded challenge: [$challenge]\n" if $ENV{TESTDEBUG};
