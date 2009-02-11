@@ -154,7 +154,7 @@ sub ack_success {
     }
     $conn->xmllog->info($xml);
     $conn->write(\$xml);
-    if ($sasl_conn->property('ssf') > 0) {
+    if (($sasl_conn->property('ssf') || 0) > 0) {
         $conn->log->info("SASL: Securing socket");
         $conn->log->warn("This will probably NOT work");
         $sasl_conn->securesocket($conn);
