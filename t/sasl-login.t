@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Test::More tests => 20;
+use Test::More tests => 26;
 use lib 't/lib';
 
 require 'djabberd-test.pl';
@@ -41,7 +41,7 @@ my $login_and_be = sub {
     }
 }
 
-## From now on, we'll reuse the same server
+# a server available for tests using the common setup
 my $server = Test::DJabberd::Server->new(id => 1);
 $server->start;
 
@@ -81,11 +81,15 @@ $server->start;
 
 ## invalid mechanism
 {
-    my $strong_server = Test::DJabberd::Server->new(
-        id => 2,
-        sasl_opts => { sasl_mechanisms => "DIGEST-MD5" },
+    my $strong_server = Test::DJabberd::Server->new( id => 2, );
+    my $sasl_plugin =  DJabberd::SASL::AuthenSASL->new(
+        mechanisms => "DIGEST-MD5", 
+        optional   => "yes"
     );
-    $strong_server->start;
+
+    my $plugins = [ @{$strong_server->std_plugins_sans_sasl}, $sasl_plugin ];
+
+    $strong_server->start($plugins);
     my $sasl = Authen::SASL->new(
         mechanism => "PLAIN",
         callback  => {
@@ -98,4 +102,33 @@ $server->start;
     eval { $pa->sasl_login($sasl) };
     my $err = $@;
     like $err, qr{failure.*<invalid-mechanism/>};
+    $strong_server->kill;
 }
+
+## someone binding without authenticating
+{
+    my $pa = Test::DJabberd::Client->new(server => $server, name => "partya");
+    $pa->connect or die "Failed to connect";
+    my $sock = $pa->{sock};
+
+    my $fail = sub {
+        my $r = $pa->recv_xml;
+        like $r, qr{<iq .* type='error'>.*</iq>}sm;
+        like $r, qr{<error type='cancel'>.*</error>}sm;
+        like $r, qr{<not-allowed xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>}sm;
+    };
+
+    print $sock "<iq id='bind_1' type='set'>
+                    <bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/>
+                </iq>";
+    $fail->();
+
+    print $sock '<auth xmlns="urn:ietf:params:xml:ns:xmpp-sasl" mechanism="DIGEST-MD5" />';
+    $pa->recv_xml;
+    print $sock "<iq id='bind_1' type='set'>
+                    <bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'/>
+                </iq>";
+    $fail->();
+}
+
+$server->kill;

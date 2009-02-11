@@ -5,7 +5,6 @@ use Carp qw(croak);
 use DJabberd::Util qw(tsub as_bool);
 use DJabberd::Log;
 use DJabberd::Roster;
-use Authen::SASL 'Perl';
 
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
@@ -14,38 +13,33 @@ sub new {
     my ($class, %opts) = @_;
 
     my $self = {
-        'server_name'     => lc(delete $opts{server_name} || ""),
-        'require_ssl'     => delete $opts{require_ssl},
-        # I heard that there is sasl authentication in s2s too. Might want
-        # to revise the following accordingly
-        'sasl_optional'   => delete $opts{sasl_optional},
-        'sasl_mechanisms' => delete $opts{sasl_mechanisms},
-        'sasl_security'   => delete $opts{sasl_security},
-        's2s'             => delete $opts{s2s},
-        'hooks'           => {},
-        'server'          => undef,  # set when added to a server
+        'server_name'   => lc(delete $opts{server_name} || ""),
+        'require_ssl'   => delete $opts{require_ssl},
+        's2s'           => delete $opts{s2s},
+        'hooks'         => {},
+        'server'        => undef,  # set when added to a server
 
         # local connections
-        'jid2sock'        => {},  # bob@207.7.148.210/rez -> DJabberd::Connection
-        'bare2fulls'      => {},  # barejids -> { fulljid -> 1 }
+        'jid2sock'      => {},  # bob@207.7.148.210/rez -> DJabberd::Connection
+        'bare2fulls'    => {},  # barejids -> { fulljid -> 1 }
 
-        'quirksmode'      => 1,
+        'quirksmode'    => 1,
 
-        'server_secret'   => undef,  # server secret we use for dialback HMAC keys.  trumped
-                                     # if a plugin implements a cluster-wide keyed shared secret
+        'server_secret' => undef,  # server secret we use for dialback HMAC keys.  trumped
+                                   # if a plugin implements a cluster-wide keyed shared secret
 
-        features          => [],     # list of features
+        features        => [],     # list of features
 
-        subdomain         => {},  # subdomain => plugin mapping of subdomains we should accept
+        subdomain       => {},  # subdomain => plugin mapping of subdomains we should accept
 
-        inband_reg        => 0,   # bool: inband registration
+        inband_reg      => 0,   # bool: inband registration
 
-        roster_cache      => {},  # $barejid_str -> DJabberd::Roster
+        roster_cache    => {},  # $barejid_str -> DJabberd::Roster
 
-        roster_wanters    => {},  # $barejid_str -> [ [$on_success, $on_fail]+ ]
+        roster_wanters  => {},  # $barejid_str -> [ [$on_success, $on_fail]+ ]
 
-        disco_kids        => {},  # $jid_str -> "Description" - children of this vhost for service discovery
-        plugin_types      => {},  # ref($plugin instance) -> 1
+        disco_kids      => {},  # $jid_str -> "Description" - children of this vhost for service discovery
+        plugin_types    => {},  # ref($plugin instance) -> 1
     };
 
     croak("Missing/invalid vhost name") unless
@@ -165,82 +159,6 @@ sub allow_inband_registration {
 sub set_config_requiressl {
     my ($self, $val) = @_;
     $self->{require_ssl} = as_bool($val);
-}
-
-sub set_config_sasloptional {
-    my ($self, $val) = @_;
-    $self->{sasl_optional} = as_bool($val);
-}
-
-sub set_config_saslmechanisms {
-    my ($self, $val) = @_;
-    $val =~ s/^\s*\b(.+)\b\s*$/$1/;
-    $self->{sasl_mechanisms} = $val;
-    $self->{sasl} = undef;
-}
-
-sub set_config_saslsecurity {
-    my ($self, $val) = @_;
-    $val =~ s/^\s*\b(.+)\b\s*$/$1/;
-    $self->{sasl_security} = $val;
-    $self->{sasl} = undef;
-}
-
-sub sasl {
-    my $self = shift;
-    unless ($self->{sasl}) {
-        if (my $mechanisms = $self->{sasl_mechanisms}) {
-            $self->{sasl} = DJabberd::SASL->new($mechanisms);
-        }
-    }
-    return $self->{sasl};
-}
-
-sub sasl {
-    my $self = shift;
-    my $mechanisms = $self->{sasl_mechanisms};
-    if (!$self->{sasl} && $mechanisms) {
-        $self->{sasl} = Authen::SASL->new(
-            mechanism => $mechanisms,
-            callback => {
-                 checkpass => sub {
-                    my $sasl  = shift;
-                    my ($user, $pass, $realm) = @_;
-
-                    my $success;
-                    if ($self->are_hooks("CheckCleartext")) {
-                        $self->run_hook_chain(phase => "CheckCleartext",
-                              args  => [ username => $user, password => $pass ], # no connection XXX
-                              methods => {
-                                  accept => sub { $success = 1 },
-                                  reject => sub { $success = 0 },
-                              },
-                        );
-                    }
-                    return $success;
-                },
-                getsecret => sub {
-                    my $sasl  = shift;
-                    my ($user, $authname) = @_;
-                    my $pass;
-
-                    if ($self->are_hooks("GetPassword")) {
-                        $self->run_hook_chain(phase => "GetPassword",
-                              args  => [ username => $user, ], # no connection XXX
-                              methods => {
-                                  set => sub {
-                                      my (undef, $good_password) = @_;
-                                      $pass = $good_password;
-                                  },
-                              },
-                        );
-                    }
-                    return $pass;
-                },
-            },
-        );
-    }
-    return $self->{sasl};
 }
 
 # true if vhost has s2s enabled
@@ -452,7 +370,6 @@ sub register_jid {
     my $barestr = $jid->as_bare_string;
     my $fullstr = $jid->as_string;
 
-    ## Yann asking: XXX is this scenario 2?
     if (my $econn = $self->{jid2sock}{$fullstr}) {
         $econn->stream_error("conflict");
     }

@@ -3,9 +3,9 @@ use strict;
 use warnings;
 use base qw(DJabberd::Stanza);
 
-sub on_recv_from_server { die "unimplemented" }
-
 use MIME::Base64 qw/encode_base64 decode_base64/;
+
+sub on_recv_from_server { die "unimplemented" }
 
 ## TODO:
 ## check number of auth failures, force deconnection, bad for t time §7.3.5 policy-violation
@@ -31,7 +31,7 @@ sub on_recv_from_client {
 }
 
 ## supports §7.3.4, §7.4.1
-## handle: <abort xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>
+## handles: <abort xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>
 sub handle_abort {
     my ($self, $conn) = @_;
 
@@ -39,23 +39,58 @@ sub handle_abort {
     return;
 }
 
+sub handle_response {
+    my $self = shift;
+    my ($conn) = @_;
+
+    my $sasl = $conn->sasl
+        or return $self->send_failure("malformed-request" => $conn);
+
+    if (my $error = $sasl->error) {
+        return $self->send_failure("not-authorized" => $conn);
+    }
+    if (! $sasl->need_step) {
+        $conn->log->info("sasl negotiation unexpected end");
+        return $self->send_failure("malformed-request" => $conn);
+    }
+
+    my $response = $self->first_child;
+    $response = $self->decode($response);
+    $conn->log->info("Got the response $response");
+
+    my $challenge = $sasl->server_step($response);
+    return $self->send_reply($sasl, $challenge => $conn);
+}
+
 sub handle_auth {
     my ($self, $conn) = @_;
 
-    my $vhost = $conn->vhost
-        or die "There is no VHost for this connection";
+    my $fallback = sub {
+        $self->send_failure("invalid-mechanism" => $conn);
+    };
 
-    my $sasl = $vhost->sasl
-        or return $self->send_failure("invalid-mechanism" => $conn);
+    my $vhost = $conn->vhost
+        or die "There is no vhost";
+
+    my $saslmgr;
+    $vhost->run_hook_chain( phase => "GetSASLManager",
+                           args  => [ conn => $conn ],
+                           methods => {
+                               get => sub {
+                                    (undef, $saslmgr) = @_;
+                               },
+                           },
+                           fallback => $fallback,
+    );
+    die "no SASL" unless $saslmgr; 
 
     ## TODO: §7.4.4.  encryption-required
-
     my $mechanism = $self->attr("{}mechanism");
     return $self->send_failure("invalid-mechanism" => $conn)
-        unless $vhost->{sasl_mechanisms} =~ /$mechanism/;
+        unless $saslmgr->is_mechanism_supported($mechanism);
 
-    $sasl->mechanism($mechanism);
-    my $sasl_conn = $sasl->server_new("xmpp", $vhost->server_name);
+    $saslmgr->mechanism($mechanism);
+    my $sasl_conn = $saslmgr->server_new("xmpp", $vhost->server_name);
     $conn->{sasl} = $sasl_conn;
 
     my $init = $self->first_child;
@@ -95,13 +130,17 @@ EOF
 
 sub ack_success {
     my $self = shift;
-    my ($challenge, $conn) = @_;
+    my ($sasl_conn, $challenge, $conn) = @_;
 
-    # I can't say I know what I'm doing XXX
-    my $sasl     = $conn->{sasl};
-    my $username = $sasl->answer('username') || $sasl->answer('user');
-    my $sname    = $conn->vhost->name;
-    $conn->{sasl_authenticated_jid} = "$username\@$sname";
+    my $username = $sasl_conn->answer('username') || $sasl_conn->answer('user');
+    my $sname = $conn->vhost->name;
+    unless ($username && $sname) {
+        $conn->log->error("Couldn't bind to a jid, declining.");
+        $self->send_failure("not-authorized" => $conn);
+        return;
+    }
+    my $authenticated_jid = "$username\@$sname";
+    $sasl_conn->set_authenticated_jid($authenticated_jid);
 
     my $xml;
     if (defined $challenge) {
@@ -114,29 +153,6 @@ sub ack_success {
     $conn->xmllog->info($xml);
     $conn->write(\$xml);
     $conn->restart_stream;
-}
-
-sub handle_response {
-    my $self = shift;
-    my ($conn) = @_;
-
-    my $sasl = $conn->{sasl}
-        or return $self->send_failure("malformed-request" => $conn);
-
-    if (my $error = $sasl->error) {
-        return $self->send_failure("not-authorized" => $conn);
-    }
-    if (! $sasl->need_step) {
-        $conn->log->info("sasl negotiation unexpected end");
-        return $self->send_failure("malformed-request" => $conn);
-    }
-
-    my $response = $self->first_child;
-    $response = $self->decode($response);
-    $conn->log->info("Got the response $response");
-
-    my $challenge = $sasl->server_step($response);
-    return $self->send_reply($sasl, $challenge => $conn);
 }
 
 sub encode {
@@ -159,7 +175,7 @@ sub send_reply {
         $self->send_failure("not-authorized" => $conn);
     }
     elsif ($sasl_conn->is_success) {
-        $self->ack_success($challenge => $conn);
+        $self->ack_success($sasl_conn, $challenge => $conn);
     }
     else {
         $self->send_challenge($challenge => $conn);

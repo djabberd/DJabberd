@@ -630,7 +630,6 @@ sub process_iq_bind {
     my $vhost = $conn->vhost;
 
     my $reject = sub {
-        ## probably need to be more elaborate than that XXX
         my $xml = <<EOX;
 <iq id='$id' type='error'>
     <error type='modify'>
@@ -643,13 +642,31 @@ EOX
         return 1;
     };
 
-    my $sasl = $conn->{sasl} or die;
+    ## rfc3920 §8.4.2.2
+    my $cancel = sub {
+        my $reason = shift || "no reason";
+        my $xml = <<EOX;
+<iq id='$id' type='error'>
+     <error type='cancel'>
+       <not-allowed
+           xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>
+     </error>
+   </iq>
+EOX
+        $conn->log->error("Reject bind request: $reason");
+        $conn->xmllog->info($xml);
+        $conn->write(\$xml);
+        return 1;
+    };
 
-    my $authjid = $conn->{sasl_authenticated_jid};
+    my $sasl = $conn->sasl
+        or return $cancel->("no sasl");
+
+    my $authjid = $conn->sasl->authenticated_jid
+        or return $cancel->("no authenticated_jid");
 
     # register
     my $jid = DJabberd::JID->new("$authjid/$resource");
-    # XXX check for conflicts
 
     unless ($jid) {
         $reject->();
@@ -659,7 +676,6 @@ EOX
     my $regcb = DJabberd::Callback->new({
         registered => sub {
             $conn->set_bound_jid($jid);
-            ## XXX wonder if this should go in SASL...
             $DJabberd::Stats::counter{'auth_success'}++;
             my $xml = <<EOX;
 <iq id='$id' type='result'>

@@ -26,7 +26,6 @@ use fields (
             'counted_close',  # bool:  temporary here to track down the overcounting of disconnects
             'disconnect_handlers',  # array of coderefs to call when this connection is closed for any reason
             'sasl',           # the sasl connection object, when sasl has been or is being negotiated
-            'sasl_authenticated_jid', # when sasl negotiation is successful
             );
 
 our $connection_id = 1;
@@ -419,6 +418,13 @@ sub ssl {
     return $self->{ssl};
 }
 
+# return the DJabberd::SASL::Connection object attached to this connection
+# if SASL is being or has been negotiated
+sub sasl {
+    my $self = shift;
+    return $self->{sasl};
+}
+
 # called by Danga::Socket when a write doesn't fully go through.  by default it
 # enables writability.  but we want to do nothing if we're waiting for a read for SSL
 sub on_incomplete_write {
@@ -651,37 +657,13 @@ sub start_stream_back {
             && !$self->isa("DJabberd::Connection::ServerIn")) {
             $features_body .= "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls' />";
         }
-        ## XXX I broke the formatting here :)
         if (my $vh = $self->vhost) {
-            ## this connection might already have been SASL negotiated
-            ## send SASL features only if it's not the case and SASL is
-            ## configured
-            my $send_sasl_features;
-            if (my $sasl = $self->{sasl}) {
-                unless ($sasl->is_success) {
-                    $send_sasl_features = 1;
-                    # XXX should we send features after an error? $sasl->error
-                }
-            }
-            elsif ($vh->sasl) {
-                $send_sasl_features = 1;
-            }
-            if ($send_sasl_features) {
-                ## XXX should be more readable
-                my @mech = split /\s+/, $vh->{sasl_mechanisms};
-                my $xml_mechanisms =
-                    "<mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>";
-                $xml_mechanisms .= join "",
-                                map { "<mechanism>$_</mechanism>" } @mech;
-                $xml_mechanisms .= "<optional/>" if $vh->{sasl_optional};
-                $xml_mechanisms .= "</mechanisms>";
-                $features_body  .= $xml_mechanisms;
-            }
             $vh->hook_chain_fast("SendFeatures",
                                   [ $self ],
                                   {
                                       stanza => sub {
                                         my ($self, $xml_string) = @_;
+                                        $features_body .= $xml_string;
                                       },
                                   }
                                   );

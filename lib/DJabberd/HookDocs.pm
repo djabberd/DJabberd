@@ -195,5 +195,12 @@ $hook{'SendFeatures'} = {
   des => "When features stanza is sent to the client right after stream start, adds extra xml to the contents of features.",
 };
 
+$hook{'GetSASLManager'} = {
+    des => "return a SASL Manager object for handling SASL negotiation",
+    args => [ "conn" => 'Connection' ],
+    callbacks => {
+        get => [],
+    },
+};
 
 1;

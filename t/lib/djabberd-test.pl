@@ -10,6 +10,7 @@ use DJabberd::Authen::StaticPassword;
 use DJabberd::TestSAXHandler;
 use DJabberd::RosterStorage::InMemoryOnly;
 use DJabberd::Util;
+use DJabberd::SASL::AuthenSASL;
 use IO::Socket::UNIX;
 
 sub once_logged_in {
@@ -256,7 +257,16 @@ sub standard_plugins {
             ($ENV{T_MUC_ENABLE} ? (DJabberd::Plugin::MUC->new(subdomain => 'conference')) : ()),
             DJabberd::Delivery::Local->new,
             DJabberd::Delivery::S2S->new,
+            DJabberd::SASL::AuthenSASL->new(
+                mechanisms => "LOGIN PLAIN DIGEST-MD5",
+                optional   => "yes"
+            ),
             ];
+}
+
+sub std_plugins_sans_sasl {
+    my $self = shift;
+    return [ grep { ref($_) !~ /SASL/ } @{ $self->standard_plugins }  ];
 }
 
 sub start {
@@ -265,14 +275,10 @@ sub start {
 
     if ($type eq "djabberd") {
         my $plugins = shift || ($PLUGIN_CB ? $PLUGIN_CB->($self) : $self->standard_plugins);
-        my $sasl_opts = $self->{sasl_opts}
-                      || { sasl_mechanisms => "LOGIN PLAIN DIGEST-MD5" };
-
         my $vhost = DJabberd::VHost->new(
                                          server_name => $self->hostname,
                                          s2s         => 1,
                                          plugins     => $plugins,
-                                         %$sasl_opts,
                                          );
         my $server = DJabberd->new;
         $server->set_config_unixdomainsocket($self->{unixdomainsocket}) if $self->{unixdomainsocket};

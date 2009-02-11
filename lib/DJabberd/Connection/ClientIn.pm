@@ -184,11 +184,9 @@ sub on_stream_start {
 
     # FIXME: bitch if we're starting a stream when we already have one, and we aren't
     # expecting a new stream to start (like after SSL or SASL)
-    ## check that logic XXX
     my %opts = ( namespace => 'jabber:client' );
     ## If sasl successfully completed, we shouldn't propose deprecated iq-auth method anymore
-    if ($self->{sasl} && $self->{sasl}->is_success) {
-        # XXX check in_stream as written above?
+    if ($self->sasl && $self->sasl->authenticated_jid) {
         $opts{features} = qq{<bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><required/></bind>};
         # The protocol for session establishment was determined to be unnecessary and
         # therefore the content previously defined in Section 3 of RFC 3921
@@ -209,11 +207,7 @@ my %element2class = (
              "{jabber:client}iq"       => 'DJabberd::IQ',
              "{jabber:client}message"  => 'DJabberd::Message',
              "{jabber:client}presence" => 'DJabberd::Presence',
-             "{urn:ietf:params:xml:ns:xmpp-tls}starttls"   => 'DJabberd::Stanza::StartTLS',
-             "{urn:ietf:params:xml:ns:xmpp-sasl}auth"      => 'DJabberd::Stanza::SASL',
-             "{urn:ietf:params:xml:ns:xmpp-sasl}challenge" => 'DJabberd::Stanza::SASL',
-             "{urn:ietf:params:xml:ns:xmpp-sasl}response"  => 'DJabberd::Stanza::SASL',
-             "{urn:ietf:params:xml:ns:xmpp-sasl}abort"     => 'DJabberd::Stanza::SASL',
+             "{urn:ietf:params:xml:ns:xmpp-tls}starttls" => 'DJabberd::Stanza::StartTLS',
              );
 
 sub on_stanza_received {
