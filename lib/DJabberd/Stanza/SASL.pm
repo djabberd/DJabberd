@@ -8,22 +8,29 @@ sub on_recv_from_server { die "unimplemented" }
 use MIME::Base64 qw/encode_base64 decode_base64/;
 
 ## TODO:
-## support 7.3.4, 7.4.1 <abort xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>
 ## check number of auth failures, force deconnection, bad for t time 7.3.5 policy-violation
 
 
 sub on_recv_from_client {
     my ($self, $conn) = @_;
 
-    #return $self->handle_abort($conn)
-    #    if $self->element_name eq 'abort';
+    return $self->handle_abort($conn)
+        if $self->element_name eq 'abort';
+
     return $self->handle_response($conn)
         if $self->element_name eq 'response';
 
     return $self->handle_auth($conn)
         if $self->element_name eq 'auth';
+}
 
-    die "XXX failure";
+## support 7.3.4, 7.4.1
+## handle: <abort xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>
+sub handle_abort {
+    my ($self, $conn) = @_;
+
+    $self->send_failure("aborted" => $conn);
+    return;
 }
 
 sub handle_auth {

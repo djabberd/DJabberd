@@ -213,6 +213,7 @@ my %element2class = (
              "{urn:ietf:params:xml:ns:xmpp-sasl}auth"      => 'DJabberd::Stanza::SASL',
              "{urn:ietf:params:xml:ns:xmpp-sasl}challenge" => 'DJabberd::Stanza::SASL',
              "{urn:ietf:params:xml:ns:xmpp-sasl}response"  => 'DJabberd::Stanza::SASL',
+             "{urn:ietf:params:xml:ns:xmpp-sasl}abort"     => 'DJabberd::Stanza::SASL',
              );
 
 sub on_stanza_received {

@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 4;
+use warnings;
+use Test::More tests => 19;
 use lib 't/lib';
 
 require 'djabberd-test.pl';
@@ -40,10 +41,12 @@ my $login_and_be = sub {
     }
 }
 
+## From now on, we'll reuse the same server
+my $server = Test::DJabberd::Server->new(id => 1);
+$server->start;
+
 ## login failures
 {
-    my $server = Test::DJabberd::Server->new(id => 1);
-    $server->start;
     for my $mechanism (qw/PLAIN LOGIN DIGEST-MD5/) {
         my $sasl = Authen::SASL->new(
             mechanism => $mechanism,
@@ -59,4 +62,19 @@ my $login_and_be = sub {
         ok $err, "login failure";
         like $err, qr{failure.*<not-authorized/>};
     }
+}
+
+## abort
+{
+    my $sasl = Authen::SASL->new(
+        mechanism => "DIGEST-MD5",
+        callback  => {
+            pass => "incorrect pass",
+            user => "partya",
+        },
+    );
+
+    my $pa = Test::DJabberd::Client->new(server => $server, name => "partya");
+    my $response = $pa->abort_sasl_login($sasl);
+    like $response, qr{failure.*<aborted/>};
 }

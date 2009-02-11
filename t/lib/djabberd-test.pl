@@ -265,12 +265,14 @@ sub start {
 
     if ($type eq "djabberd") {
         my $plugins = shift || ($PLUGIN_CB ? $PLUGIN_CB->($self) : $self->standard_plugins);
+        my $sasl_opts = $self->{sasl_opts}
+                      || { sasl_mechanisms => "LOGIN PLAIN DIGEST-MD5" };
 
         my $vhost = DJabberd::VHost->new(
                                          server_name => $self->hostname,
                                          s2s         => 1,
                                          plugins     => $plugins,
-                                         sasl_mechanisms => "LOGIN PLAIN DIGEST-MD5", # XXX
+                                         %$sasl_opts,
                                          );
         my $server = DJabberd->new;
         $server->set_config_unixdomainsocket($self->{unixdomainsocket}) if $self->{unixdomainsocket};
@@ -631,6 +633,27 @@ EOB
     die "invalid bind response" unless $bind->element_name eq 'bind';
     my $jid_el = $bind  ->first_element or die "no jid elt...";
     my $jid    = $jid_el->first_child   or die "no jid...";
+}
+
+sub abort_sasl_login {
+    my $self = shift;
+    my $sasl = shift;
+    my $sec  = shift;
+
+    $self->connect or die "Failed to connect";
+    my $ss = $self->{ss};
+    my $sock = $self->{sock};
+    my $to = $self->server->hostname;
+    my $conn = $sasl->client_new("xmpp", $to, $sec);
+
+    my $mechanism = $conn->mechanism;
+    my $init = $conn->client_start();
+    $init = $init ? encode_base64($init, '') : "=";
+    print $sock "<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='$mechanism'>$init</auth>";
+
+    my $challenge = $self->recv_xml;
+    print $sock "<abort xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>";
+    return $self->recv_xml;
 }
 
 sub login {
