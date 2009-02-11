@@ -127,7 +127,7 @@ sub handle_response {
         $self->ack_success($conn);
     }
     else {
-        $conn->send_challenge($conn, $challenge);
+        $self->send_challenge($conn, $challenge);
     }
     return;
 }

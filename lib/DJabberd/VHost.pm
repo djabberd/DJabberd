@@ -192,45 +192,39 @@ sub sasl {
             debug => 8,
             mechanism => $mechanisms,
             callback => {
-                pass => sub {
-                    my $sasl = shift;
-                    my ($user, $authname, $realm) = @_;
-                    if ($vhost->are_hooks("GetPassword")) {
-        $vhost->run_hook_chain(phase => "GetPassword",
-                              args  => [ username => $username, conn => $conn ],
+                 checkpass => sub {
+                    my $sasl  = shift;
+                    my ($user, $pass, $realm) = @_;
+
+                    my $success;
+                    if ($self->are_hooks("CheckCleartext")) {
+                        $self->run_hook_chain(phase => "CheckCleartext",
+                              args  => [ username => $user, password => $pass ], # no connection XXX
+                              methods => {
+                                  accept => sub { $success = 1 },
+                                  reject => sub { $success = 0 },
+                              },
+                        );
+                    }
+                    return $success;
+                },
+                getsecret => sub {
+                    my $sasl  = shift;
+                    my ($user, $authname) = @_;
+                    my $pass;
+
+                    if ($self->are_hooks("GetPassword")) {
+                        $self->run_hook_chain(phase => "GetPassword",
+                              args  => [ username => $user, ], # no connection XXX
                               methods => {
                                   set => sub {
                                       my (undef, $good_password) = @_;
-                                      if ($password && $password eq $good_password) {
-                                          $accept->();
-                                      } elsif ($digest) {
-                                          my $good_dig = lc(Digest::SHA1::sha1_hex($conn->{stream_id} . $good_password));
-                                          if ($good_dig eq $digest) {
-                                              $accept->();
-                                          } else {
-                                              $reject->();
-                                          }
-                                      } else {
-                                          $reject->();
-                                      }
+                                      $pass = $good_password;
                                   },
                               },
-                              fallback => $reject);
-    } elsif ($vhost->are_hooks("CheckDigest")) {
-        $vhost->run_hook_chain(phase => "CheckDigest",
-                              args => [ username => $username, conn => $conn, digest => $digest, resource => $resource ],
-                              methods => {
-                                  accept => $accept,
-                                  reject => $reject,
-                              });
-    } else {
-        $vhost->run_hook_chain(phase => "CheckCleartext",
-                              args => [ username => $username, conn => $conn, password => $password ],
-                              methods => {
-                                  accept => $accept,
-                                  reject => $reject,
-                              });
-    }
+                        );
+                    }
+                    return $pass;
                 },
             },
         );
