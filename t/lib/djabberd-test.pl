@@ -565,6 +565,7 @@ sub send_stream_start {
 sub sasl_login {
     my $self = shift;
     my $sasl = shift;
+    my $res  = shift;
     my $sec  = shift;
 
     warn "connecting for login..\n" if $ENV{TESTDEBUG};
@@ -622,23 +623,24 @@ sub sasl_login {
     die "no bind"     unless $features =~ /bind\b/sm;
     die "no session"  unless $features =~ /session\b/sm;
 
-    $self->bind_resource;
-    return 1;
+    return $self->bind_resource($res);
 }
 
 sub bind_resource {
     my $self = shift;
+    my $res  = shift;
     my $sock = $self->{sock};
 
     print $sock <<EOB;
-<iq type='set' id='purple81e4b57b'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>yann</resource></bind></iq>
+<iq type='set' id='purple81e4b57b'><bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'><resource>$res</resource></bind></iq>
 EOB
     my $iq = $self->recv_xml_obj;
     die "invalid bind response" unless $iq->element_name eq 'iq';
     my $bind = $iq->first_element;
-    die "invalid bind response" unless $bind->element_name eq 'bind';
+    die "invalid bind response " unless $bind->element_name eq 'bind';
     my $jid_el = $bind  ->first_element or die "no jid elt...";
     my $jid    = $jid_el->first_child   or die "no jid...";
+    return $jid;
 }
 
 sub abort_sasl_login {

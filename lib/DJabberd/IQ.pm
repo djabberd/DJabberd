@@ -3,6 +3,7 @@ use strict;
 use base qw(DJabberd::Stanza);
 use DJabberd::Util qw(exml);
 use DJabberd::Roster;
+use Digest::SHA1;
 
 use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger();
@@ -625,7 +626,8 @@ sub process_iq_bind {
         return undef;
     };
 
-    my $resource = $get->("resource") || "";
+    my $resource = $get->("resource")
+                 || Digest::SHA1::sha1_hex(rand() . rand() . rand());
 
     my $vhost = $conn->vhost;
 

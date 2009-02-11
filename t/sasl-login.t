@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Test::More tests => 26;
+use Test::More tests => 46;
 use lib 't/lib';
 
 require 'djabberd-test.pl';
@@ -9,9 +9,9 @@ require 'djabberd-test.pl';
 use Authen::SASL 'Perl';
 
 my $login_and_be = sub {
-    my ($pa, $pb, $sasl) = @_;
+    my ($pa, $pb, $sasl, $res) = @_;
 
-    $pa->sasl_login($sasl);
+    my $jid = $pa->sasl_login($sasl, $res);
     $pb->login;
     $pa->send_xml("<presence/>");
     $pb->send_xml("<presence/>");
@@ -20,6 +20,7 @@ my $login_and_be = sub {
     like($pb->recv_xml, qr/id=.pa./, "pb got pa's iq");
     $pb->send_xml("<iq type='get' id='pb1' to='$pa'><x/></iq>");
     like($pa->recv_xml, qr/id=.pb./, "pb got pa's iq");
+    return $jid;
 };
 
 ## login successes
@@ -36,9 +37,51 @@ my $login_and_be = sub {
                 },
             );
 
-            $login_and_be->($pa, $pb, $sasl);
+            my $jid = $login_and_be->($pa, $pb, $sasl, "yann");
+            like $jid, qr/yann/, "resource assigned accordingly";
         });
     }
+}
+
+## resource not provided by the client 
+{
+    two_parties(sub {
+        my ($pa, $pb) = @_;
+
+        my $sasl = Authen::SASL->new(
+            mechanism => "DIGEST-MD5",
+            callback  => {
+                pass => sub { $pa->password },
+                user => sub { $pa->{name}   },
+            },
+        );
+
+        my $jid = $login_and_be->($pa, $pb, $sasl, undef); # << no resource
+        ok $jid, "got jid";
+        like $jid, qr{/\w+$}, "assigned resource $jid";
+    });
+}
+
+## resource conflict, resource reassigned
+{
+    two_parties(sub {
+        my ($pa, $pb) = @_;
+
+        my $sasl = Authen::SASL->new(
+            mechanism => "DIGEST-MD5",
+            callback  => {
+                pass => sub { $pa->password },
+                user => sub { $pa->{name}   },
+            },
+        );
+        my $pa_jid = $pa->sasl_login($sasl, "yann");
+        my $pb_jid = $pb->sasl_login($sasl, "yann");
+        my ($pa_res) = $pa_jid =~ m{/(\w+)$};
+        my ($pb_res) = $pb_jid =~ m{/(\w+)$};
+        cmp_ok $pa_res, 'ne', $pb_res, "resources are different";
+        is   $pa_res, "yann", "first got what it wanted";
+        isnt $pb_res, "yann", "second didn't";
+    });
 }
 
 # a server available for tests using the common setup
@@ -57,7 +100,7 @@ $server->start;
         );
 
         my $pa = Test::DJabberd::Client->new(server => $server, name => "partya");
-        eval { $pa->sasl_login($sasl) };
+        eval { $pa->sasl_login($sasl, "yann") };
         my $err = $@;
         ok $err, "login failure";
         like $err, qr{failure.*<not-authorized/>};
@@ -75,7 +118,7 @@ $server->start;
     );
 
     my $pa = Test::DJabberd::Client->new(server => $server, name => "partya");
-    my $response = $pa->abort_sasl_login($sasl);
+    my $response = $pa->abort_sasl_login($sasl, "yann");
     like $response, qr{failure.*<aborted/>};
 }
 
@@ -99,7 +142,7 @@ $server->start;
     );
 
     my $pa = Test::DJabberd::Client->new(server => $strong_server, name => "partya");
-    eval { $pa->sasl_login($sasl) };
+    eval { $pa->sasl_login($sasl, "yann") };
     my $err = $@;
     like $err, qr{failure.*<invalid-mechanism/>};
     $strong_server->kill;
