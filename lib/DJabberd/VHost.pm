@@ -188,6 +188,16 @@ sub set_config_saslsecurity {
 
 sub sasl {
     my $self = shift;
+    unless ($self->{sasl}) {
+        if (my $mechanisms = $self->{sasl_mechanisms}) {
+            $self->{sasl} = DJabberd::SASL->new($mechanisms);
+        }
+    }
+    return $self->{sasl};
+}
+
+sub sasl {
+    my $self = shift;
     my $mechanisms = $self->{sasl_mechanisms};
     if (!$self->{sasl} && $mechanisms) {
         $self->{sasl} = Authen::SASL->new(
