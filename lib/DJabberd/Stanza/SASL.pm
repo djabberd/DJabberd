@@ -74,13 +74,13 @@ sub handle_auth {
 
     my $saslmgr;
     $vhost->run_hook_chain( phase => "GetSASLManager",
-                           args  => [ conn => $conn ],
-                           methods => {
-                               get => sub {
-                                    (undef, $saslmgr) = @_;
-                               },
-                           },
-                           fallback => $fallback,
+                            args  => [ conn => $conn ],
+                            methods => {
+                                get => sub {
+                                     (undef, $saslmgr) = @_;
+                                },
+                            },
+                            fallback => $fallback,
     );
     die "no SASL" unless $saslmgr; 
 
@@ -89,8 +89,10 @@ sub handle_auth {
     return $self->send_failure("invalid-mechanism" => $conn)
         unless $saslmgr->is_mechanism_supported($mechanism);
 
+    ## we don't support it for now
+    my $opts = { no_integrity => 1 };
     $saslmgr->mechanism($mechanism);
-    my $sasl_conn = $saslmgr->server_new("xmpp", $vhost->server_name);
+    my $sasl_conn = $saslmgr->server_new("xmpp", $vhost->server_name, $opts);
     $conn->{sasl} = $sasl_conn;
 
     my $init = $self->first_child;
@@ -152,6 +154,14 @@ sub ack_success {
     }
     $conn->xmllog->info($xml);
     $conn->write(\$xml);
+    if ($sasl_conn->property('ssf') > 0) {
+        $conn->log->info("SASL: Securing socket");
+        $conn->log->warn("This will probably NOT work");
+        $sasl_conn->securesocket($conn);
+    }
+    else {
+        $conn->log->info("SASL: Not securing socket");
+    }
     $conn->restart_stream;
 }
 
