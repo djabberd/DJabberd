@@ -684,7 +684,7 @@ EOX
             $conn->set_bound_jid($fulljid);
             $DJabberd::Stats::counter{'auth_success'}++;
             my $xml = <<EOX;
-<iq id='$fulljid' type='result'>
+<iq id='$id' type='result'>
     <bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'>
         <jid>$fulljid</jid>
     </bind>
