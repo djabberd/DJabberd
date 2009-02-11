@@ -60,7 +60,7 @@ sub register {
     my $reg_jid;
     my $regcb = DJabberd::Callback->new({
         registered => sub {
-            (undef, my $reg_jid) = @_;
+            (undef, $reg_jid) = @_;
             $logger->debug("Bot $reg_jid is now registered");
         },
         error => sub {
