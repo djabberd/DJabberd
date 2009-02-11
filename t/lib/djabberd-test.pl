@@ -259,7 +259,7 @@ sub standard_plugins {
             DJabberd::Delivery::S2S->new,
             DJabberd::SASL::AuthenSASL->new(
                 mechanisms => "LOGIN PLAIN DIGEST-MD5",
-                optional   => "yes"
+                optional   => "yes",
             ),
             ];
 }

@@ -42,7 +42,7 @@ sub set_config_optional {
     $self->{optional} = as_bool($val);
 }
 
-sub is_optional { return $_->[0]->{optional} ? 1 : 0 }
+sub is_optional { return $_[0]->{optional} ? 1 : 0 }
 
 sub mechanisms { die "implement" }
 
