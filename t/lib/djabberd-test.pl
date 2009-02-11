@@ -264,7 +264,7 @@ sub start {
                                          server_name => $self->hostname,
                                          s2s         => 1,
                                          plugins     => $plugins,
-                                         sasl_mechanisms => "PLAIN DIGEST_MD5", # XXX
+                                         sasl_mechanisms => "LOGIN PLAIN DIGEST-MD5", # XXX
                                          );
         my $server = DJabberd->new;
         $server->set_config_unixdomainsocket($self->{unixdomainsocket}) if $self->{unixdomainsocket};
@@ -569,28 +569,33 @@ sub sasl_login {
     $init = $init ? encode_base64($init, '') : "=";
     print $sock "<auth xmlns='urn:ietf:params:xml:ns:xmpp-sasl' mechanism='$mechanism'>$init</auth>";
 
+    my $got_success_already = 0;
     while ($conn->need_step) {
         my $challenge = $self->recv_xml;
         warn "challenge response: [$challenge]\n" if $ENV{TESTDEBUG};
-        die "didn't get reply" unless $challenge =~ /challenge\b/;
+        die "didn't get reply $challenge" unless $challenge =~ /challenge|success\b/;
         $challenge =~ s/^.*>(.+)<.*$/$1/sm;
         $challenge = decode_base64($challenge);
         warn "decoded challenge: [$challenge]\n" if $ENV{TESTDEBUG};
 
         my $response = $conn->client_step($challenge);
-        warn "sending conn response [$response]\n" if $ENV{TESTDEBUG};
-        $response = encode_base64($response, '');
-        print $sock "<response>$response</response>";
+        if ($conn->is_success) {
+            $got_success_already = 1;
+        }
+        else {
+            warn "sending conn response [$response]\n" if $ENV{TESTDEBUG};
+            $response = $response ? encode_base64($response, '') : "="; # dupe
+            print $sock "<response xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>$response</response>";
+        }
     }
     if (my $error = $conn->error) {
         die "error in SASL $error";
     }
 
-    my $final = $self->recv_xml;
-    warn "auth result: [$final]\n" if $ENV{TESTDEBUG};
-
-    die "failure: $final" unless $final && $final =~ /success/;
-
+    unless ($got_success_already) {
+        my $final = $self->recv_xml;
+        die "auth error $final" unless $final && $final =~ /success/;
+    }
     $self->{ss} = undef;
     delete $self->{ss};
 

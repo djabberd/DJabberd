@@ -224,6 +224,7 @@ sub on_stanza_received {
 
     my $class = $element2class{$node->element};
     $self->log->debug("node is " . $node->as_xml);
+    #warn $node->as_xml;
     $self->vhost->hook_chain_fast("HandleStanza",
                                   [ $node, $self ],
                                   {

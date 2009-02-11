@@ -27,7 +27,7 @@ sub on_recv_from_client {
     my $mechanism = $self->attr("{}mechanism");
 
     #XXX proper error
-    die "Not supported mechanism"
+    die "Not supported mechanism $mechanism"
         unless $vhost->{sasl_mechanisms} =~ /$mechanism/;
 
     $sasl->mechanism($mechanism);
@@ -86,7 +86,7 @@ EOF
 
 sub ack_success {
     my $self = shift;
-    my $conn = shift;
+    my ($conn, $challenge) = @_;
 
     # I can't say I know what I'm doing XXX
     my $sasl     = $conn->{sasl};
@@ -94,7 +94,14 @@ sub ack_success {
     my $sname    = $conn->vhost->name;
     $conn->{sasl_authenticated_jid} = "$username\@$sname";
 
-    my $xml = "<success xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>";
+    my $xml;
+    if (defined $challenge) {
+        my $enc = $challenge ? $self->encode($challenge) : "=";
+        $xml = "<success xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>$enc</success>";
+    }
+    else {
+        $xml = "<success xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>";
+    }
     $conn->xmllog->info($xml);
     $conn->write(\$xml);
     $conn->restart_stream;
@@ -124,7 +131,7 @@ sub handle_response {
         $self->send_failure($conn, $error);
     }
     elsif ($sasl->is_success) {
-        $self->ack_success($conn);
+        $self->ack_success($conn, $challenge);
     }
     else {
         $self->send_challenge($conn, $challenge);
