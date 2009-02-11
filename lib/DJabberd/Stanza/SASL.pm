@@ -57,22 +57,7 @@ sub handle_auth {
     }
 
     my $challenge = $sasl_conn->server_start($init);
-    ## deal with early failures (like PLAIN)
-    if (my $error = $sasl_conn->error) {
-        $self->send_failure("not-authorized" => $conn);
-    }
-    else {
-        if ($sasl_conn->need_step) {
-            $self->send_challenge($challenge => $conn);
-        }
-        else {
-            if ($sasl_conn->is_success) {
-                ## early success (like for PLAIN mechanism)
-                $self->ack_success($conn);
-            }
-        }
-    }
-    return;
+    return $self->send_reply($sasl_conn, $challenge => $conn);
 }
 
 sub send_challenge {
@@ -141,17 +126,7 @@ sub handle_response {
 
     my $challenge = $sasl->server_step($response);
 
-    ## XXX refactor... this is duplicated with one step auth
-    if (my $error = $sasl->error) {
-        $self->send_failure("not-authorized" => $conn);
-    }
-    elsif ($sasl->is_success) {
-        $self->ack_success($challenge => $conn);
-    }
-    else {
-        $self->send_challenge($challenge => $conn);
-    }
-    return;
+    return $self->send_reply($sasl, $challenge => $conn);
 }
 
 sub encode {
@@ -164,6 +139,22 @@ sub decode {
     my $self = shift;
     my $str  = shift;
     return decode_base64($str);
+}
+
+sub send_reply {
+    my $self = shift;
+    my ($sasl_conn, $challenge, $conn) = @_;
+
+    if (my $error = $sasl_conn->error) {
+        $self->send_failure("not-authorized" => $conn);
+    }
+    elsif ($sasl_conn->is_success) {
+        $self->ack_success($challenge => $conn);
+    }
+    else {
+        $self->send_challenge($challenge => $conn);
+    }
+    return;
 }
 
 1;

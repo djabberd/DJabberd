@@ -22,7 +22,6 @@ my $login_and_be = sub {
 };
 
 ## login successes
-=cut
 {
     for my $mechanism (qw/PLAIN LOGIN DIGEST-MD5/) {
         two_parties(sub {
@@ -40,7 +39,6 @@ my $login_and_be = sub {
         });
     }
 }
-=cut
 
 ## login failures
 {
