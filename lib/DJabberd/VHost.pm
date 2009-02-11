@@ -5,6 +5,7 @@ use Carp qw(croak);
 use DJabberd::Util qw(tsub as_bool);
 use DJabberd::Log;
 use DJabberd::Roster;
+use Authen::SASL 'Perl';
 
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
@@ -183,13 +184,11 @@ sub set_config_saslsecurity {
     $self->{sasl_security} = $val;
 }
 
-use Authen::SASL 'Perl';
 sub sasl {
     my $self = shift;
     my $mechanisms = $self->{sasl_mechanisms};
     if (!$self->{sasl} && $mechanisms) {
         $self->{sasl} = Authen::SASL->new(
-            debug => 8,
             mechanism => $mechanisms,
             callback => {
                  checkpass => sub {

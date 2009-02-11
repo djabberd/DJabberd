@@ -8,23 +8,28 @@ sub on_recv_from_server { die "unimplemented" }
 use MIME::Base64 qw/encode_base64 decode_base64/;
 
 ## TODO:
-## check number of auth failures, force deconnection, bad for t time 7.3.5 policy-violation
-
+## check number of auth failures, force deconnection, bad for t time §7.3.5 policy-violation
+## Provide hooks for Authen:: modules to return details about errors:
+## - credentials-expired
+## - account-disabled
+## - invalid-authzid
+## - temporary-auth-failure
+## these hooks should probably additions to parameters taken by GetPassword, CheckClearText
 
 sub on_recv_from_client {
-    my ($self, $conn) = @_;
+    my ($self) = @_;
 
-    return $self->handle_abort($conn)
+    return $self->handle_abort(@_)
         if $self->element_name eq 'abort';
 
-    return $self->handle_response($conn)
+    return $self->handle_response(@_)
         if $self->element_name eq 'response';
 
-    return $self->handle_auth($conn)
+    return $self->handle_auth(@_)
         if $self->element_name eq 'auth';
 }
 
-## support 7.3.4, 7.4.1
+## supports §7.3.4, §7.4.1
 ## handle: <abort xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>
 sub handle_abort {
     my ($self, $conn) = @_;
@@ -43,6 +48,8 @@ sub handle_auth {
     my $sasl = $vhost->sasl
         # XXX
         or die "Send a proper error here";
+
+    ## TODO: §7.4.4.  encryption-required
 
     ## XXX should use a hash stored in vh directly
     my $mechanism = $self->attr("{}mechanism");
@@ -71,7 +78,7 @@ sub send_challenge {
     my $self = shift;
     my ($challenge, $conn) = @_;
 
-    $conn->log->info("Sending Challenge: $challenge");
+    $conn->log->debug("Sending Challenge: $challenge");
     my $enc_challenge = $self->encode($challenge);
     my $xml = "<challenge xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>$enc_challenge</challenge>";
     $conn->xmllog->info($xml);
@@ -82,7 +89,7 @@ sub send_challenge {
 sub send_failure {
     my $self = shift;
     my ($error, $conn) = @_;
-    $conn->log->info("Sending error: $error");
+    $conn->log->debug("Sending error: $error");
     my $xml = <<EOF;
 <failure xmlns='urn:ietf:params:xml:ns:xmpp-sasl'><$error/></failure>
 EOF
