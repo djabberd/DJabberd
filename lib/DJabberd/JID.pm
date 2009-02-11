@@ -1,6 +1,7 @@
 package DJabberd::JID;
 use strict;
 use DJabberd::Util qw(exml);
+use Digest::SHA1;
 
 use overload
     '""' => \&as_string_exml;
@@ -73,6 +74,10 @@ sub as_bare_string {
         join('',
              ($self->[NODE] ? ($self->[NODE], '@') : ()),
              $self->[DOMAIN]);
+}
+
+sub rand_resource {
+    Digest::SHA1::sha1_hex(rand() . rand() . rand());
 }
 
 1;

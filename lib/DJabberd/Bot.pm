@@ -51,25 +51,31 @@ sub vhost {
 
 sub register {
     my ($self, $vhost) = @_;
-    $self->{jid} = DJabberd::JID->new("$self->{nodename}\@" . $vhost->server_name . "/$self->{resource}");
+    my $barejid = DJabberd::JID->new("$self->{nodename}\@" . $vhost->server_name );
+    my $resource = $self->{resource};
 
     $self->{vhost} = $vhost;
     Scalar::Util::weaken($self->{vhost});
 
+    my $reg_jid;
     my $regcb = DJabberd::Callback->new({
         registered => sub {
-            $logger->debug("Bot $self->{jid} is now registered");
+            (undef, my $reg_jid) = @_;
+            $logger->debug("Bot $reg_jid is now registered");
         },
         error => sub {
-            $logger->error("Bot $self->{jid} failed to register");
+            $logger->error("Bot $barejid/$resource failed to register");
             },
     });
 
-    $vhost->register_jid($self->{jid}, $self , $regcb);
-    DJabberd::Presence->set_local_presence(
-        $self->{jid}, 
-        DJabberd::Presence->available( from => $self->{jid} )
-    );
+    $vhost->register_jid($barejid, $resource, $self, $regcb);
+    if ($reg_jid) {
+        $self->{jid} = $reg_jid;
+        DJabberd::Presence->set_local_presence(
+            $self->{jid},
+            DJabberd::Presence->available( from => $self->{jid} )
+        );
+    }
 }
 
 # no-op bot logic:

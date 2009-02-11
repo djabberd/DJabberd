@@ -4,6 +4,7 @@ use B ();       # improved debugging when hooks are called
 use Carp qw(croak);
 use DJabberd::Util qw(tsub as_bool);
 use DJabberd::Log;
+use DJabberd::JID;
 use DJabberd::Roster;
 
 our $logger = DJabberd::Log->get_logger();
@@ -363,21 +364,33 @@ sub find_jid {
 }
 
 sub register_jid {
-    my ($self, $jid, $conn, $cb) = @_;
+    my ($self, $jid, $resource, $conn, $cb) = @_;
+
+    my $barestr = $jid->as_bare_string; ## $jid should be bare anyway
+    my $fullstr = "$barestr/$resource";
+
     # $cb can ->registered, ->error
-    $logger->info("Registering '$jid' to connection '$conn->{id}'");
+    $logger->info("Registering '$fullstr' to connection '$conn->{id}'");
 
-    my $barestr = $jid->as_bare_string;
-    my $fullstr = $jid->as_string;
-
+    ## deprecated 0078 appears a bit conflicting with RFC 3920
+    ## the recommended behaviour in the latter is to generate a resource for
+    ## the dupe. Don't ask me if one resource uses RFC 3920 and the other
+    ## XEP 0078 :D. If we detect a sasl connection, we go with the RFC way.
     if (my $econn = $self->{jid2sock}{$fullstr}) {
-        $econn->stream_error("conflict");
+        if ($conn->sasl) {
+            my $resource = DJabberd::JID->rand_resource;
+            $fullstr = "$barestr/$resource";
+        }
+        else {
+            $econn->stream_error("conflict");
+        }
     }
+    my $fulljid = DJabberd::JID->new($fullstr);
 
     $self->{jid2sock}{$fullstr} = $conn;
     ($self->{bare2fulls}{$barestr} ||= {})->{$fullstr} = 1;  # TODO: this should be the connection, not a 1, saves work in unregister JID?
 
-    $cb->registered;
+    $cb->registered($fulljid);
 }
 
 sub unregister_jid {

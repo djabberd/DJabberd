@@ -65,20 +65,26 @@ my $login_and_be = sub {
 ## resource conflict, resource reassigned
 {
     two_parties(sub {
-        my ($pa, $pb) = @_;
+        my ($pa1, $pb) = @_;
+        my $conflicted_res = "yann";
 
+        my $pa2 = Test::DJabberd::Client->new(server   => $pa1->server,
+                                              name     => $pa1->username,
+                                              resource => $conflicted_res,
+                                            );
         my $sasl = Authen::SASL->new(
             mechanism => "DIGEST-MD5",
             callback  => {
-                pass => sub { $pa->password },
-                user => sub { $pa->{name}   },
+                pass => sub { $pa1->password },
+                user => sub { $pa1->{name}   },
             },
         );
-        my $pa_res = $pa->sasl_login($sasl, "yann")->resource;
-        my $pb_res = $pb->sasl_login($sasl, "yann")->resource;
-        cmp_ok $pa_res, 'ne', $pb_res, "resources are different";
-        is   $pa_res, "yann", "first got what it wanted";
-        isnt $pb_res, "yann", "second didn't";
+        my $pa1_res = $pa1->sasl_login($sasl, $conflicted_res)->resource;
+
+        my $pa2_res = $pa2->sasl_login($sasl, $conflicted_res)->resource;
+        cmp_ok $pa1_res, 'ne', $pa2_res, "resources are different";
+        is   $pa1_res, $conflicted_res, "first got what it wanted";
+        isnt $pa2_res, $conflicted_res, "second didn't";
     });
 }
 

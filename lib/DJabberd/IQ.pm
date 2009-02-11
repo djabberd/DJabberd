@@ -495,7 +495,10 @@ sub process_iq_setauth {
     my $password = $get->("password");
     my $digest   = $get->("digest");
 
-    return unless $username =~ /^\w+$/;
+    # "Both the username and the resource are REQUIRED for client
+    # authentication" Section 3.1 of XEP 0078
+    return unless $username && $username =~ /^\w+$/;
+    return unless $resource;
 
     my $vhost = $conn->vhost;
 
@@ -517,7 +520,7 @@ sub process_iq_setauth {
         }
 
         # register
-        my $jid = DJabberd::JID->new("$authjid/$resource");
+        my $jid = DJabberd::JID->new("$authjid");
 
         unless ($jid) {
             $reject->();
@@ -526,7 +529,8 @@ sub process_iq_setauth {
 
         my $regcb = DJabberd::Callback->new({
             registered => sub {
-                $conn->set_bound_jid($jid);
+                (undef, my $fulljid) = @_;
+                $conn->set_bound_jid($fulljid);
                 $DJabberd::Stats::counter{'auth_success'}++;
                 $iq->send_result;
             },
@@ -539,7 +543,7 @@ sub process_iq_setauth {
             },
         });
 
-        $vhost->register_jid($jid, $conn, $regcb);
+        $vhost->register_jid($jid, $resource, $conn, $regcb);
     };
 
 
@@ -626,8 +630,7 @@ sub process_iq_bind {
         return undef;
     };
 
-    my $resource = $get->("resource")
-                 || Digest::SHA1::sha1_hex(rand() . rand() . rand());
+    my $resource = $get->("resource") || DJabberd::JID->rand_resource;
 
     my $vhost = $conn->vhost;
 
@@ -668,7 +671,7 @@ EOX
         or return $cancel->("no authenticated_jid");
 
     # register
-    my $jid = DJabberd::JID->new("$authjid/$resource");
+    my $jid = DJabberd::JID->new($authjid);
 
     unless ($jid) {
         $reject->();
@@ -677,12 +680,13 @@ EOX
 
     my $regcb = DJabberd::Callback->new({
         registered => sub {
-            $conn->set_bound_jid($jid);
+            (undef, my $fulljid) = @_;
+            $conn->set_bound_jid($fulljid);
             $DJabberd::Stats::counter{'auth_success'}++;
             my $xml = <<EOX;
-<iq id='$id' type='result'>
+<iq id='$fulljid' type='result'>
     <bind xmlns='urn:ietf:params:xml:ns:xmpp-bind'>
-        <jid>$jid</jid>
+        <jid>$fulljid</jid>
     </bind>
 </iq>
 EOX
@@ -698,7 +702,7 @@ EOX
         },
     });
 
-    $vhost->register_jid($jid, $conn, $regcb);
+    $vhost->register_jid($jid, $resource, $conn, $regcb);
     return 1;
 }
 
