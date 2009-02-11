@@ -105,3 +105,5 @@
 
 -- timer that runs every x seconds cleaning up an array of weakrefs to callbacks that are still active
         and then put the callback start time in the object, so we can force clean up of callbacks
+
+-- SASL doesn't support ANONYMOUS or EXTERNAL
