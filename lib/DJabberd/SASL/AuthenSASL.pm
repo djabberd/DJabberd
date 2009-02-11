@@ -14,12 +14,6 @@ sub mechanisms {
     return $plugin->{mechanisms} || {};
 }
 
-sub set_config_security {
-    my ($self, $val) = @_;
-    $val =~ s/^\s*\b(.+)\b\s*$/$1/;
-    $self->{security} = $val;
-}
-
 sub register {
     my ($plugin, $vhost) = @_;
     $plugin->SUPER::register($vhost);
