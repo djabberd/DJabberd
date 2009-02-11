@@ -176,12 +176,14 @@ sub set_config_saslmechanisms {
     my ($self, $val) = @_;
     $val =~ s/^\s*\b(.+)\b\s*$/$1/;
     $self->{sasl_mechanisms} = $val;
+    $self->{sasl} = undef;
 }
 
 sub set_config_saslsecurity {
     my ($self, $val) = @_;
     $val =~ s/^\s*\b(.+)\b\s*$/$1/;
     $self->{sasl_security} = $val;
+    $self->{sasl} = undef;
 }
 
 sub sasl {

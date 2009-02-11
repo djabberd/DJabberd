@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 use strict;
 use warnings;
-use Test::More tests => 19;
+use Test::More tests => 20;
 use lib 't/lib';
 
 require 'djabberd-test.pl';
@@ -77,4 +77,25 @@ $server->start;
     my $pa = Test::DJabberd::Client->new(server => $server, name => "partya");
     my $response = $pa->abort_sasl_login($sasl);
     like $response, qr{failure.*<aborted/>};
+}
+
+## invalid mechanism
+{
+    my $strong_server = Test::DJabberd::Server->new(
+        id => 2,
+        sasl_opts => { sasl_mechanisms => "DIGEST-MD5" },
+    );
+    $strong_server->start;
+    my $sasl = Authen::SASL->new(
+        mechanism => "PLAIN",
+        callback  => {
+            pass => "incorrect pass",
+            user => "partya",
+        },
+    );
+
+    my $pa = Test::DJabberd::Client->new(server => $strong_server, name => "partya");
+    eval { $pa->sasl_login($sasl) };
+    my $err = $@;
+    like $err, qr{failure.*<invalid-mechanism/>};
 }

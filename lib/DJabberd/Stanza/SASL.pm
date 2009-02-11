@@ -17,7 +17,7 @@ use MIME::Base64 qw/encode_base64 decode_base64/;
 ## these hooks should probably additions to parameters taken by GetPassword, CheckClearText
 
 sub on_recv_from_client {
-    my ($self) = @_;
+    my $self = shift;
 
     return $self->handle_abort(@_)
         if $self->element_name eq 'abort';
@@ -55,7 +55,7 @@ sub handle_auth {
     my $mechanism = $self->attr("{}mechanism");
 
     #XXX proper error
-    die "Not supported mechanism $mechanism"
+    return $self->send_failure("invalid-mechanism" => $conn)
         unless $vhost->{sasl_mechanisms} =~ /$mechanism/;
 
     $sasl->mechanism($mechanism);
@@ -85,7 +85,6 @@ sub send_challenge {
     $conn->write(\$xml);
 }
 
-## XXX not complete
 sub send_failure {
     my $self = shift;
     my ($error, $conn) = @_;
