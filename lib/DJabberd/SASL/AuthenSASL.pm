@@ -60,6 +60,13 @@ The recommended usage is to use STARTTLS and SASL-PLAIN.
         </Plugin>
     </VHost>
 
+=head1 DESCRIPTION
+
+Only PLAIN LOGIN and DIGEST-MD5 mechanisms are supported for now (same than
+in L<Authen::SASL>. DIGEST-MD5 only supports C<auth> qop (quality of
+protection), so it's strongly advised to throw TLS into the mix, and not 
+solely rely on DIGEST-MD5 (as opposed to C<auth-int> and C<auth-conf>).
+
 =head1 COPYRIGHT
 
 (c) 2009 Yann Kerherve
