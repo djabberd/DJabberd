@@ -38,7 +38,7 @@ my $login_and_be = sub {
             );
 
             my $jid = $login_and_be->($pa, $pb, $sasl, "yann");
-            like $jid, qr/yann/, "resource assigned accordingly";
+            is $jid->resource, 'yann', "resource assigned accordingly";
         });
     }
 }
@@ -58,7 +58,7 @@ my $login_and_be = sub {
 
         my $jid = $login_and_be->($pa, $pb, $sasl, undef); # << no resource
         ok $jid, "got jid";
-        like $jid, qr{/\w+$}, "assigned resource $jid";
+        ok $jid->resource, "assigned resource: " . $jid->resource;
     });
 }
 
@@ -74,10 +74,8 @@ my $login_and_be = sub {
                 user => sub { $pa->{name}   },
             },
         );
-        my $pa_jid = $pa->sasl_login($sasl, "yann");
-        my $pb_jid = $pb->sasl_login($sasl, "yann");
-        my ($pa_res) = $pa_jid =~ m{/(\w+)$};
-        my ($pb_res) = $pb_jid =~ m{/(\w+)$};
+        my $pa_res = $pa->sasl_login($sasl, "yann")->resource;
+        my $pb_res = $pb->sasl_login($sasl, "yann")->resource;
         cmp_ok $pa_res, 'ne', $pb_res, "resources are different";
         is   $pa_res, "yann", "first got what it wanted";
         isnt $pb_res, "yann", "second didn't";

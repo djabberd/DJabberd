@@ -640,7 +640,7 @@ EOB
     die "invalid bind response " unless $bind->element_name eq 'bind';
     my $jid_el = $bind  ->first_element or die "no jid elt...";
     my $jid    = $jid_el->first_child   or die "no jid...";
-    return $jid;
+    return DJabberd::JID->new($jid);
 }
 
 sub abort_sasl_login {
