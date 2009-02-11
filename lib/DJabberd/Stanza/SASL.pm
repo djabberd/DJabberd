@@ -16,15 +16,27 @@ use MIME::Base64 qw/encode_base64 decode_base64/;
 sub on_recv_from_client {
     my ($self, $conn) = @_;
 
+    #return $self->handle_abort($conn)
+    #    if $self->element_name eq 'abort';
+    return $self->handle_response($conn)
+        if $self->element_name eq 'response';
+
+    return $self->handle_auth($conn)
+        if $self->element_name eq 'auth';
+
+    die "XXX failure";
+}
+
+sub handle_auth {
+    my ($self, $conn) = @_;
+
     my $vhost = $conn->vhost
         # XXX
         or die "Send a proper error here"; # For now it must exists
+
     my $sasl = $vhost->sasl
         # XXX
         or die "Send a proper error here";
-
-    return $self->handle_response($conn)
-        if $self->element_name eq 'response';
 
     ## XXX should use a hash stored in vh directly
     my $mechanism = $self->attr("{}mechanism");
@@ -46,8 +58,9 @@ sub on_recv_from_client {
     }
 
     my $challenge = $sasl_conn->server_start($init);
+    ## deal with early failures (like PLAIN)
     if (my $error = $sasl_conn->error) {
-        $self->send_failure($conn => $error);
+        $self->send_failure($conn => "not-authorized");
     }
     else {
         if ($sasl_conn->need_step) {
@@ -80,7 +93,7 @@ sub send_failure {
     my ($conn, $error) = @_;
     $conn->log->info("Sending error: $error");
     my $xml = <<EOF;
-<failure xmlns='urn:ietf:params:xml:ns:xmpp-sasl'><temporary-auth-failure/></failure>
+<failure xmlns='urn:ietf:params:xml:ns:xmpp-sasl'><$error/></failure>
 EOF
     $conn->xmllog->info($xml);
     $conn->write(\$xml);
@@ -131,7 +144,7 @@ sub handle_response {
 
     ## XXX refactor... this is duplicated with one step auth
     if (my $error = $sasl->error) {
-        $self->send_failure($conn, $error);
+        $self->send_failure($conn, "not-authorized");
     }
     elsif ($sasl->is_success) {
         $self->ack_success($conn, $challenge);
