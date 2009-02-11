@@ -9,7 +9,6 @@ use MIME::Base64 qw/encode_base64 decode_base64/;
 
 ## TODO:
 ## support 7.3.4, 7.4.1 <abort xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>
-## change order of parameters? $challenge => $conn, instead of $conn => $challenge
 ## check number of auth failures, force deconnection, bad for t time 7.3.5 policy-violation
 
 
@@ -60,11 +59,11 @@ sub handle_auth {
     my $challenge = $sasl_conn->server_start($init);
     ## deal with early failures (like PLAIN)
     if (my $error = $sasl_conn->error) {
-        $self->send_failure($conn => "not-authorized");
+        $self->send_failure("not-authorized" => $conn);
     }
     else {
         if ($sasl_conn->need_step) {
-            $self->send_challenge($conn => $challenge);
+            $self->send_challenge($challenge => $conn);
         }
         else {
             if ($sasl_conn->is_success) {
@@ -78,7 +77,7 @@ sub handle_auth {
 
 sub send_challenge {
     my $self = shift;
-    my ($conn, $challenge) = @_;
+    my ($challenge, $conn) = @_;
 
     $conn->log->info("Sending Challenge: $challenge");
     my $enc_challenge = $self->encode($challenge);
@@ -90,7 +89,7 @@ sub send_challenge {
 ## XXX not complete
 sub send_failure {
     my $self = shift;
-    my ($conn, $error) = @_;
+    my ($error, $conn) = @_;
     $conn->log->info("Sending error: $error");
     my $xml = <<EOF;
 <failure xmlns='urn:ietf:params:xml:ns:xmpp-sasl'><$error/></failure>
@@ -102,7 +101,7 @@ EOF
 
 sub ack_success {
     my $self = shift;
-    my ($conn, $challenge) = @_;
+    my ($challenge, $conn) = @_;
 
     # I can't say I know what I'm doing XXX
     my $sasl     = $conn->{sasl};
@@ -129,7 +128,7 @@ sub handle_response {
 
     my $sasl = $conn->{sasl};
     if (my $error = $sasl->error) {
-        $self->send_failure($conn => $error);
+        $self->send_failure($error => $conn);
         return;
     }
     if (! $sasl->need_step) {
@@ -144,13 +143,13 @@ sub handle_response {
 
     ## XXX refactor... this is duplicated with one step auth
     if (my $error = $sasl->error) {
-        $self->send_failure($conn, "not-authorized");
+        $self->send_failure("not-authorized" => $conn);
     }
     elsif ($sasl->is_success) {
-        $self->ack_success($conn, $challenge);
+        $self->ack_success($challenge => $conn);
     }
     else {
-        $self->send_challenge($conn, $challenge);
+        $self->send_challenge($challenge => $conn);
     }
     return;
 }
