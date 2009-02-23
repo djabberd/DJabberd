@@ -87,7 +87,7 @@ The overriden version of this method has special behavior when dealing with
 stanzas that are addressed to nodes within the domain handled by your
 component. (That is, jids of the form C<user@example.com>, rather than just C<example.com>.)
 
-When such a stanza is recieved, the C<get_node> method will be called to retrieve
+When such a stanza is received, the C<get_node> method will be called to retrieve
 an object representing that node.
 
 If you wish to do low-level handling of all incoming stanzas, you may override this
@@ -173,7 +173,7 @@ sub identities {
     my ($self) = @_;
     
     return [
-        [ 'heirarchy', 'branch', $self->name ],
+        [ 'hierarchy', 'branch', $self->name ],
     ];
 }
 

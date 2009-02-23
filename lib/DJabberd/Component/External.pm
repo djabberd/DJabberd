@@ -7,7 +7,7 @@ DJabberd::Component::External - Interface to external plugins implementing JEP-0
 
 This component provides support for connecting external components that support the
 Jabber Component Protocol specified in JEP-0114. Specify the TCP port that the external component
-will connect on and the secret it will use to authenticate. These should match the equivilent
+will connect on and the secret it will use to authenticate. These should match the equivalent
 settings in the component's own configuration.
 
 You can also specify a ListenAddr option, which specifies the IP address of the interface to

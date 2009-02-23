@@ -94,7 +94,7 @@ our $logger = DJabberd::Log->get_logger();
 
 =head2 handle_stanza($self, $vhost, $stanza)
 
-This method is the "entry point" of this class, and is called when a stanza is recieved
+This method is the "entry point" of this class, and is called when a stanza is received
 which this agent expressed a desire to handle. The default implementation dispatches
 to one of the higher-level C<handle_...> methods depending on the type of stanza that
 has been recieved. At present, only IQ, Message and Presence stanzas are supported.
@@ -142,7 +142,7 @@ will be called to find out if your agent is responsible for the destination JID.
 This method is primarily used in the case where the agent is added directly to a VHost as a plugin.
 If a true value is returned, the server will assume that your agent will handle the
 stanza and will call C<handle_stanza>. If a false value is returned, the server will
-continue to look for anothre appropriate delivery plugin to accept the stanza.
+continue to look for another appropriate delivery plugin to accept the stanza.
 
 =cut
 sub handles_destination {
@@ -225,7 +225,7 @@ sub handle_iq {
 This method, unlike most methods of this class, is not intended to be overridden by subclasses.
 Instead, subclasses should call this method to register a handler for a particular type of IQ
 stanza. The default implementation of C<handle_iq> will then call the registered handlers
-when an appropriate stanza is recieved.
+when an appropriate stanza is received.
 
 C<$signature> is a string containing the IQ signature using DJabberd's standard IQ signature
 format. This consists of the IQ type (C<get>, C<set>, etc) followed by a dash, then the
