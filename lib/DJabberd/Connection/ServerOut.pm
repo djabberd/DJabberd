@@ -84,15 +84,6 @@ sub on_stream_start {
 
     $self->log->debug("Connection $self->{id} supports dialback");
 
-    if ($ss->version->supports_features) {
-        # they can eat a dick for all we care.  they get no features.
-        # what is this weird XMPP 1.0 + old-school Dialback world anyway?
-        # maybe we're still confused.  FIXME: care.
-        my $features = "<stream:features></stream:features>";
-        $self->write($features);
-        $self->log->debug("$self->{id} sending '$features'");
-    }
-
     my $vhost       = $self->{queue}->vhost;
     my $orig_server = $vhost->name;
     my $recv_server = $self->{queue}->domain;

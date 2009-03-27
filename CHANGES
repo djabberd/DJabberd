@@ -1,3 +1,10 @@
+  - Remove the stream:features-in-dialback quirk hack, since it breaks
+    interop with a few different implementations and is incorrect
+    per spec. This may break interop with some other implementation,
+    but we've been unable to determine which one, so I'm assuming
+    that it's no longer an issue.
+    (Alex Vandiver <alexmv@bestpractical.com>)
+
   - Small tweak to comment and logging in DJabberd::Connection::ServerOut
     (Alex Vandiver <alexmv@bestpractical.com>)
 
