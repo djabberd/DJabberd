@@ -1,3 +1,6 @@
+  - Small tweak to comment and logging in DJabberd::Connection::ServerOut
+    (Alex Vandiver <alexmv@bestpractical.com>)
+
   - Don't treat hostnames that look like 192.168.0.1.domain.com as IP
     addresses. (Reported by Domrachev Ivan <domrachev.ivan@gmail.com>).
 

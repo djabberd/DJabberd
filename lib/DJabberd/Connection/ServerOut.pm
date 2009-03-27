@@ -1,4 +1,4 @@
-# outgoing connection to another server for the sole purpose of verifying a dialback result.
+# outgoing connection to another server, including setting up dialback secret
 package DJabberd::Connection::ServerOut;
 use strict;
 use base 'DJabberd::Connection';
@@ -77,7 +77,7 @@ sub on_stream_start {
     $self->{in_stream} = 1;
     $self->log->debug("We got a stream back from connection $self->{id}!\n");
     unless ($ss->announced_dialback) {
-        $self->log->warn("Connection $self->{id} doesn't support dialbacl, failing");
+        $self->log->warn("Connection $self->{id} doesn't support dialback, failing");
         $self->{queue}->on_connection_failed($self, "no dialback");
         return;
     }
