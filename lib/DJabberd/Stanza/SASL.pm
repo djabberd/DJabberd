@@ -58,8 +58,9 @@ sub handle_response {
     $response = $self->decode($response);
     $conn->log->info("Got the response $response");
 
-    my $challenge = $sasl->server_step($response);
-    return $self->send_reply($sasl, $challenge => $conn);
+    $sasl->server_step(
+        $response => sub { $self->send_reply($conn->{sasl}, shift() => $conn) },
+    );
 }
 
 sub handle_auth {
@@ -97,14 +98,15 @@ sub handle_auth {
 
     my $init = $self->first_child;
     if (!$init or $init eq '=') {
-        $init = ''
+        $init = '';
     }
     else {
         $init = $self->decode($init);
     }
 
-    my $challenge = $sasl_conn->server_start($init);
-    return $self->send_reply($sasl_conn, $challenge => $conn);
+    $sasl_conn->server_start(
+        $init => sub { $self->send_reply($conn->{sasl}, shift() => $conn) },
+    );
 }
 
 sub send_challenge {

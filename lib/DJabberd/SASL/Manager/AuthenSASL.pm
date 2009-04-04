@@ -35,40 +35,45 @@ sub manager_implementation {
     my $mechanisms = $plugin->mechanisms_str;
     my $saslmgr    = Authen::SASL->new(
         mechanism => $mechanisms,
-        callback => {
+        callback  => {
             checkpass => sub {
                 my $sasl = shift;
-                my ($user, $pass, $realm) = @_;
+                my $args = shift;
+                my $cb   = shift;
 
-                my $success;
+                my $user = $args->{user};
+                my $pass = $args->{pass};
+
                 if ($vhost->are_hooks("CheckCleartext")) {
-                    $vhost->run_hook_chain(phase => "CheckCleartext",
-                            args  => [ username => $user, password => $pass ],
-                            methods => {
-                                accept => sub { $success = 1 },
-                                reject => sub { $success = 0 },
-                            },
+                    $vhost->run_hook_chain(
+                        phase   => "CheckCleartext",
+                        args    => [ username => $user, password => $pass ],
+                        methods => {
+                            accept => sub { $cb->(1) },
+                            reject => sub { $cb->(0) },
+                        },
                     );
                 }
-                return $success;
             },
             getsecret => sub {
                 my $sasl = shift;
-                my ($user, $authname) = @_;
-                my $pass;
+                my $args = shift;
+                my $cb   = shift;
+
+                my $user = $args->{user};
 
                 if ($vhost->are_hooks("GetPassword")) {
-                    $vhost->run_hook_chain(phase => "GetPassword",
-                            args  => [ username => $user, ],
-                            methods => {
-                                set => sub {
-                                    my (undef, $good_password) = @_;
-                                    $pass = $good_password;
-                                },
+                    $vhost->run_hook_chain(
+                        phase   => "GetPassword",
+                        args    => [ username => $user, ],
+                        methods => {
+                            set => sub {
+                                my (undef, $good_password) = @_;
+                                $cb->($good_password);
                             },
+                        },
                     );
                 }
-                return $pass;
             },
         },
     );
