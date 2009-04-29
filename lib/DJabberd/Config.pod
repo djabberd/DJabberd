@@ -1,0 +1,204 @@
+
+=head1 NAME
+
+DJabberd::Config - Configuration options in djabberd.conf
+
+=head1 DESCRIPTION
+
+The following describes the format and allowed options of
+F<djabberd.conf>.  F<djabberd.conf> is formatted similarly to Apache
+configuration files; that is:
+
+   # Lines beginning with '#' are comments
+   SomeGlobalOption on
+   
+   <VHost vhost.example.com>
+      # Options herein apply only to this vhost
+   </VHost>
+
+Configuration directives are not case sensitive.  Directives which
+take a "boolean" value can be passed any commonly-understood
+expression of a boolean; C<1>, C<y>, C<yes>, C<true>, C<t>, C<on>,
+C<enable>, or C<enabled> for truth, or C<0>, C<n>, C<no>, C<false>,
+C<f>, C<off>, C<disable>, or C<disabled> for false.
+
+=head1 GLOBAL CONFIGURATION
+
+=head2 DeclareMonitor C<IP address>
+
+Declares that a given IP address is used only for checking
+connectivity to the server, and should not be logged or assigned an
+internal ID.  Useful if you have a C<nagios> host.
+
+=head2 SSLCertificateKeyFile C</path/to/key.pem>
+
+Sets the path to the private key file for the server.  This key should
+be in PEM format and only readable by the server, and is used to
+encrypt traffic to clients to ask for TLS.  If it is not set, the
+server will not support TLS.
+
+=head2 SSLCertificateFile C</path/to/cert.pem>
+
+Sets the path to the certificate file for the server.  This
+certificate should be in PEM format, and will be presented to the
+clients who ask for TLS.  If it is not set, the server will not
+support TLS.
+
+=head2 OldSSL C<boolean>
+
+Defaults to off; if set, the server will also listen on port 5223, and
+immediately attempt TLS negotiation on all opened connections.  As the
+name implies, this is deprecated, and C<StartTLS> stanzas are now the
+preferred method to enable TLS communication with clients.
+
+=head2 UnixDomainSocket C</path/to/socket>
+
+Defaults to unset; if set, specifies the absolute path to a UNIX
+domain socket to listen on, in addition to any TCP ports (set by
+L</ClientPort> and L</ServerPort>).
+
+=head2 ClientPort C<port>
+
+Sets the port to listen for client-to-server connections on; defaults
+to 5222.  May also specify an IP address to bind to, in addition to a
+port, such as C<127.0.0.1:5222>.
+
+=head2 ServerPort C<port>
+
+Sets the port to listen for server-to-server connection on; defaults
+to 5269.  If explicitly set to 0, disables server-to-server listening
+for all virtual hosts.  May also specify an IP address to bind to, in
+addition to a port, such as C<127.0.0.1:5222>.
+
+=head2 AdminPort C<port>
+
+Sets the port to listen for administrative connections on; defaults to
+off.  For security reasons, you will most certainly want to bind this
+to a specific IP address, to prevent access by unauthorized users.
+See L<DJabberd::Connection::Admin>.
+
+=head2 IntraDomainListen C<port>
+
+Sets the port to listen for inter-cluster messages; defaults to off.
+Clustering support is still in development.
+
+=head2 PidFile C</path/to/pidfile>
+
+If set, writes the server's PID to the given file.
+
+=head2 CaseSensitive C<boolean>
+
+If set to a true value, Jabber IDs will be treated as entirely
+case-sensitive; defaults to off.  This setting exists purely for
+backwards compatibility, as previous versions incorrectly treated
+Jabber IDs as case-sensitive.
+
+=head2 ShareParsers C<boolean>
+
+Defaults to on; controls whether L<DJabberd::XMLParser> objects are
+held onto between stanzas.
+
+
+
+=head1 VIRTUAL HOST CONFIGURATION
+
+Each virtual host is configured with a block which declares the name
+of the virtual host:
+
+    <VHost jabber.example.com>
+      # Configuration for jabber.example.com
+    </VHost>
+
+Virtual hosts can effectively be nested, using the Subdomain block:
+
+    <VHost jabber.example.com>
+      # Configuration for jabber.example.com
+      <Subdomain muc>
+        # Configuration for muc.jabber.example.com
+      </Subdomain>
+    </VHost>
+
+=head2 QuirksMode C<boolean>
+
+Enables or disables "quirks mode"; defaults to on.  See
+F<doc/quirks-mode.txt> for a list of workaround this enables.
+
+=head2 S2S C<boolean>
+
+Enables or disables server-to-server communication, or "federation."
+Defaults to off; note that C</ServerPort> being set to 0 will override
+this configuration.
+
+=head2 InBandReg C<boolean>
+
+If set, enables in-band registration of new users; defaults to off.
+
+=head2 ChildService C<JID> C<description>
+
+Adds a mapping between a JID on this server, and the given
+description; this is used for client service auto-discovery.
+
+=head2 RequireSSL C<boolean>
+
+If set, requires that clients have negotiated a TLS before
+authentication information is sent.
+
+
+
+=head1 PLUGIN CONFIGURATION
+
+Plugins can only be configured on a per virtual host basis.  Each
+plugin defines its own configuration parameters.  Plugins bundled with
+the base DJabberd server include:
+
+=over
+
+=item L<DJabberd::Delivery::ComponentConnection>
+
+Delivery through a JEP-0114 component connection.
+
+=item L<DJabberd::Delivery::Local>
+
+Delivery to local users; implicitly added by default.
+
+=item L<DJabberd::Delivery::S2S>
+
+Delivery via server-to-server connection; implicitly added if L</S2S>
+is enabled.
+
+=item L<DJabberd::Delivery::LocalVHosts>
+
+Delivery to locally configured virtual hosts; implicitly added between
+a virtual host and all of its configured subdomains.
+
+=item L<DJabberd::RosterStorage::InMemoryOnly>
+
+Store rosters in memory only.  See L<DJabberd::RosterStorage::SQLite>
+for a common, more persistent, alternative.
+
+=item L<DJabberd::Authen::AllowedUsers>
+
+Only allow the given users to connect.
+
+=item L<DJabberd::Authen::StaticPassword>
+
+Set a static password for all users.
+
+=item L<DJabberd::Authen::InMemoryOnly>
+
+Store users' correct passwords (set on in-band registration, for
+instance) in memory only.
+
+=item L<DJabberd::Bot::Admin>
+
+Provides an alternative interface to L<DJabberd::Connection::Admin>
+for certain users.
+
+=item L<DJabberd::SASL> and subclasses
+
+Enables a particular type of SASL negotiation.
+
+=back
+
+=cut
+
