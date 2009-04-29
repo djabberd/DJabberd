@@ -1,3 +1,6 @@
+  - Improve debugging information for S2S connections.
+    (Alex Vandiver <alexmv@bestpractical.com>)
+
   - Remove the stream:features-in-dialback quirk hack, since it breaks
     interop with a few different implementations and is incorrect
     per spec. This may break interop with some other implementation,
