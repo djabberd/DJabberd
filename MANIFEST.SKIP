@@ -2,6 +2,7 @@
 .shipit
 
 # Avoid version control files.
+\.git
 \bRCS\b
 \bCVS\b
 ,v$
