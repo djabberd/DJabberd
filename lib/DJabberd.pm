@@ -118,8 +118,8 @@ sub set_config_sslcertificatefile {
     $self->{ssl_cert_file} = as_abs_path($val);
 }
 
-sub ssl_private_key_file { return $_[0]{ssl_private_key_file} }
-sub ssl_cert_file        { return $_[0]{ssl_cert_file}        }
+sub ssl_private_key_file { return $_[0]{ssl_private_key_file} || 'server-key.pem' }
+sub ssl_cert_file        { return $_[0]{ssl_cert_file}  || 'server-cert.pem'      }
 
 sub set_config_oldssl {
     my ($self, $val) = @_;
