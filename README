@@ -75,9 +75,8 @@ by setting the following environment variable:
 
   set LOGLEVEL=DEBUG
   
-  
-  
-  
-  
-  
-  
+
+In the examples/ directory there's an example djabberd.conf
+configuration file and the 'sixatalk' program.  'sixatalk' is an
+example djabberd based server integrating with an LDAP directory.
+
