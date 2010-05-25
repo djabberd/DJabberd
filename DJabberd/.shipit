@@ -1,6 +1,0 @@
-steps = FindVersion, ChangeVersion, CheckChangeLog, DistTest, Commit, Tag, MakeDist, UploadCPAN, AddToSVNDir
-
-svn.tagpattern = DJabberd-%v
-AddToSVNDir.dir = /home/lj/cvs/web-danga/dist/djabberd
-
-
