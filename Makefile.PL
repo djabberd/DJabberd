@@ -14,6 +14,7 @@ WriteMakefile(
                   'Net::SSLeay'                  => 0,
                   'Log::Log4perl'                => 0,
                   'Digest::HMAC_SHA1'            => 0,
+                  'Unicode::Stringprep'          => 0,
               },
               clean      => { FILES => 't/log/*' },
               AUTHOR     => 'Brad Fitzpatrick <brad@danga.com>',

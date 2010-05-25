@@ -16,7 +16,7 @@ sub set_vhost {
 
 sub peer_domain_is_verified {
     my ($self, $domain) = @_;
-    return $self->{verified_remote_domain}->{$domain};
+    return $self->{verified_remote_domain}->{lc $domain};
 }
 
 sub on_stream_start {
@@ -140,7 +140,7 @@ sub dialback_result_valid {
     my %opts = @_;
 
     my $res = qq{<db:result from='$opts{recv_server}' to='$opts{orig_server}' type='valid'/>};
-    $self->{verified_remote_domain}->{$opts{orig_server}} = $opts{orig_server};
+    $self->{verified_remote_domain}->{lc $opts{orig_server}} = $opts{orig_server};
     $self->log->debug("Dialback result valid for connection $self->{id}.  from=$opts{recv_server}, to=$opts{orig_server}: $res\n");
     $self->write($res);
 }

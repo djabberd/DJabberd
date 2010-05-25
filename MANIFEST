@@ -155,3 +155,4 @@ t/unsubscribe.t
 t/versions.t
 t/write-error-and-close.t
 t/xmlparsing.t
+t/jidcase.t

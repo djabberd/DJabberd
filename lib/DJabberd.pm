@@ -167,6 +167,11 @@ sub fake_s2s_peer {
     return $fake_peers{$host};
 }
 
+sub set_config_casesensitive {
+    my ($self, $val) = @_;
+    $DJabberd::JID::CASE_SENSITIVE = as_bool($val);
+}
+
 sub add_vhost {
     my ($self, $vhost) = @_;
     my $sname = lc $vhost->name;

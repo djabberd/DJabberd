@@ -1,3 +1,11 @@
+  - Treat the node and domain parts of a JID as case-insensitive as per
+    the XMPP spec. This creates a dependency on the CPAN module
+    Unicode::Stringprep. A backward-compatibility setting is provided
+    for servers that have existing non-normalized JIDs stored,
+    since they are likely to be broken by this change until their
+    stored data is normalized.
+    Patch from Alex Vandiver <alexmv@bestpractical.com>
+
   - Some configuration file docs
     (Alex Vandiver <alexmv@bestpractical.com>)
 

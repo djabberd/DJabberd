@@ -3,6 +3,9 @@ use strict;
 use DJabberd::Util qw(exml);
 use Digest::SHA1;
 
+# Configurable via 'CaseSensitive' config option
+our $CASE_SENSITIVE = 0;
+
 use overload
     '""' => \&as_string_exml;
 
@@ -12,6 +15,84 @@ use constant RES        => 2;
 use constant AS_STRING  => 3;
 use constant AS_BSTRING => 4;
 use constant AS_STREXML => 5;
+
+# Stringprep functions for converting to canonical form
+use Unicode::Stringprep;
+use Unicode::Stringprep::Mapping;
+use Unicode::Stringprep::Prohibited;
+my $nodeprep = Unicode::Stringprep->new(
+    3.2,
+    [
+        \@Unicode::Stringprep::Mapping::B1,
+        \@Unicode::Stringprep::Mapping::B2,
+    ],
+    'KC',
+    [
+        \@Unicode::Stringprep::Prohibited::C11,
+        \@Unicode::Stringprep::Prohibited::C12,
+        \@Unicode::Stringprep::Prohibited::C21,
+        \@Unicode::Stringprep::Prohibited::C22,
+        \@Unicode::Stringprep::Prohibited::C3,
+        \@Unicode::Stringprep::Prohibited::C4,
+        \@Unicode::Stringprep::Prohibited::C5,
+        \@Unicode::Stringprep::Prohibited::C6,
+        \@Unicode::Stringprep::Prohibited::C7,
+        \@Unicode::Stringprep::Prohibited::C8,
+        \@Unicode::Stringprep::Prohibited::C9,
+        [
+            0x0022, undef, # "
+            0x0026, undef, # &
+            0x0027, undef, # '
+            0x002F, undef, # /
+            0x003A, undef, # :
+            0x003C, undef, # <
+            0x003E, undef, # >
+            0x0040, undef, # @
+        ]
+    ],
+    1,
+);
+my $nameprep = Unicode::Stringprep->new(
+    3.2,
+    [
+        \@Unicode::Stringprep::Mapping::B1,
+        \@Unicode::Stringprep::Mapping::B2,
+    ],
+    'KC',
+    [
+        \@Unicode::Stringprep::Prohibited::C12,
+        \@Unicode::Stringprep::Prohibited::C22,
+        \@Unicode::Stringprep::Prohibited::C3,
+        \@Unicode::Stringprep::Prohibited::C4,
+        \@Unicode::Stringprep::Prohibited::C5,
+        \@Unicode::Stringprep::Prohibited::C6,
+        \@Unicode::Stringprep::Prohibited::C7,
+        \@Unicode::Stringprep::Prohibited::C8,
+        \@Unicode::Stringprep::Prohibited::C9,
+    ],
+    1,
+);
+my $resourceprep = Unicode::Stringprep->new(
+    3.2,
+    [
+        \@Unicode::Stringprep::Mapping::B1,
+    ],
+    'KC',
+    [
+        \@Unicode::Stringprep::Prohibited::C12,
+        \@Unicode::Stringprep::Prohibited::C21,
+        \@Unicode::Stringprep::Prohibited::C22,
+        \@Unicode::Stringprep::Prohibited::C3,
+        \@Unicode::Stringprep::Prohibited::C4,
+        \@Unicode::Stringprep::Prohibited::C5,
+        \@Unicode::Stringprep::Prohibited::C6,
+        \@Unicode::Stringprep::Prohibited::C7,
+        \@Unicode::Stringprep::Prohibited::C8,
+        \@Unicode::Stringprep::Prohibited::C9,
+    ],
+    1,
+);
+
 
 # returns DJabberd::JID object, or undef on failure due to invalid format
 sub new {
@@ -29,7 +110,20 @@ sub new {
            (?: /(.{1,1023})   )?                                           # $3: optional resource
            $!x;
 
-    return bless [ $1, $2, $3 ], $_[0];
+    # If we're in case-sensitive mode, for backwards-compatibility,
+    # then skip stringprep
+    return bless [ $1, $2, $3 ], $_[0] if $DJabberd::JID::CASE_SENSITIVE;
+
+    # Stringprep uses regexes, so store these away first
+    my ($node, $host, $res) = ($1, $2, $3);
+
+    return eval {
+        bless [
+            defined $node ? $nodeprep->($node) : undef,
+            $nameprep->($host),
+            defined $res  ? $resourceprep->($res) : undef,
+        ], $_[0]
+    };
 }
 
 sub is_bare {
