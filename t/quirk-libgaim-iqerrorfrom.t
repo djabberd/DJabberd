@@ -51,7 +51,7 @@ sub run_test {
 
 
         $xml = $pb->recv_xml;
-        like($xml, qr{<vCard xmlns='vcard-temp'/>}, "iq vcard query");
+        like($xml, qr{<vCard xmlns="vcard-temp"/>}, "iq vcard query");
         like($xml, qr{\btype=.get\b}, "is a get");
 
         # now we'll make pb be the broken libgaim.  note the bogus from address.

@@ -556,7 +556,7 @@ sub connect {
 
     my $features = $self->recv_xml;
     warn "FEATURES: $features" if $ENV{TESTDEBUG};
-    die "no features" unless $features =~ /^<features\b/;
+    die "no features" unless $features =~ /^<([^\:]+\:)?features\b/;
     return 1;
 }
 
