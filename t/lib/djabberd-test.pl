@@ -576,10 +576,10 @@ sub sasl_login {
     my $res  = shift;
     my $sec  = shift;
 
-    warn "connecting for login..\n" if $ENV{TESTDEBUG};
+    warn "connecting for sasl login..\n" if $ENV{TESTDEBUG};
     $self->connect or die "Failed to connect";
 
-    warn ".. connected after login.\n" if $ENV{TESTDEBUG};
+    warn ".. connected after sasl login.\n" if $ENV{TESTDEBUG};
 
     my $ss = $self->{ss};
     my $sock = $self->{sock};
