@@ -13,7 +13,7 @@ use DJabberd::Util;
 use IO::Socket::UNIX;
 
 my $HAS_SASL;
-eval "use Authen::SASL 2.13";
+eval "use Authen::SASL 2.1402";
 unless ($@) {
     require DJabberd::SASL::AuthenSASL;
     $HAS_SASL = 1;

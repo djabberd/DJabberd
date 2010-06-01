@@ -7,9 +7,9 @@ use lib 't/lib';
 require 'djabberd-test.pl';
 
 BEGIN {
-    eval "use Authen::SASL 2.13";
+    eval "use Authen::SASL 2.1402";
     if ($@) {
-        plan skip_all => 'Tests require Authen::SASL 2.13+';
+        plan skip_all => 'Tests require Authen::SASL 2.1402+';
     }
     else {
         plan tests => 46;

@@ -5,7 +5,7 @@ use lib 't/lib';
 require 'djabberd-test.pl';
 
 my $HAS_SASL;
-eval "use Authen::SASL 2.13";
+eval "use Authen::SASL 2.1402";
 $HAS_SASL = 1 unless $@;
 
 sub connect_and_get_features{
