@@ -25,6 +25,7 @@ my $login_and_be = sub {
     $pa->send_xml("<presence/>");
     $pb->send_xml("<presence/>");
 
+    select(undef,undef,undef,0.25); # doh
     $pa->send_xml("<iq type='get' id='pa1' to='$pb'><x/></iq>");
     like($pb->recv_xml, qr/id=.pa./, "pb got pa's iq");
     $pb->send_xml("<iq type='get' id='pb1' to='$pa'><x/></iq>");
