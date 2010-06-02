@@ -51,7 +51,7 @@ sub connect_and_get_features{
   {
      my $features = connect_and_get_features($client);
 
-     is("<stream:features><auth xmlns=\"http://jabber.org/features/iq-auth\"/></stream:features>",
+     is("<stream:features><auth xmlns='http://jabber.org/features/iq-auth'/></stream:features>",
         $features, "should get features, including auth and nothing else");
   }
   $server->kill;  
@@ -98,8 +98,8 @@ sub connect_and_get_features{
      my $features = connect_and_get_features($client);
 
      is("<stream:features>".
-        "<auth xmlns=\"http://jabber.org/features/iq-auth\"/>".
-        "<starttls xmlns=\"urn:ietf:params:xml:ns:xmpp-tls\"/>".
+        "<auth xmlns='http://jabber.org/features/iq-auth'/>".
+        "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>".
         "</stream:features>",
         $features, "should get features, including auth and starttls");
   }
@@ -137,7 +137,7 @@ sub connect_and_get_features{
      my $features = connect_and_get_features($client);
 
      is("<stream:features>".
-        "<auth xmlns=\"http://jabber.org/features/iq-auth\"/>".
+        "<auth xmlns='http://jabber.org/features/iq-auth'/>".
         "<foobar/>".
         "</stream:features>",
         $features, "should get features, including auth and starttls");

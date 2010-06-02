@@ -69,7 +69,7 @@ my $client = Test::DJabberd::Client->new(server => $server, name => "client");
     $client->send_xml(qq{<bogus-stanza/>});
     # should get a stream error
     is($client->recv_xml, 
-        "<stream:error><unsupported-stanza-type xmlns=\"urn:ietf:params:xml:ns:xmpp-streams\"/></stream:error>",
+        "<stream:error><unsupported-stanza-type xmlns='urn:ietf:params:xml:ns:xmpp-streams'/></stream:error>",
         "should get a stream error for bogus stanza");
     
     pass "Done";

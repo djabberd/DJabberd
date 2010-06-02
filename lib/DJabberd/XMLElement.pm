@@ -175,17 +175,17 @@ sub as_xml {
             my ($nsuri, $name) = ($1, $2);
             if ($nsuri eq 'xmlns' ||
                 $nsuri eq 'http://www.w3.org/2000/xmlns/') {
-                $attr_str .= " xmlns:$name=\"" . DJabberd::Util::exml($value)
-                          . "\"";
+                $attr_str .= " xmlns:$name='" . DJabberd::Util::exml($value)
+                          . "'";
             } elsif ($k eq '{}xmlns') {
-                $attr_str .= " xmlns=\"" . DJabberd::Util::exml($value) . "\"";
+                $attr_str .= " xmlns='" . DJabberd::Util::exml($value) . "'";
             } else {
                 my $nsprefix = $self->_resolve_prefix($nsmap, $def_ns, $nsuri);
-                $attr_str .= " $nsprefix$name=\"" . DJabberd::Util::exml($value)
-                          ."\"";
+                $attr_str .= " $nsprefix$name='" . DJabberd::Util::exml($value)
+                          ."'";
             }
         } else {
-            $attr_str .= " $k=\"" . DJabberd::Util::exml($value) . "\"";
+            $attr_str .= " $k='" . DJabberd::Util::exml($value) . "'";
         }
     }
 
