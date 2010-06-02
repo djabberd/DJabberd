@@ -311,6 +311,15 @@ sub start {
         
         my $childpid = fork;
         if (!$childpid) {
+            unless ($ENV{TESTDEBUG}) {
+                ## no spurious output unless debugging
+                close(STDIN);
+                close(STDOUT);
+                close(STDERR);
+                open(STDIN,  "+>/dev/null");
+                open(STDOUT, "+>&STDIN");
+                open(STDERR, "+>&STDIN");
+            }
             $server->run;
             exit 0;
         }
