@@ -64,7 +64,7 @@ sub connect_and_get_features{
     {
         my $features = connect_and_get_features($client);
 
-        like($features, qr{^<features xmlns='http://etherx.jabber.org/streams'>.*</features>$});
+        like($features, qr{^<stream:features>.*</stream:features>$});
         like($features, qr{<auth xmlns='http://jabber.org/features/iq-auth'/>});
         like($features, qr{<mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>.*</mechanisms>});
         like($features, qr{<optional/>}, "our test setup makes sasl optional, bc of history of djabberd");
