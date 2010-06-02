@@ -597,9 +597,11 @@ sub sasl_login {
         my $challenge = $self->recv_xml;
         warn "challenge response: [$challenge]\n" if $ENV{TESTDEBUG};
         die "Didn't get expected response: $challenge" unless $challenge =~ /challenge|success\b/;
-        $challenge =~ s/^.*>(.+)<.*$/$1/sm;
-        $challenge = decode_base64($challenge);
-        warn "decoded challenge: [$challenge]\n" if $ENV{TESTDEBUG};
+
+        if ($challenge =~ s/^.*>(.+)<.*$/$1/sm) {
+            $challenge = decode_base64($challenge);
+            warn "decoded challenge: [$challenge]\n" if $ENV{TESTDEBUG};
+        }
 
         my $response = $conn->client_step($challenge);
         if ($conn->is_success) {
