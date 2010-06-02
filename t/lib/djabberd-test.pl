@@ -573,7 +573,7 @@ sub send_stream_start {
 sub sasl_login {
     my $self = shift;
     my $sasl = shift;
-    my $res  = shift;
+    my $res  = shift || '';
     my $sec  = shift;
 
     warn "connecting for sasl login..\n" if $ENV{TESTDEBUG};
