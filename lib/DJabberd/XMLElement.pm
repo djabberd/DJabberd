@@ -7,6 +7,7 @@ use fields (
             'children',  # arrayref of child elements of this same type, or scalars for text nodes
             'raw',       # in some cases we have the raw xml and we have to create a fake XMLElement object
                          # business logic is that as_xml returns the raw stuff if it is exists, children has to be empty -- sky
+            'prefix',    # namepace prefix in use in this element
             );
 
 use DJabberd::Util;
@@ -23,7 +24,9 @@ sub new {
     ($self->{ns},
      $self->{element},
      $self->{attrs},
-     $self->{children}) = @_;
+     $self->{children},
+     $self->{raw},
+     $self->{prefix}) = @_;
     #my ($ns, $elementname, $attrs, $children) = @_;
     #Carp::confess("children isn't an arrayref, is: $children") unless ref $children eq "ARRAY";
 
@@ -107,35 +110,94 @@ sub namespace {
     return $self->{ns};
 }
 
+sub _resolve_prefix {
+    my ($self, $nsmap, $def_ns, $uri, $attr) = @_;
+    if ($def_ns && $def_ns eq $uri) {
+        return '';
+    } elsif ($uri eq '') {
+        return '';
+    } elsif ($nsmap->{$uri}) {
+        $nsmap->{$uri} . ':';
+    } else {
+        $nsmap->{___prefix_count} ||= 0;
+        my $count = $nsmap->{___prefix_count}++;
+        my $prefix = "nsp$count";
+        $nsmap->{$uri} = $prefix;
+        $nsmap->{$prefix} = $uri;
+        $attr->{'{http://www.w3.org/2000/xmlns}' . $prefix} = $uri;
+        return $prefix . ':';
+    }
+}
+
 sub as_xml {
     my DJabberd::XMLElement $self = shift;
-    my $nsmap = shift || {};  # localname -> uri, uri -> localname
-    my $def_ns = shift;
+
+    my $nsmap = shift || { }; # localname -> uri, uri -> localname
+
+    # tons of places call as_xml, but nobody seems to care about
+    # the default namespace. It seems, however, that it is a common
+    # usage for "jabber:client" to be this default ns.
+    my $def_ns = shift || 'jabber:client';
 
     my ($ns, $el) = ($self->{ns}, $self->{element});
+    if ($self->{prefix}) {
+        $nsmap->{ $self->{prefix} } = $ns;
+        $nsmap->{$ns} = $self->{prefix};
+    }
 
     my $attr_str = "";
     my $attr = $self->{attrs};
+
+    $nsmap->{xmlns} = 'http://www.w3.org/2000/xmlns';
+    $nsmap->{'http://www.w3.org/2000/xmlns'} = 'xmlns';
+
+    # let's feed the nsmap...
     foreach my $k (keys %$attr) {
-        next if $k eq "{}xmlns";
-        my $value = $attr->{$k};
-        # FIXME: ignoring all namespaces on attributes
-        $k =~ s!^\{(.*)\}!!;
-        my $ns = $1;
-        $attr_str .= " $k='" . DJabberd::Util::exml($value) . "'";
+        if ($k =~ /^\{(.*)\}(.+)$/) {
+            my ($nsuri, $name) = ($1, $2);
+            if ($nsuri eq 'xmlns' ||
+                $nsuri eq 'http://www.w3.org/2000/xmlns/') {
+                $nsmap->{$name} = $attr->{$k};
+                $nsmap->{ $attr->{$k} } = $name;
+            } elsif ($k eq '{}xmlns') {
+                $def_ns = $attr->{$k};
+            }
+        } elsif ($k eq 'xmlns') {
+            $def_ns = $attr->{$k};
+        }
     }
 
-    my $xmlns = (!$ns ||
-                 ($def_ns && $ns eq $def_ns) ||
-                 $ns eq "jabber:server" ||
-                 $ns eq "jabber:component:accept" ||
-                 $ns eq "jabber:client") ?
-                 "" : " xmlns='$ns'";
-    my $innards = $self->innards_as_xml($nsmap, $ns, $def_ns);
+    my $nsprefix = $self->_resolve_prefix($nsmap, $def_ns, $ns, $attr);
+
+    foreach my $k (keys %$attr) {
+        my $value = $attr->{$k};
+        if ($k =~ /^\{(.*)\}(.+)$/) {
+            my ($nsuri, $name) = ($1, $2);
+            if ($nsuri eq 'xmlns' ||
+                $nsuri eq 'http://www.w3.org/2000/xmlns/') {
+                $attr_str .= " xmlns:$name='" . DJabberd::Util::exml($value)
+                          . "'";
+            } elsif ($k eq '{}xmlns') {
+                $attr_str .= " xmlns='" . DJabberd::Util::exml($value) . "'";
+            } else {
+                my $nsprefix = $self->_resolve_prefix($nsmap, $def_ns, $nsuri);
+                $attr_str .= " $nsprefix$name='" . DJabberd::Util::exml($value)
+                          ."'";
+            }
+        } else {
+            $attr_str .= " $k='" . DJabberd::Util::exml($value) . "'";
+        }
+    }
+
+    my $innards = $self->innards_as_xml($nsmap, $def_ns);
     $innards = "..." if $DJabberd::ASXML_NO_INNARDS && $innards;
-    return length $innards ?
-        "<$el$xmlns$attr_str>$innards</$el>" :
-        "<$el$xmlns$attr_str/>";
+
+    my $result = length $innards ?
+        "<$nsprefix$el$attr_str>$innards</$nsprefix$el>" :
+        "<$nsprefix$el$attr_str/>";
+
+    return $result;
+
 }
 
 sub innards_as_xml {
@@ -170,6 +232,7 @@ sub clone {
     $clone->{attrs}    = { %{ $self->{attrs} } };
     $clone->{children} = [ map { ref($_) ? $_->clone : $_ } @{ $self->{children} } ];
     $clone->{raw}      = $self->{raw};
+    $clone->{prefix}   = $self->{prefix};
     return $clone;
 }
 

@@ -565,7 +565,7 @@ sub connect {
 
     my $features = $self->recv_xml;
     warn "FEATURES: $features" if $ENV{TESTDEBUG};
-    die "no features" unless $features =~ /^<features\b/;
+    die "no features" unless $features =~ /^<([^\:]+\:)?features\b/;
     return 1;
 }
 
@@ -638,7 +638,7 @@ sub sasl_login {
 
     my $features = $self->recv_xml;
     warn "FEATURES: $features" if $ENV{TESTDEBUG};
-    die "no features" unless $features =~ /^<features\b/;
+    die "no features" unless $features =~ /^<([^\:]+\:)?features\b/;
     die "no bind"     unless $features =~ /bind\b/sm;
     die "no session"  unless $features =~ /session\b/sm;
 

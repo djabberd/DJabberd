@@ -51,7 +51,7 @@ sub connect_and_get_features{
   {
      my $features = connect_and_get_features($client);
 
-     is("<features xmlns='http://etherx.jabber.org/streams'><auth xmlns='http://jabber.org/features/iq-auth'/></features>",
+     is("<stream:features><auth xmlns='http://jabber.org/features/iq-auth'/></stream:features>",
         $features, "should get features, including auth and nothing else");
   }
   $server->kill;  
@@ -64,7 +64,7 @@ sub connect_and_get_features{
     {
         my $features = connect_and_get_features($client);
 
-        like($features, qr{^<features xmlns='http://etherx.jabber.org/streams'>.*</features>$});
+        like($features, qr{^<stream:features>.*</stream:features>$});
         like($features, qr{<auth xmlns='http://jabber.org/features/iq-auth'/>});
         like($features, qr{<mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>.*</mechanisms>});
         like($features, qr{<optional/>}, "our test setup makes sasl optional, bc of history of djabberd");
@@ -97,10 +97,10 @@ sub connect_and_get_features{
   {
      my $features = connect_and_get_features($client);
 
-     is("<features xmlns='http://etherx.jabber.org/streams'>".
+     is("<stream:features>".
         "<auth xmlns='http://jabber.org/features/iq-auth'/>".
         "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>".
-        "</features>",
+        "</stream:features>",
         $features, "should get features, including auth and starttls");
   }
   $server->kill;  
@@ -136,10 +136,10 @@ sub connect_and_get_features{
   {
      my $features = connect_and_get_features($client);
 
-     is("<features xmlns='http://etherx.jabber.org/streams'>".
+     is("<stream:features>".
         "<auth xmlns='http://jabber.org/features/iq-auth'/>".
         "<foobar/>".
-        "</features>",
+        "</stream:features>",
         $features, "should get features, including auth and starttls");
   }
   $server->kill;  

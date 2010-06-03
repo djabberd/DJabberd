@@ -188,7 +188,9 @@ sub _nodes_from_events {
             push @$nodelist, DJabberd::XMLElement->new($ev->[1]{NamespaceURI},
                                                        $ev->[1]{LocalName},
                                                        $attr,
-                                                       _nodes_from_events($evlist, $start_idx, $end_idx));
+                                                       _nodes_from_events($evlist, $start_idx, $end_idx),
+                                                       undef,
+                                                       $ev->[1]{Prefix});
             next;
         }
 
