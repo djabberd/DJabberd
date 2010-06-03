@@ -1,3 +1,13 @@
+  - SASL support (Previously released, but not advertised here)
+    (Yann Kerherve <yann@cyberion.net>)
+
+  - Implement proper support for XML namespace prefixes
+    (Daniel Ruoso <daniel@ruoso.com>)
+
+  - Meta: djabberd is now hosted on http://github.com/djabberd
+
+  - Meta: The core repository is now separated from plugins.
+
   - Treat the node and domain parts of a JID as case-insensitive as per
     the XMPP spec. This creates a dependency on the CPAN module
     Unicode::Stringprep. A backward-compatibility setting is provided
