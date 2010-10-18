@@ -1,3 +1,6 @@
+  - Support intermediate SSL certificates.
+    (Rajiv Aaron Manglani <rajiv@brontes3d.com>)
+
   - SASL support (Previously released, but not advertised here)
     (Yann Kerherve <yann@cyberion.net>)
 

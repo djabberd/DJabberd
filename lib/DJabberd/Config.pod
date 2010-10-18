@@ -44,6 +44,16 @@ certificate should be in PEM format, and will be presented to the
 clients who ask for TLS.  If it is not set, the server will not
 support TLS.
 
+=head2 SSLCertificateChainFile C</path/to/cert-chain.pem>
+
+Sets the path to the certificate chain file for the server. This is
+needed if the server certificate is signed by an intermediate
+certificate from a certificate authority. This file should be in PEM
+format. It must contain the server's certificate, followed by the
+intermediate certificates, then finally the root certificate.
+C<SSLCertificateKeyFile> and C<SSLCertificateFile> are required when
+using this option.
+
 =head2 OldSSL C<boolean>
 
 Defaults to off; if set, the server will also listen on port 5223, and

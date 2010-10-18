@@ -37,6 +37,11 @@ sub process {
                                            &Net::SSLeay::FILETYPE_PEM);
     Net::SSLeay::die_if_ssl_error("certificate");
 
+    if ($conn->vhost->server->ssl_cert_chain_file) {
+        Net::SSLeay::CTX_use_certificate_chain_file ($ctx, $conn->vhost->server->ssl_cert_chain_file);
+        Net::SSLeay::die_if_ssl_error("certificate chain file");
+    }
+
 
     my $ssl = Net::SSLeay::new($ctx) or die_now("Failed to create SSL $!");
     $conn->{ssl} = $ssl;
