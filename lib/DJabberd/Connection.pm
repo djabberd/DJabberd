@@ -683,12 +683,9 @@ sub start_stream_back {
 
     my $id = $self->stream_id;
 
-    # only include a from='hostname' attribute if we know our vhost.
-    # if they didn't send one to set us, it's probably dialback
-    # and they can cope without knowing ours yet.
-    my $vhost = $self->vhost;
-    my $sname = $vhost ? $vhost->name : "";
-    my $from_attr = $sname ? "from='$sname'" : "";
+    # only include a from='hostname' attribute if they gave us a
+    # 'to' hostname.
+    my $from_attr = $to_host ? "from='$to_host'" : "";
 
     # {=streams-namespace}
     my $back = qq{<?xml version="1.0" encoding="UTF-8"?><stream:stream $from_attr id="$id" $ver_attr $extra_attr xmlns:stream="http://etherx.jabber.org/streams" xmlns="$ns">$features};
