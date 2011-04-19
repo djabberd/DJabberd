@@ -138,6 +138,11 @@ sub set_config_unixdomainsocket {
     $self->{unixdomainsocket} = $val;
 }
 
+sub set_config_userlogdir {
+    my ($self, $val) = @_;
+    $self->{userlogdir} = $val;
+}
+
 sub set_config_clientport {
     my ($self, $val) = @_;
     $self->{c2s_port} = as_bind_addr($val);

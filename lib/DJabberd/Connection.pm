@@ -49,17 +49,6 @@ our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
 use constant POLLIN        => 1;
 use constant POLLOUT       => 4;
 
-BEGIN {
-    my $xmldebug = $ENV{XMLDEBUG};
-
-    if ($xmldebug) {
-        eval 'use constant XMLDEBUG => "' . quotemeta($xmldebug) . '"';
-        die "XMLDEBUG path '$xmldebug' needs to be a directory writable by the user you are running $0 as\n" unless -w $xmldebug;
-    } else {
-        eval "use constant XMLDEBUG => ''";
-    }
-}
-
 our %LOGMAP;
 
 sub new {
@@ -90,16 +79,19 @@ sub new {
         $self->log->debug("New connection '$self->{id}' from $fromip");
     }
 
-    if (XMLDEBUG) {
-        system("mkdir -p " . XMLDEBUG ."/$$/");
+    if ($ENV{XMLDEBUG}) {
+        my $path = "$ENV{XMLDEBUG}/$$";
+        # XXX - escape the path?
+        system("mkdir -p $path");
         my $handle = IO::Handle->new;
         no warnings;
         my $from = $fromip || "outbound";
-        my $filename = "+>" . XMLDEBUG . "/$$/$from-$self->{id}";
+        my $filename = "+>$path/$from-$self->{id}";
         open ($handle, $filename) || die "Cannot open $filename: $!";
         $handle->autoflush(1);
         $LOGMAP{$self} = $handle;
     }
+
     return $self;
 }
 
@@ -250,6 +242,16 @@ sub set_bound_jid {
     my ($self, $jid) = @_;
     die unless $jid && $jid->isa('DJabberd::JID');
     $self->{bound_jid} = $jid;
+    return unless $ENV{USERDEBUGDIR};
+    my $path = $ENV{USERDEBUGDIR} . "/" . $jid->as_bare_string();
+    if (not exists $LOGMAP{$self} and -d $path) {
+        my $handle = IO::Handle->new;
+        no warnings;
+        my $filename = "+>$path/$$-$self->{id}";
+        open ($handle, $filename) || die "Cannot open $filename: $!";
+        $handle->autoflush(1);
+        $LOGMAP{$self} = $handle;
+    }
 }
 
 sub set_to_host {
@@ -466,7 +468,7 @@ sub restart_stream {
 # eval is being annoying
 sub write {
     my $self = shift;
-    if (XMLDEBUG) {
+    if (exists $LOGMAP{$self}) {
         my $time = Time::HiRes::time;
         no warnings;
         my $data = $_[0];
@@ -533,7 +535,7 @@ sub event_read {
 
     Carp::confess if ($self->{closed});
 
-    if (XMLDEBUG) {
+    if (exists $LOGMAP{$self}) {
         my $time = Time::HiRes::time;
         $LOGMAP{$self}->print("$time\t< $$bref\n");
     }
@@ -808,7 +810,7 @@ sub close {
             $self->{parser}     = undef;
         });
     }
-    if (XMLDEBUG) {
+    if (exists $LOGMAP{$self}) {
         $LOGMAP{$self}->close;
         delete $LOGMAP{$self};
     }
