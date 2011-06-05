@@ -16,7 +16,17 @@ sub new {
 
     # libxml mode:
     if (1) {
-        my $libxml = XML::LibXML->new;
+        my $libxml = XML::LibXML->new({
+            no_network => 1,
+            load_ext_dtd => 0,
+            expand_entities => 0,
+            expand_xinclude => 0,
+            ext_ent_handler => sub {
+                # my ($sys_id, $pub_id) = @_;
+                # warn "Received external entity: $sys_id:$pub_id";
+                "";
+            },
+        });
         $libxml->set_handler($self);
         $self->{LibParser} = $libxml;
 

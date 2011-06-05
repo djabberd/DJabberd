@@ -9,6 +9,7 @@ WriteMakefile(
               PREREQ_PM    => {
                   'Danga::Socket'                => 1.51,
                   'XML::SAX'                     => 0,
+                  'XML::LibXML'                  => 1.70,
                   'XML::LibXML::SAX'             => 0,
                   'Net::DNS'                     => 0.48,
                   'Net::SSLeay'                  => 0,

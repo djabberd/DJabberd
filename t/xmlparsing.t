@@ -6,7 +6,7 @@ use XML::SAX;
 use DJabberd::XMLParser;
 use XML::SAX::PurePerl;
 use Scalar::Util qw(weaken);
-use Test::More tests => 10;
+use Test::More tests => 14;
 use Data::Dumper;
 
 my $fulldoc = qq{<?xml version="1.0"?><root xmlns='root' xmlns:a='aa' global='foo' xmlns:b='bb' a:name='aname' b:name='bname' name='globalname'>
@@ -43,13 +43,48 @@ ok(!$ref, "p went away");
 {
     my $handler = EventRecorder->new(\$dummy);
     my $p       = DJabberd::XMLParser->new(Handler => $handler);
-    $p->parse_more("<foo><tag>");
+    $p->parse_more("<foo>&lt;<tag>");
     $p->finish_push;
     like($dummy, qr/foo.+tag/s);
     $ref = \$p;
     weaken($ref);
 }
 ok(!$ref, "p went away");
+
+## external entities are disabled
+{
+    use FindBin;
+    my $v = "$FindBin::Bin/v.txt";
+
+    my $xml1 = <<"EOF";
+<?xml version="1.0"?>
+<!DOCTYPE foo [
+<!ENTITY a PUBLIC "//foo" "file:$v">
+]>
+<root>
+  <a>&lt; A=&a;</a>
+</root>
+EOF
+    my $xml2 = <<"EOF";
+<?xml version="1.0"?>
+<!DOCTYPE foo [
+<!ENTITY b SYSTEM "file://$v">
+]>
+<root>
+  <b>B=&b;</b>
+</root>
+EOF
+    for ($xml1, $xml2) {
+        my $handler = EventRecorder->new(\$dummy);
+        my $p       = DJabberd::XMLParser->new(Handler => $handler);
+        eval {
+            $p->parse_more($_);
+            $p->finish_push;
+        };
+        ok $@, "died on unknown entity: $@";
+        unlike($dummy, qr/vuln/si);
+    }
+}
 
 # byte at a time
 my $n = 0;
@@ -80,9 +115,14 @@ use Data::Dumper;
 sub new {
     my ($class, $outref) = @_;
     $$outref = "";
-    return bless {
-        outref => $outref,
-    };
+    my $self = $class->SUPER::new();
+    $self->{outref} = $outref;
+    return $self;
+}
+
+sub characters {
+    my ($self, $data) = @_;
+    ${ $self->{outref} } .= $data->{Data};
 }
 
 sub start_element {
