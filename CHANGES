@@ -1,3 +1,8 @@
+0.85 2011-06-13 *CRITICAL SECURITY RELEASE*
+  - Fix an XML entity injection attack allowing the attacker to read random files
+    from the server. Reported by Wouter Coekaerts <wouter@coekaerts.be>.
+    (Yann Kerherve <yann@cyberion.net>)
+
   - Support intermediate SSL certificates.
     (Rajiv Aaron Manglani <rajiv@brontes3d.com>)
 
