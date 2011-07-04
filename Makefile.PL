@@ -7,7 +7,8 @@ WriteMakefile(
               EXE_FILES    => ['djabberd'],
               ABSTRACT_FROM => 'lib/DJabberd.pm',
               PREREQ_PM    => {
-                  'Danga::Socket'                => 1.51,
+                  'AnyEvent'                     => 0,
+                  'Danga::Socket::AnyEvent'      => 0,
                   'XML::SAX'                     => 0,
                   'XML::LibXML'                  => 1.70,
                   'XML::LibXML::SAX'             => 0,
