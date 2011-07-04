@@ -47,7 +47,6 @@ our (
      %Timers,                    # timers
      %FdWatchers,                # fd (num) -> [ AnyEvent read watcher, AnyEvent write watcher ]
      %DescriptorMap,             # fd (num) -> DJabberd::Socket object that owns it
-     %OtherFds,                  # fd (num) -> sub to run when that fd is ready to read or write
      $DoProfile,                 # if on, enable profiling
      %Profiling,                 # what => [ utime, stime, calls ]
      $DoneInit,                  # if we've done the one-time module init yet
@@ -61,40 +60,6 @@ sub Reset {
     %Timers = ();
     %FdWatchers = ();
     %DescriptorMap = ();
-    %OtherFds = ();
-}
-
-sub OtherFds {
-    my $class = shift;
-    if ( @_ ) {
-        # Clean up any watchers that we no longer need.
-        foreach my $fd (keys %OtherFds) {
-            delete $FdWatchers{$fd};
-        }
-        %OtherFds = ();
-        $class->AddOtherFds(@_);
-    }
-    return wantarray ? %OtherFds : \%OtherFds;
-}
-
-sub AddOtherFds {
-    my ($class, %fdmap) = @_;
-
-    foreach my $fd (keys %fdmap) {
-        my $coderef = $fdmap{$fd};
-        $OtherFds{$fd} = $coderef;
-
-        # The OtherFds interface uses the same callback for both read and write events,
-        # so create two AnyEvent watchers that differ only in their mode.
-        $FdWatchers{$fd} = [ map {
-            my $mode = $_;
-            AnyEvent->io(
-                fh => $fd,
-                poll => $mode,
-                cb => $coderef,
-            )
-        } qw(r w) ];
-    }
 }
 
 sub AddTimer {
