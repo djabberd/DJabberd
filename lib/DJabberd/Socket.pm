@@ -238,7 +238,7 @@ sub close {
     if ($self->{sock}) {
         my $fd = fileno($self->{sock});
         my $sock = $self->{sock};
-        $ToCloseIdleWatchers{$fd} = AnyEvent->idle(sub {
+        $ToCloseIdleWatchers{$fd} = AnyEvent->idle(cb => sub {
             $sock->close();
             delete $DescriptorMap{$fd};
             # Disable this watcher
