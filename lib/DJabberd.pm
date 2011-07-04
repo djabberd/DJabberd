@@ -2,7 +2,14 @@
 
 use strict;
 use Carp;
-use Danga::Socket 1.51;
+
+# TEMP: Force the AnyEvent reimplementation of Danga::Socket
+# to be used so that not all of the callers need to be updated
+# at once. Once no-one is calling directly into Danga::Socket
+# this can be removed.
+use EV;
+use Danga::Socket::AnyEvent;
+
 use IO::Socket::INET;
 use IO::Socket::UNIX;
 use POSIX ();
