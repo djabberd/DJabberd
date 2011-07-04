@@ -132,13 +132,16 @@ is($track_obj, undef, "ref in executed fallback destroyed");
                             methods => {});
 }
 
-Danga::Socket->SetLoopTimeout(1000);
+my $cv = AnyEvent->condvar;
 my $left = 2;
-Danga::Socket->SetPostLoopCallback(sub {
-    $left--;
-    return 1 if $left > 0;
-    return 0;
-});
-Danga::Socket->EventLoop();
+my $timer = AnyEvent->timer(
+    after => 0,
+    interval => 1,
+    cb => sub {
+        $left--;
+        $cv->send if $left <= 0;
+    },
+);
+$cv->recv;
 
 1;
