@@ -324,6 +324,7 @@ sub _start_server {
             ($ev_host, $ev_port) = split(/:/, $localaddr, 2);
         }
         else {
+            $ev_host = '0.0.0.0';
             $ev_port = $localaddr;
         }
     }
