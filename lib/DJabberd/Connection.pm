@@ -1,7 +1,7 @@
 package DJabberd::Connection;
 use strict;
 use warnings;
-use base 'Danga::Socket';
+use base 'DJabberd::Socket';
 use bytes;
 use fields (
             'saxhandler',
@@ -165,7 +165,7 @@ sub discard_parser {
     $self->{parser}        = undef;
     $self->{saxhandler}->cleanup;
     $self->{saxhandler} = undef;
-    Danga::Socket->AddTimer(0, sub {
+    DJabberd::Socket->AddTimer(0, sub {
         $p->finish_push;
     });
 }
@@ -235,7 +235,7 @@ sub return_parser {
         push @$freelist, [$p, $handler];
 
     } else {
-        Danga::Socket->AddTimer(0, sub {
+        DJabberd::Socket->AddTimer(0, sub {
             $p->finish_push;
         });
     }
@@ -425,7 +425,7 @@ sub sasl {
     return $self->{sasl};
 }
 
-# called by Danga::Socket when a write doesn't fully go through.  by default it
+# called by DJabberd::Socket when a write doesn't fully go through.  by default it
 # enables writability.  but we want to do nothing if we're waiting for a read for SSL
 sub on_incomplete_write {
     my $self = shift;
@@ -443,7 +443,7 @@ sub write_when_readable {
     $self->watch_read(1);
     $self->{write_when_readable} = [ $prev_readable ];
 
-    # don't need to push/pop its state because Danga::Socket->write, called later,
+    # don't need to push/pop its state because DJabberd::Socket->write, called later,
     # will do the one final write, or if not all written, will turn on watch_write
     $self->watch_write(0);
 }
@@ -801,7 +801,7 @@ sub close {
         # libxml isn't reentrant apparently, so we can't finish_push
         # from inside an existint callback.  so schedule immediately,
         # after event loop.
-        Danga::Socket->AddTimer(0, sub {
+        DJabberd::Socket->AddTimer(0, sub {
             $p->finish_push;
             $self->{saxhandler}->cleanup if $self->{saxhandler};
             $self->{saxhandler} = undef;

@@ -304,7 +304,7 @@ sub run {
     $self->_start_server($self->{admin_port}, "DJabberd::Connection::Admin") if $self->{admin_port};
 
     DJabberd::Connection::Admin->on_startup;
-    Danga::Socket->EventLoop();
+    AnyEvent->condvar->recv(); # blocks "forever"
     unlink($self->{pid_file}) if (-f $self->{pid_file});
 }
 
