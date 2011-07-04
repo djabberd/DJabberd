@@ -138,45 +138,33 @@ sub _start_listener {
     my $bindaddr = $self->{listenaddr};
 
     # FIXME: Maybe shouldn't duplicate all of this code out of DJabberd.pm.
-    
-    my $server;
-    my $not_tcp = 0;
+
+    my $ev_host = undef;
+    my $ev_port = undef;
+
     if ($bindaddr =~ m!^/!) {
-        $not_tcp = 1;
-        $server = IO::Socket::UNIX->new(
-            Type   => SOCK_STREAM,
-            Local  => $bindaddr,
-            Listen => 10
-        );
-        $logger->logdie("Error creating UNIX domain socket $bindaddr: $@") unless $server;
-        $logger->info("Started listener for component ".$self->domain." on UNIX domain socket $bindaddr");
+        $ev_host = 'unix/';
+        $ev_port = $bindaddr;
     } else {
-        $server = IO::Socket::INET->new(
-            LocalAddr => $bindaddr,
-            Type      => SOCK_STREAM,
-            Proto     => IPPROTO_TCP,
-            Blocking  => 0,
-            Reuse     => 1,
-            Listen    => 10
-        );
-        $logger->logdie("Error creating listen socket for <$bindaddr>: $@") unless $server;
-        $logger->info("Started listener for component ".$self->domain." on TCP socket <$bindaddr>");
+        if ($bindaddr =~ /:/) {
+            ($ev_host, $ev_port) = split(/:/, $bindaddr, 2);
+        }
+        else {
+            $ev_port = $bindaddr;
+        }
     }
 
-    # Brad thinks this is necessary under Perl 5.6, and who am I to argue?
-    IO::Handle::blocking($server, 0);
-    
-    $self->{listener} = $server;
+    $self->{listener_guard} = AnyEvent::Socket::tcp_server $ev_host, $ev_port, sub {
+        my ($fh) = @_;
 
-    my $accept_handler = sub {
-        my $csock = $server->accept;
-        return unless $csock;
-        
+        # Make the fh support IO::Socket methods
+        my $csock = bless \*{$fh}, 'IO::Socket';
+
         $logger->debug("Accepting connection from component ".$self->domain);
 
         IO::Handle::blocking($csock, 0);
-        unless ($not_tcp) {
-            setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or $logger->logdie("Couldn't set TCP_NODELAY");
+        if ($ev_host ne 'unix/') {
+            AnyEvent::Socket::tcp_nodelay($csock, 1);
         }
 
         my $connection = DJabberd::Connection::ComponentIn->new($csock, $vhost->server, $self);
@@ -186,9 +174,14 @@ sub _start_listener {
         # We only need to support one connection at a time, so
         # shut down the listen socket now to save resources.
         $self->_stop_listener($self);
+    },
+    sub {
+        my ($fh) = @_;
+        my $listener = bless \*{$fh}, 'IO::Socket';
+        $self->{listener} = $listener;
+        return 0;
     };
-    
-    Danga::Socket->AddOtherFds(fileno($server) => $accept_handler);
+    return ();
 }
 
 sub _stop_listener {
@@ -196,7 +189,8 @@ sub _stop_listener {
     
     return unless $self->{listener};
     $logger->info("Shutting down listener for component ".$self->domain);
-    $self->{listener} = undef if $self->{listener}->close();
+    $self->{listener_guard} = undef;
+    $self->{listener} = undef;
     return $self->{listener} == undef;
 }
 
