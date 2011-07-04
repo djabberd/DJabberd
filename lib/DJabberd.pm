@@ -3,11 +3,13 @@
 use strict;
 use Carp;
 
+use AnyEvent;
+use AnyEvent::Socket ();
+
 # TEMP: Force the AnyEvent reimplementation of Danga::Socket
 # to be used so that not all of the callers need to be updated
 # at once. Once no-one is calling directly into Danga::Socket
 # this can be removed.
-use EV;
 use Danga::Socket::AnyEvent;
 
 use IO::Socket::INET;
@@ -311,60 +313,33 @@ sub run {
 sub _start_server {
     my ($self, $localaddr, $class) = @_;
 
-    # establish SERVER socket, bind and listen.
-    my $server;
-    my $not_tcp = 0;
+    my $ev_host = undef;
+    my $ev_port = undef;
+
     if ($localaddr =~ m!^/!) {
-        $not_tcp = 1;
-        $server = IO::Socket::UNIX->new(Type   => SOCK_STREAM,
-                                        Local  => $localaddr,
-                                        Listen => 10)
-            or $logger->logdie("Error creating unix domain socket: $@\n");
+        $ev_host = 'unix/';
+        $ev_port = $localaddr;
     } else {
-        # assume it's a port if there's no colon
-        unless ($localaddr =~ /:/) {
-            $localaddr = "0.0.0.0:$localaddr";
+        if ($localaddr =~ /:/) {
+            ($ev_host, $ev_port) = split(/:/, $localaddr, 2);
         }
-
-        $logger->debug("Opening TCP listen socket on $localaddr");
-
-        $server = IO::Socket::INET->new(LocalAddr => $localaddr,
-                                        Type      => SOCK_STREAM,
-                                        Proto     => IPPROTO_TCP,
-                                        Reuse     => 1,
-                                        Listen    => 10 )
-            or $logger->logdie("Error creating socket: $@\n");
-
-        my $success = $server->blocking(0);
-
-        unless (defined($success)) {
-            if ($^O eq 'MSWin32') {
-                # On Windows, we have to do this a bit differently
-                my $do = 1;
-                ioctl($server, 0x8004667E, \$do) or $logger->warn("Failed to make socket non-blocking: $!");
-            }
-            else {
-                $logger->warn("Failed to make socket non-blocking: $!")
-            }
+        else {
+            $ev_port = $localaddr;
         }
     }
 
-    # Not sure if I'm crazy or not, but I can't see in strace where/how
-    # Perl 5.6 sets blocking to 0 without this.  In Perl 5.8, IO::Socket::INET
-    # obviously sets it from watching strace.
-    IO::Handle::blocking($server, 0);
-
-    my $accept_handler = sub {
+    AnyEvent::Socket::tcp_server $ev_host, $ev_port, sub {
         local *__ANON__ = " Accept handler in ". __FILE__ ." on line ". __LINE__;
+        my ($fh) = @_;
 
-        my $csock = $server->accept;
-        return unless $csock;
+        # Make the fh support IO::Socket methods
+        my $csock = bless \*{$fh}, 'IO::Socket';
 
         $self->debug("Listen child making a DJabberd::Connection for %d.\n", fileno($csock));
 
         IO::Handle::blocking($csock, 0);
-        unless ($not_tcp) {
-            setsockopt($csock, IPPROTO_TCP, TCP_NODELAY, pack("l", 1)) or die;
+        unless ($ev_host eq 'unix/') {
+            AnyEvent::Socket::tcp_nodelay($csock, 1);
         }
 
         if (my $client = eval { $class->new($csock, $self) }) {
@@ -375,8 +350,7 @@ sub _start_server {
             $logger->error("Error creating new $class: $@");
         }
     };
-
-    Danga::Socket->AddOtherFds(fileno($server) => $accept_handler);
+    return ();
 }
 
 sub start_c2s_server {
