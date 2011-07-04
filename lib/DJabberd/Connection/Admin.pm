@@ -2,7 +2,7 @@ package DJabberd::Connection::Admin;
 use strict;
 use warnings;
 no warnings 'redefine';
-use base 'Danga::Socket';
+use base 'DJabberd::Socket';
 
 use fields qw(buffer server handle);
 use vars qw($initial_memory @Help);
@@ -77,7 +77,7 @@ push @Help, 'conns | connections';
 sub CMD_connections {
     my ($self, $filter) = @_;
 
-    my $map = Danga::Socket->DescriptorMap;
+    my $map = DJabberd::Socket->DescriptorMap;
     my @list;
     foreach (keys %$map) {
         my $obj = $map->{$_};
@@ -151,7 +151,7 @@ push @Help, 'stats';
 sub CMD_stats {
     my $self = shift;
 
-    my $conns       = keys %{ Danga::Socket->DescriptorMap};
+    my $conns       = keys %{ DJabberd::Socket->DescriptorMap};
     my $conns_quick = $DJabberd::Stats::counter{connect} - $DJabberd::Stats::counter{disconnect};
 
     my $users = 0;

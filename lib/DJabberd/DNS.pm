@@ -1,6 +1,6 @@
 package DJabberd::DNS;
 use strict;
-use base 'Danga::Socket';
+use base 'DJabberd::Socket';
 use fields (
             'hostname',
             'callback',
@@ -62,7 +62,7 @@ sub srv {
     $self->{timed_out}       = 0;
 
     # TODO: make DNS timeout configurable
-    Danga::Socket->AddTimer(5.0, sub {
+    DJabberd::Socket->AddTimer(5.0, sub {
         return if $self->{became_readable};
         $self->{timed_out} = 1;
         $logger->debug("DNS 'SRV' lookup for '$hostname' timed out");
@@ -106,7 +106,7 @@ sub new {
     $self->{timed_out}       = 0;
 
     # TODO: make DNS timeout configurable, remove duplicate code
-    Danga::Socket->AddTimer(5.0, sub {
+    DJabberd::Socket->AddTimer(5.0, sub {
         return if $self->{became_readable};
         $self->{timed_out} = 1;
         $logger->debug("DNS 'A' lookup for '$hostname' timed out");

@@ -10,7 +10,7 @@ use DJabberd::Log;
 
 sub new {
     my ($class, $sock, $server) = @_;
-    my $self = Danga::Socket::new($class, $sock);
+    my $self = DJabberd::Socket::new($class, $sock);
 
     $self->{id}      = fileno($sock);
     $self->{vhost}   = undef;  # set once we get a stream start header from them
