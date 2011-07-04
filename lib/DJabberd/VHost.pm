@@ -535,7 +535,7 @@ sub get_roster {
                                   # upon connect there are three immediate requests of a user's
                                   # roster, then pretty much never again, so we keep it cached 5 seconds,
                                   # then discard it.
-                                  Danga::Socket->AddTimer(5.0, sub {
+                                  DJabberd::Socket->AddTimer(5.0, sub {
                                       delete $self->{roster_cache}{$barestr};
                                   });
 

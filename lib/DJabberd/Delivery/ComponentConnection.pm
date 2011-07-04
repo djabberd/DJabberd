@@ -180,7 +180,7 @@ sub _start_connection {
         # We're probably only connecting to localhost anyway, so I shant bother for now.
         $logger->debug("Outgoing connection was lost. Will attempt to re-establish it in 30 seconds.");
 
-        Danga::Socket->AddTimer(30, sub {
+        DJabberd::Socket->AddTimer(30, sub {
             $self->{connection} = undef;
             $self->_prepare_connection();
         });
