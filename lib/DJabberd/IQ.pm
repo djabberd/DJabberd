@@ -3,7 +3,7 @@ use strict;
 use base qw(DJabberd::Stanza);
 use DJabberd::Util qw(exml);
 use DJabberd::Roster;
-use Digest::SHA1;
+use Digest::SHA;
 
 use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger();
@@ -561,7 +561,7 @@ sub process_iq_setauth {
                                       if ($password && $password eq $good_password) {
                                           $accept->();
                                       } elsif ($digest) {
-                                          my $good_dig = lc(Digest::SHA1::sha1_hex($conn->{stream_id} . $good_password));
+                                          my $good_dig = lc(Digest::SHA::sha1_hex($conn->{stream_id} . $good_password));
                                           if ($good_dig eq $digest) {
                                               $accept->();
                                           } else {
