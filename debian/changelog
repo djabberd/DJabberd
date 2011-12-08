@@ -1,3 +1,11 @@
+djabberd (0.85-1) unstable; urgency=low
+
+  * New upstream version
+  * Updated debian packaging standards version
+  * Only building djabberd package, various sub-packages are now separated upstream
+  
+ -- Ioan Rogers <ioan.rogers@gmail.com>  Tue, 06 Dec 2011 00:38:21 -0800
+
 djabberd (0.83) unstable; urgency=low
 
   * Initial Debian Packaging

@@ -2,19 +2,19 @@ Source: djabberd
 Section: perl
 Priority: optional
 Maintainer: Nick Andrew <nick@nick-andrew.net>
-Build-Depends: debhelper (>= 5)
-Build-Depends-Indep: perl (>= 5.6.10-12), liblog-log4perl-perl, libnet-dns-perl, libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl, libdanga-socket-perl
-Standards-Version: 3.8.0
+Build-Depends: debhelper (>= 5), git
+Build-Depends-Indep: perl (>= 5.6.10-12), liblog-log4perl-perl, libnet-dns-perl, libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl, libdanga-socket-perl, libunicode-stringprep-perl, libauthen-sasl-perl
+Standards-Version: 3.9.2
 Homepage: http://danga.com/djabberd
 
 Package: djabberd
 Section: perl
 Priority: optional
 Architecture: all
-Depends: ${perl:Depends}, liblog-log4perl-perl, libnet-dns-perl, libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl, libdanga-socket-perl
+Depends: ${perl:Depends}, liblog-log4perl-perl, libnet-dns-perl, libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl, libdanga-socket-perl, libunicode-stringprep-perl
 Provides: libdjabberd-perl
 Conflicts: libdjabberd-perl
-Suggests: djabberd-doc, openssl
+Suggests: djabberd-doc, openssl, libauthen-sasl-perl
 Description: Distributed Jabber server
  djabberd is a high-performance, scalable, extensible Jabber/XMPP
  server framework. While it comes with an example server, it's
@@ -25,84 +25,3 @@ Description: Distributed Jabber server
  .
  Homepage: http://danga.com/djabberd/
 
-Package: libdjabberd-authen-htdigest-perl
-Section: perl
-Priority: optional
-Architecture: all
-Depends: djabberd
-Suggests: apache2-utils | apache-common (<< 1.3.28.0.1-1)
-Description: HTDigest Authentication module for DJabberd
- This module provides htdigest-based authentication for DJabberd.
-
-Package: libdjabberd-authen-mysql-perl
-Section: perl
-Priority: optional
-Architecture: all
-Depends: djabberd, libdbi-perl, libdbd-mysql-perl
-Description: MySQL Authentication module for DJabberd
- This module allows DJabberd to authenticate through MySQL.
-
-Package: libdjabberd-authen-pam-perl
-Section: perl
-Priority: optional
-Architecture: all
-Depends: djabberd, libauthen-pam-perl
-Description: PAM Authentication module for DJabberd
- This module allows DJabberd to authenticate through PAM.
-
-Package: libdjabberd-bot-eliza-perl
-Section: perl
-Priority: optional
-Architecture: all
-Depends: djabberd, libchatbot-eliza-perl
-Description: Eliza Chatbot module for DJabberd
- This module allows DJabberd to use Chatbot::Eliza to confuse
- users.
-
-Package: djabberd-livejournal
-Section: perl
-Priority: optional
-Architecture: all
-Depends: djabberd, libgearman-client-async-perl, libgearman-client-perl, libwww-perl
-Description: LiveJournal module for DJabberd
- This module allows DJabberd to talk to LiveJournal.
-
-Package: djabberd-misc
-Section: perl
-Priority: optional
-Architecture: all
-Depends: djabberd
-Description: DJabberd miscellany
- Provides DJabberd::RosterStorage::Dummy
-
-Package: djabberd-muc
-Section: perl
-Priority: optional
-Architecture: all
-Depends: djabberd
-Description: DJabberd MUC
- Provides MUC modules for DJabberd
-
-Package: djabberd-rosterstorage-sqlite
-Section: perl
-Priority: optional
-Architecture: all
-Depends: djabberd, libdbi-perl, libdbd-sqlite3-perl
-Description: DJabberd RosterStorage using SQLite
- Provides DJabberd RosterStorage using SQLite
-
-Package: libdjabberd-plugin-vcard-perl
-Section: perl
-Priority: optional
-Architecture: all
-Depends: djabberd
-Description: DJabberd VCard plugins
- Provides VCard plugins for DJabberd
-
-Package: djabberd-webadmin
-Section: perl
-Priority: optional
-Architecture: all
-Depends: djabberd, libperlbal-perl
-Description: DJabberd WebAdmin
- Provides DJabberd::WebAdmin
