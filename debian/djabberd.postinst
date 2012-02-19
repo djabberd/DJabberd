@@ -47,8 +47,9 @@ makedir /etc/djabberd djabberd:djabberd 750
 # generate a snakeoil keypair so that SSL works OOTB
 SERVERKEY="/etc/djabberd/snakeoil-server-key.pem"
 SERVERCRT="/etc/djabberd/snakeoil-server-crt.pem"
-if [ ! -f $SERVERKEY -a ! -f $SERVERCRT ]; then
-  openssl req -x509 -batch -newkey rsa:1024 -keyout $SERVERKEY -out $SERVERCRT -days 3650 -nodes
+OPENSSL="/usr/bin/openssl"
+if [ ! -f $SERVERKEY -a ! -f $SERVERCRT -a -x $OPENSSL ]; then
+  $OPENSSL req -x509 -batch -newkey rsa:1024 -keyout $SERVERKEY -out $SERVERCRT -days 3650 -nodes
 fi
 
 # remove the temporary directory

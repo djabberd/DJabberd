@@ -1,4 +1,4 @@
-djabberd (0.85) unstable; urgency=low
+djabberd (0.85-1) unstable; urgency=low
 
   * Split djabberd into djabberd and libdjabberd-perl 
 

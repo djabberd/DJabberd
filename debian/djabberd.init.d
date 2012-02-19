@@ -30,7 +30,7 @@ SCRIPTNAME=/etc/init.d/djabberd
 OPTS="--conf=$CONFIG_DIR/djabberd.conf"
 
 test -x $DAEMON || exit 0
-text -d $CONFIG_DIR || exit 0
+test -d $CONFIG_DIR || exit 0
 
 d_start() {
         start-stop-daemon --start --quiet --pidfile $PIDFILE -m \
