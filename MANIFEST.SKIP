@@ -27,3 +27,6 @@
 
 ## you don't really need website? do you?
 website/
+
+# Avoid debian packaging
+debian/

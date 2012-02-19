@@ -1,3 +1,9 @@
+djabberd (0.85-1) unstable; urgency=low
+
+  * Split djabberd into djabberd and libdjabberd-perl 
+
+ -- Dominik Schulz (tex) <lkml@ds.gauner.org>  Sun, 19 Feb 2012 17:45:33 +0100
+
 djabberd (0.83) unstable; urgency=low
 
   * Initial Debian Packaging

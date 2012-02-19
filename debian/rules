@@ -19,11 +19,9 @@ build-stamp:
 	dh_testdir
 
 # Add commands to compile the package here
-	(cd DJabberd ; $(PERL) Makefile.PL verbose INSTALLDIRS=vendor )
-	(cd DJabberd ; $(MAKE) )
-
-# 'make test' does not currently work
-#	$(MAKE) test
+	$(PERL) Makefile.PL verbose INSTALLDIRS=vendor
+	$(MAKE)
+	$(MAKE) test
 
 	touch build-stamp
 
@@ -32,7 +30,7 @@ clean:
 	dh_testroot
 
 # Add commands to clean up after the build process here
-	-(cd DJabberd ; $(MAKE) distclean )
+	-( $(MAKE) distclean )
 
 	dh_clean build-stamp install-stamp
 
@@ -46,7 +44,7 @@ install-stamp:
 	dh_installdirs -A
 
 # Add commands to install the package into $(TMP) here
-	(cd DJabberd ; $(MAKE) pure_install DESTDIR=$(TMP) PREFIX=/usr )
+	$(MAKE) pure_install DESTDIR=$(TMP) PREFIX=/usr
 
 	find $(TMP) -name .packlist -exec rm '{}' \;
 	find $(TMP) -depth -type d -empty -exec rmdir '{}' \;
@@ -68,7 +66,7 @@ binary-indep: build install
 	dh_installexamples
 	dh_installinit
 #	dh_installdocs doc/hacking/todo.txt
-	dh_installchangelogs DJabberd/CHANGES
+	dh_installchangelogs CHANGES
 	dh_perl
 	dh_link
 	dh_strip
