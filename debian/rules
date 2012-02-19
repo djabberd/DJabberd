@@ -68,7 +68,7 @@ binary-indep: build install
 	dh_installexamples
 	dh_installinit
 #	dh_installdocs doc/hacking/todo.txt
-	dh_installchangelogs DJabberd/CHANGES
+	dh_installchangelogs CHANGES
 	dh_perl
 	dh_link
 	dh_strip

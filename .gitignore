@@ -8,3 +8,4 @@ blib
 !.gitignore
 !.shipit
 build-stamp
+install-stamp

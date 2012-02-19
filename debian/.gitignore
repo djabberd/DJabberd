@@ -2,4 +2,6 @@ tmp/
 djabberd/
 libdjabberd-perl/
 *.debhelper
+*.debhelper.log
 *.substvars
+files
