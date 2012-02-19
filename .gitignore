@@ -7,3 +7,4 @@ blib
 .*
 !.gitignore
 !.shipit
+build-stamp
