@@ -1,0 +1,27 @@
+#!/bin/sh -e
+
+# DJabberd Common postrm
+# Dominik Schulz <dominik.schulz@gauner.org>
+
+case "$1" in
+  remove)
+    ;;
+  upgrade)
+    ;;
+  purge)
+    rm -rf /etc/djabberd
+    rm -rf /var/lib/djabberd
+    rm -rf /var/log/djabberd
+    rm -rf /var/run/djabberd
+    userdel djabberd >/dev/null 2>&1 || true
+    groupdel djabberd >/dev/null 2>&1 || true
+    ;;
+  failed-upgrade|abort-install|abort-upgrade|disappear)
+    ;;
+  *)
+    echo "postrm called with unknown argument \`$1'" >&2
+    exit 1
+    ;;
+esac
+
+#DEBHELPER#

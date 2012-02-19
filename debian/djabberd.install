@@ -1,1 +1,3 @@
-debian/tmp/usr                      /
+debian/tmp/usr/bin      /
+/etc/djabberd.conf      /etc/djabberd/
+/etc/log.conf           /etc/djabberd/
