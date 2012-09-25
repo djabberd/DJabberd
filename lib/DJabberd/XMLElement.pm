@@ -110,6 +110,16 @@ sub namespace {
     return $self->{ns};
 }
 
+sub replace_ns {
+    my ($self, $fromns, $tons) = @_;
+    if ($self->{ns} eq $fromns) {
+        $self->{ns} = $tons;
+    }
+    foreach my $child ($self->children_elements()) {
+        $child->replace_ns($fromns, $tons);
+    }
+}
+
 sub _resolve_prefix {
     my ($self, $nsmap, $def_ns, $uri, $attr) = @_;
     if ($def_ns && $def_ns eq $uri) {
