@@ -68,7 +68,7 @@ sub deliver {
 
     my $to = $stanza->to_jid or return $cb->decline;
 
-    my $handler = $server->lookup_vhost($to->domain);
+    my $handler = $server->lookup_vhost($to->domain, undef);
     
     unless ($handler) {
         $logger->debug("No local vhosts for ".$to->domain.".");

@@ -44,7 +44,7 @@ sub event_read {
 
         if (! $cmsg && $payload =~ /^vhost=(.+)/) {
             my $hostname = $1;
-            my $vhost = $self->server->lookup_vhost($hostname)
+            my $vhost = $self->server->lookup_vhost($hostname, $self->local_ip_string())
                 or $self->close;
             $self->{vhost} = $vhost;
             next;

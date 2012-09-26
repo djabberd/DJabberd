@@ -20,7 +20,7 @@ sub process {
 
     my $vhost = $conn->vhost;
     unless ($vhost) {
-        $vhost = $conn->server->lookup_vhost($recv_server);
+        $vhost = $conn->server->lookup_vhost($recv_server, $conn->local_ip_string());
         if ($vhost) {
             return unless $conn->set_vhost($vhost);
         }

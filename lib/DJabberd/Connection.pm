@@ -622,7 +622,7 @@ sub start_stream_back {
     # dialback)
     if ($to_host || ! $ss->announced_dialback) {
         my $exist_vhost = $self->vhost;
-        my $vhost       = $self->server->lookup_vhost($to_host);
+        my $vhost       = $self->server->lookup_vhost($to_host, $self->local_ip_string());
 
         return $self->close_no_vhost($to_host)
             unless ($vhost);

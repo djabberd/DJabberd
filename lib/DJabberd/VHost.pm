@@ -2,7 +2,7 @@ package DJabberd::VHost;
 use strict;
 use B ();       # improved debugging when hooks are called
 use Carp qw(croak);
-use DJabberd::Util qw(tsub as_bool);
+use DJabberd::Util qw(tsub as_bool as_abs_path);
 use DJabberd::Log;
 use DJabberd::JID;
 use DJabberd::Roster;
@@ -141,6 +141,24 @@ sub set_config_s2s {
 sub set_config_inbandreg {
     my ($self, $val) = @_;
     $self->{inband_reg} = as_bool($val);
+}
+
+# mimicing Apache's SSLCertificateKeyFile config
+sub set_config_sslcertificatekeyfile {
+    my ($self, $val) = @_;
+    $self->{ssl_private_key_file} = as_abs_path($val);
+}
+
+# mimicing Apache's SSLCertificateFile
+sub set_config_sslcertificatefile {
+    my ($self, $val) = @_;
+    $self->{ssl_cert_file} = as_abs_path($val);
+}
+
+# mimicing Apache's SSLCertificateChainFile
+sub set_config_sslcertificatechainfile {
+    my ($self, $val) = @_;
+    $self->{ssl_cert_chain_file} = as_abs_path($val);
 }
 
 sub set_config_childservice {
@@ -340,6 +358,28 @@ sub require_ssl {
     return $self->{require_ssl};
 }
 
+sub ssl_private_key_file {
+    my $self = shift;
+    return $self->{ssl_private_key_file}
+        if exists $self->{ssl_private_key_file};
+    return $self->server->ssl_private_key_file;
+}
+
+sub ssl_cert_file {
+    my $self = shift;
+    return $self->{ssl_cert_file}
+        if exists $self->{ssl_cert_file};
+    return $self->server->ssl_cert_file;
+}
+
+sub ssl_cert_chain_file {
+    my $self = shift;
+    return $self->{ssl_cert_chain_file}
+        if exists $self->{ssl_cert_chain_file};
+    return $self->server->ssl_cert_chain_file;
+}
+
+
 sub are_hooks {
     my ($self, $phase) = @_;
     return scalar @{ $self->{hooks}{$phase} || [] } ? 1 : 0;
@@ -442,14 +482,14 @@ sub find_conns_of_bare {
 sub uses_jid {
     my ($self, $jid) = @_;
     return 0 unless $jid;
-    return lc($jid->as_string) eq $self->{server_name};
+    return $self->handles_domain(lc($jid->as_string));
 }
 
 # returns true if given jid is controlled by this vhost
 sub handles_jid {
     my ($self, $jid) = @_;
     return 0 unless $jid;
-    return lc($jid->domain) eq $self->{server_name};
+    return $self->handles_domain($jid->domain);
 }
 
 sub roster_push {

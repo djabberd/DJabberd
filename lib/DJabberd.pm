@@ -198,12 +198,12 @@ sub add_vhost {
 
 # works as Server method or class method.
 sub lookup_vhost {
-    my ($self, $hostname) = @_;
+    my ($self, $hostname, $ip) = @_;
 
     # look at all server objects in process
     unless (ref $self) {
         foreach my $server (values %DJabberd::server) {
-            my $vh = $server->lookup_vhost($hostname);
+            my $vh = $server->lookup_vhost($hostname, $ip);
             return $vh if $vh;
         }
         return 0;
@@ -211,6 +211,14 @@ sub lookup_vhost {
 
     # method on server object
     foreach my $vhost (values %{$self->{vhosts}}) {
+        # restrict by IP if we're lookup by IP
+        if ($vhost->localaddr && $ip) {
+            # only interested in checking matching hostnames for this IP
+            next unless $vhost->localaddr eq $ip;
+            # for OldSSL - we don't have the hostname yet
+            # but we need to choose the correct cert
+            return $vhost unless $hostname;
+        }
         return $vhost
             if ($vhost->handles_domain($hostname));
     }

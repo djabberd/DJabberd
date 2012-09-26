@@ -351,7 +351,7 @@ sub CMD_send_stanza {
     my ($self, $params) = @_;
     my ($vname, $barejid_str, $e_stanza) = split(/\s+/, $params);
 
-    my $vhost = DJabberd->lookup_vhost($vname);
+    my $vhost = DJabberd->lookup_vhost($vname, $self->local_ip_string());
     unless ($vhost) {
         $self->write("ERROR bogus vhost");
         return;

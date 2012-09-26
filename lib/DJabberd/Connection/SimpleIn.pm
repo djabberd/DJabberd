@@ -48,7 +48,7 @@ sub process_line {
 
     if ($cmd eq "set_vhost") {
         my $vhostname = $rest;
-        my $vhost = $self->server->lookup_vhost($vhostname);
+        my $vhost = $self->server->lookup_vhost($vhostname, $self->local_ip_string());
         unless ($vhost) {
             $self->write("ERROR no vhost '$vhostname'\n");
             return;
