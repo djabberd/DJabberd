@@ -711,7 +711,7 @@ sub login {
     if ($authreply =~ /\bpassword\b/) {
         $response = "<password>$password</password>";
     } elsif ($authreply =~ /\bdigest\b/) {
-        use Digest::SHA1 qw(sha1_hex);
+        use Digest::SHA qw(sha1_hex);
         my $dig = lc(sha1_hex($ss->id . $password));
         $response = "<digest>$dig</digest>";
     } else {
