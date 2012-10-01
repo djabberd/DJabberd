@@ -22,7 +22,8 @@ use strict;
 use base 'DJabberd::Connection';
 use DJabberd::Log;
 use Digest::SHA;
-use Socket qw(PF_INET IPPROTO_TCP SOCK_STREAM);
+use Socket qw(PF_INET PF_INET6 IPPROTO_TCP SOCK_STREAM AF_INET AF_INET6);
+use Socket6;
 
 our $logger = DJabberd::Log->get_logger();
 
@@ -48,13 +49,21 @@ sub new {
     $logger->debug("Making a $class connecting to ".$endpoint->addr.":".$endpoint->port);
     
     my $sock;
-    socket $sock, PF_INET, SOCK_STREAM, IPPROTO_TCP;
+    if($endpoint->ver == 6) {
+        socket $sock, PF_INET6, SOCK_STREAM, IPPROTO_TCP;
+    } else {
+        socket $sock, PF_INET, SOCK_STREAM, IPPROTO_TCP;
+    }
     unless ($sock && defined fileno($sock)) {
         $logger->logdie("Failed to allocate socket");
         return;
     }
     IO::Handle::blocking($sock, 0) or $logger->logdie("Failed to make socket non-blocking");
-    connect $sock, Socket::sockaddr_in($endpoint->port, Socket::inet_aton($endpoint->addr));
+    if($endpoint->ver == 6) {
+        connect $sock, Socket::sockaddr_in6($endpoint->port, Socket::inet_pton(AF_INET6, $endpoint->addr));
+    } else {
+        connect $sock, Socket::sockaddr_in($endpoint->port, Socket::inet_aton($endpoint->addr));
+    }
     
     my $self = $class->SUPER::new($sock, $server);
     $self->watch_write(1);

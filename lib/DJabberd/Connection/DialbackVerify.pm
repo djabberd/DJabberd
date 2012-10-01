@@ -14,7 +14,8 @@ use fields (
             );
 
 use IO::Handle;
-use Socket qw(PF_INET IPPROTO_TCP SOCK_STREAM);
+use Socket qw(PF_INET PF_INET6 IPPROTO_TCP SOCK_STREAM AF_INET AF_INET6);
+use Socket6;
 
 sub new {
     my ($class, $endpt, $conn, $db_result, $final_cb) = @_;
@@ -22,7 +23,11 @@ sub new {
     my $server = $conn->server;
 
     my $sock;
-    socket $sock, PF_INET, SOCK_STREAM, IPPROTO_TCP;
+    if($endpt->ver == 6) {
+        socket $sock, PF_INET6, SOCK_STREAM, IPPROTO_TCP;
+    } else {
+        socket $sock, PF_INET, SOCK_STREAM, IPPROTO_TCP;
+    }
     unless ($sock && defined fileno($sock)) {
         # WARN: bitch more
         $db_result->verify_failed("socket_create");
@@ -36,7 +41,11 @@ sub new {
 
     $logger->debug("Attempting to connect to '$fromip'");
     IO::Handle::blocking($sock, 0);
-    connect $sock, Socket::sockaddr_in($port, Socket::inet_aton($fromip));
+    if($endpt->ver == 6) {
+        connect $sock, Socket::sockaddr_in6($port, Socket::inet_pton(AF_INET6, $fromip));
+    } else {
+        connect $sock, Socket::sockaddr_in($port, Socket::inet_aton($fromip));
+    }
     $DJabberd::Stats::counter{connect}++;
 
     my $self = $class->SUPER::new($sock, $server);
