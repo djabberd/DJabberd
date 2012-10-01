@@ -18,6 +18,7 @@ WriteMakefile(
                   'Digest::SHA'                  => 0,
                   'Unicode::Stringprep'          => 0,
                   'IO::Socket::INET6'            => 0,
+                  'Test::SharedFork'             => 0,
               },
               clean      => { FILES => 't/log/*' },
               AUTHOR     => 'Brad Fitzpatrick <brad@danga.com>',

@@ -36,7 +36,8 @@ use strict;
 use base qw(DJabberd::Delivery);
 use DJabberd::Connection::ComponentOut;
 use DJabberd::DNS;
-use Socket qw(PF_INET IPPROTO_TCP SOCK_STREAM TCP_NODELAY);
+use Socket qw(PF_INET PF_INET6 IPPROTO_TCP SOCK_STREAM AF_INET AF_INET6);
+use Socket6;
 
 our $logger = DJabberd::Log->get_logger();
 
@@ -55,36 +56,38 @@ sub set_config_secret {
 sub set_config_listenaddr {
     my ($self, $addr) = @_;
 
-    $addr = DJabberd::Util::as_bind_addr($addr);
-    
-    my ($ipaddr, $port) = split(/:/, $addr);
+    my $endpoint = $self->_get_ip_and_port
 
-    unless (defined($port)) {
-        $port = $ipaddr;
-        $ipaddr = "127.0.0.1";
+    $self->{listenaddr} = $endpoint->addr;
+    $self->{listenport} = $endpoint->port;
     }
-
-    $self->{listenaddr} = $ipaddr;
-    $self->{listenport} = $port;
-    
-}
 
 sub set_config_remoteaddr {
     my ($self, $addr) = @_;
 
     # TODO: Make this support DNS lookups later
+    my $endpoint = $self->_get_ip_and_port
+    
+    $self->{remoteaddr} = $endpoint->addr;
+    $self->{remoteport} = $endpoint->port;
+}
+
+sub _addr_to_endpoint {
+    my ($self, $addr) = @_;
+
     $addr = DJabberd::Util::as_bind_addr($addr);
 
-    my ($ipaddr, $port) = split(/:/, $addr);
-
-    unless (defined($port)) {
-        $port = $ipaddr;
-        $ipaddr = "127.0.0.1";
+    my ($ipaddr, $port);
+    if($addr =~ m/^\[(.*)\]:(\d+)/) { # IPv6 + port
+        ($ipaddr, $port) = ($1, $2);
+    } elsif($addr =~ m/^(\d+\.\d+\.\d+\.\d+):(\d+)$/) { # IPv4 + port
+        ($ipaddr, $port) = ($1, $2);
+    } else {
+        $port = $addr;
+        $ipaddr = '::1';
     }
     
-    $self->{remoteaddr} = $ipaddr;
-    $self->{remoteport} = $port;
-
+    return DJabberd::IPEndPoint->new($ipaddr, $port);
 }
 
 sub finalize {
@@ -208,7 +211,7 @@ sub _start_listener {
         $logger->logdie("Error creating UNIX domain socket $bindaddr: $@") unless $server;
         $logger->info("Started listener for component ".$self->domain." on UNIX domain socket $bindaddr");
     } else {
-        $server = IO::Socket::INET->new(
+        $server = IO::Socket::INET6->new(
             LocalAddr => $bindaddr,
             Type      => SOCK_STREAM,
             Proto     => IPPROTO_TCP,
