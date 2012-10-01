@@ -60,9 +60,6 @@ sub new {
 
     my $self = {
         'daemonize'   => delete $opts{daemonize},
-        's2s_port'    => { $s2s_port => 1, },
-        'c2s_port'    => { $c2s_port => 1, },
-        'ssl_port'    => defined($ssl_port) ? { $ssl_port => 1, } : 0,
         'old_ssl'     => delete $opts{old_ssl},
         'vhosts'      => {},
         'fake_peers'  => {}, # for s2s testing.  $hostname => "ip:port"
@@ -76,7 +73,7 @@ sub new {
     # {=serverportnumber}
     if(defined($s2s_port) && ref($s2s_port) eq 'HASH') { # hashref
         $self->{s2s_port} = $s2s_port;
-    } elsif(defined($s2s_port) && !ref($s2s_port)) { # scalar
+    } elsif($s2s_port && !ref($s2s_port)) { # scalar
         $self->{s2s_port}->{$s2s_port}++;
     } elsif(!defined($s2s_port)) { # default
         $self->{s2s_port}->{5269}++;
@@ -84,7 +81,7 @@ sub new {
     
     if(defined($c2s_port) && ref($c2s_port) eq 'HASH') { # hashref
         $self->{c2s_port} = $c2s_port;
-    } elsif(defined($c2s_port) && !ref($c2s_port)) { # scalar
+    } elsif($c2s_port && !ref($c2s_port)) { # scalar
         $self->{c2s_port}->{$c2s_port}++;
     } else { # default
         $self->{c2s_port}->{5222}++;
@@ -92,7 +89,7 @@ sub new {
     
     if(defined($ssl_port) && ref($ssl_port) eq 'HASH') {
         $self->{ssl_port} = $ssl_port;
-    } elsif(defined($ssl_port) && !ref($ssl_port)) { # scalar
+    } elsif($ssl_port && !ref($ssl_port)) { # scalar
         $self->{ssl_port}->{$ssl_port}++;
     }
 
@@ -170,6 +167,11 @@ sub set_config_unixdomainsocket {
 
 sub set_config_clientport {
     my ($self, $val) = @_;
+    # necessary because the default in the constructor
+    # will be 5222 and subsequent binds would fail
+    if($self->{c2s_port} && ref($self->{c2s_port}) && exists $self->{c2s_port}->{5222}) {
+        delete $self->{c2s_port}->{5222};
+    }
     $self->{c2s_port}->{as_bind_addr($val)}++;
 }
 
