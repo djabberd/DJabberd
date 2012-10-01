@@ -3,7 +3,7 @@
 use strict;
 use Carp;
 use Danga::Socket 1.51;
-use IO::Socket::INET;
+use IO::Socket::INET6;
 use IO::Socket::UNIX;
 use POSIX ();
 
@@ -314,14 +314,14 @@ sub _start_server {
                                         Listen => 10)
             or $logger->logdie("Error creating unix domain socket: $@\n");
     } else {
-        # assume it's a port if there's no colon
-        unless ($localaddr =~ /:/) {
-            $localaddr = "0.0.0.0:$localaddr";
+        # assume it's a port if there's no number after the (last) colon
+        unless ($localaddr =~ /:\d+$/) {
+            $localaddr = '[::]:'.$localaddr;
         }
 
         $logger->debug("Opening TCP listen socket on $localaddr");
 
-        $server = IO::Socket::INET->new(LocalAddr => $localaddr,
+        $server = IO::Socket::INET6->new(LocalAddr => $localaddr,
                                         Type      => SOCK_STREAM,
                                         Proto     => IPPROTO_TCP,
                                         Reuse     => 1,
