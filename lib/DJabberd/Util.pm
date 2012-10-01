@@ -23,6 +23,10 @@ sub as_bind_addr {
     if ($val =~ /^(\d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?:)?\d+$/ || ($val =~ m!^/! && -e $val)) {
         return $val;
     }
+    # looks like an IPv6 address
+    if ($val =~ /^\[[0-9a-f:]+\]:\d+$/) {
+        return $val;
+    }
     die "'$val' is not a valid bind address or port\n";
 }
 
