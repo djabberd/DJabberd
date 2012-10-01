@@ -21,7 +21,7 @@ package DJabberd::Connection::ComponentOut;
 use strict;
 use base 'DJabberd::Connection';
 use DJabberd::Log;
-use Digest::SHA1;
+use Digest::SHA;
 use Socket qw(PF_INET IPPROTO_TCP SOCK_STREAM);
 
 our $logger = DJabberd::Log->get_logger();
@@ -119,7 +119,7 @@ sub on_stream_start {
     my $correct_domain = $self->{vhost}->server_name;
 
     my $stream_id = $ss->id;
-    my $handshake = lc(Digest::SHA1::sha1_hex($stream_id.$self->{secret}));
+    my $handshake = lc(Digest::SHA::sha1_hex($stream_id.$self->{secret}));
 
     $logger->debug("I'm sending a handshake of $handshake based on a stream id of ".$stream_id." and the configured secret");
 
