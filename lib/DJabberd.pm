@@ -53,23 +53,48 @@ $SIG{USR2} = sub { Carp::cluck("USR2") };
 
 sub new {
     my ($class, %opts) = @_;
+    
+    my $s2s_port = delete $opts{s2s_port};
+    my $c2s_port = delete $opts{c2s_port};
+    my $ssl_port = delete $opts{ssl_port};
 
     my $self = {
         'daemonize'   => delete $opts{daemonize},
-        's2s_port'    => delete $opts{s2s_port},
-        'c2s_port'    => delete($opts{c2s_port}) || 5222, # {=clientportnumber}
+        's2s_port'    => { $s2s_port => 1, },
+        'c2s_port'    => { $c2s_port => 1, },
+        'ssl_port'    => defined($ssl_port) ? { $ssl_port => 1, } : 0,
         'old_ssl'     => delete $opts{old_ssl},
         'vhosts'      => {},
         'fake_peers'  => {}, # for s2s testing.  $hostname => "ip:port"
         'share_parsers' => 1,
         'monitor_host' => {},
     };
-
+    
     # if they set s2s_port to explicitly 0, it's disabled for all vhosts
     # but not setting it means 5269 still listens, if vhosts are configured
     # for s2s.
     # {=serverportnumber}
-    $self->{s2s_port} = 5269 unless defined $self->{s2s_port};
+    if(defined($s2s_port) && ref($s2s_port) eq 'HASH') { # hashref
+        $self->{s2s_port} = $s2s_port;
+    } elsif(defined($s2s_port) && !ref($s2s_port)) { # scalar
+        $self->{s2s_port}->{$s2s_port}++;
+    } elsif(!defined($s2s_port)) { # default
+        $self->{s2s_port}->{5269}++;
+    }
+    
+    if(defined($c2s_port) && ref($c2s_port) eq 'HASH') { # hashref
+        $self->{c2s_port} = $c2s_port;
+    } elsif(defined($c2s_port) && !ref($c2s_port)) { # scalar
+        $self->{c2s_port}->{$c2s_port}++;
+    } else { # default
+        $self->{c2s_port}->{5222}++;
+    }
+    
+    if(defined($ssl_port) && ref($ssl_port) eq 'HASH') {
+        $self->{ssl_port} = $ssl_port;
+    } elsif(defined($ssl_port) && !ref($ssl_port)) { # scalar
+        $self->{ssl_port}->{$ssl_port}++;
+    }
 
     croak("Unknown server parameters: " . join(", ", keys %opts)) if %opts;
 
@@ -133,29 +158,34 @@ sub set_config_oldssl {
     $self->{old_ssl} = as_bool($val);
 }
 
+sub set_config_sslport {
+    my ($self, $val) = @_;
+    $self->{ssl_port}->{as_bind_addr($val)}++;
+}
+
 sub set_config_unixdomainsocket {
     my ($self, $val) = @_;
-    $self->{unixdomainsocket} = $val;
+    $self->{unixdomainsocket}->{$val}++;
 }
 
 sub set_config_clientport {
     my ($self, $val) = @_;
-    $self->{c2s_port} = as_bind_addr($val);
+    $self->{c2s_port}->{as_bind_addr($val)}++;
 }
 
 sub set_config_serverport {
     my ($self, $val) = @_;
-    $self->{s2s_port} = as_bind_addr($val);
+    $self->{s2s_port}->{as_bind_addr($val)}++;
 }
 
 sub set_config_adminport {
     my ($self, $val) = @_;
-    $self->{admin_port} = as_bind_addr($val);
+    $self->{admin_port}->{as_bind_addr($val)}++;
 }
 
 sub set_config_intradomainlisten {
     my ($self, $val) = @_;
-    $self->{cluster_listen} = $val;
+    $self->{cluster_listen}->{$val}++;
 }
 
 sub set_config_pidfile {
@@ -294,11 +324,26 @@ sub run {
 
     $self->start_cluster_server() if $self->{cluster_listen};
 
-    $self->_start_server($self->{admin_port}, "DJabberd::Connection::Admin") if $self->{admin_port};
+    $self->_start_servers($self->{admin_port}, "DJabberd::Connection::Admin") if $self->{admin_port};
 
     DJabberd::Connection::Admin->on_startup;
     Danga::Socket->EventLoop();
     unlink($self->{pid_file}) if (-f $self->{pid_file});
+}
+
+sub _start_servers {
+    my ($self, $localaddrs, $class) = @_;
+    
+    my @addrs;
+    if(ref($localaddrs) eq 'HASH') {
+        @addrs = sort keys $localaddrs;
+    } else {
+        @addrs = ($localaddrs);
+    }
+    
+    foreach my $localaddr (@addrs) {
+        $self->_start_server($localaddr, $class);
+    }
 }
 
 sub _start_server {
@@ -374,27 +419,30 @@ sub _start_server {
 
 sub start_c2s_server {
     my $self = shift;
-    $self->_start_server($self->{c2s_port},
+    $self->_start_servers($self->{c2s_port},
                          "DJabberd::Connection::ClientIn");
 
-    if ($self->{old_ssl}) {
-        $self->_start_server(5223, "DJabberd::Connection::OldSSLClientIn");
+    if ($self->{old_ssl} || $self->{ssl_port}) {
+        if(!$self->{ssl_port}) {
+            $self->{ssl_port}->{5223}++;
+        }
+        $self->_start_servers($self->{ssl_port}, "DJabberd::Connection::OldSSLClientIn");
     }
 
     if ($self->{unixdomainsocket}) {
-        $self->_start_server($self->{unixdomainsocket}, "DJabberd::Connection::ClientIn");
+        $self->_start_servers($self->{unixdomainsocket}, "DJabberd::Connection::ClientIn");
     }
 }
 
 sub start_s2s_server {
     my $self = shift;
-    $self->_start_server($self->{s2s_port},
+    $self->_start_servers($self->{s2s_port},
                          "DJabberd::Connection::ServerIn");
 }
 
 sub start_cluster_server {
     my $self = shift;
-    $self->_start_server($self->{cluster_listen},
+    $self->_start_servers($self->{cluster_listen},
                          "DJabberd::Connection::ClusterIn");
 }
 
