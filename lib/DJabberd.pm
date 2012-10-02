@@ -155,17 +155,39 @@ sub set_config_oldssl {
     $self->{old_ssl} = as_bool($val);
 }
 
-sub set_config_sslport {
+sub add_config_sslport {
     my ($self, $val) = @_;
     $self->{ssl_port}->{as_bind_addr($val)}++;
 }
 
-sub set_config_unixdomainsocket {
+sub set_config_sslport {
+    my ($self, $val) = @_;
+    $self->{ssl_port} = {
+        as_bind_addr($val) => 1,
+    };
+}
+
+sub add_config_unixdomainsocket {
     my ($self, $val) = @_;
     $self->{unixdomainsocket}->{$val}++;
 }
 
+sub set_config_unixdomainsocket {
+    my ($self, $val) = @_;
+    $self->{unixdomainsocket} = {
+        $val => 1,
+    };
+}
+
 sub set_config_clientport {
+    my ($self, $val) = @_;
+    
+    $self->{c2s_port} = {
+        as_bind_addr($val) => 1,
+    };
+}
+
+sub add_config_clientport {
     my ($self, $val) = @_;
     # necessary because the default in the constructor
     # will be 5222 and subsequent binds would fail
@@ -177,15 +199,36 @@ sub set_config_clientport {
 
 sub set_config_serverport {
     my ($self, $val) = @_;
+    $self->{s2s_port} = {
+        as_bind_addr($val) => 1,
+    };
+}
+
+sub add_config_serverport {
+    my ($self, $val) = @_;
     $self->{s2s_port}->{as_bind_addr($val)}++;
 }
 
 sub set_config_adminport {
     my ($self, $val) = @_;
+    $self->{admin_port} = {
+        as_bind_addr($val) => 1,
+    };
+}
+
+sub add_config_adminport {
+    my ($self, $val) = @_;
     $self->{admin_port}->{as_bind_addr($val)}++;
 }
 
 sub set_config_intradomainlisten {
+    my ($self, $val) = @_;
+    $self->{cluster_listen} = {
+        $val => 1,
+    };
+}
+
+sub add_config_intradomainlisten {
     my ($self, $val) = @_;
     $self->{cluster_listen}->{$val}++;
 }
@@ -508,7 +551,12 @@ sub _load_config_ref {
                 my $key = lc $1;
                 my $val = $2;
                 my $inv = $plugin || $vhost || $self;
-                my $meth = "set_config_$key";
+                my $meth = "add_config_$key";
+                if ($inv->can($meth)) {
+                    $inv->$meth($val);
+                    next;
+                }
+                $meth = "set_config_$key";
                 if ($inv->can($meth)) {
                     $inv->$meth($val);
                     next;
