@@ -1,6 +1,6 @@
 language: perl
 before_install:
-  - sudo apt-get install liblog-log4perl-perl libnet-dns-perl libnet-ssleay-perl libxml-sax-perl libxml-libxml-perl libdanga-socket-perl
+  - sudo apt-get install liblog-log4perl-perl libnet-dns-perl libnet-ssleay-perl libxml-sax-perl libxml-libxml-perl libdanga-socket-perl libio-socket-inet6-perl
 perl:
   - "5.16"
   - "5.14"
