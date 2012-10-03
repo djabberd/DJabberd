@@ -32,7 +32,7 @@ our $connection_id = 1;
 
 use XML::SAX ();
 use DJabberd::XMLParser;
-use Digest::SHA1 qw(sha1_hex);
+use Digest::SHA qw(sha1_hex);
 
 use DJabberd::SAXHandler;
 use DJabberd::JID;
@@ -276,7 +276,7 @@ sub version {
 
 sub stream_id {
     my $self = shift;
-    return $self->{stream_id} ||= Digest::SHA1::sha1_hex(rand() . rand() . rand());
+    return $self->{stream_id} ||= Digest::SHA::sha1_hex(rand() . rand() . rand());
 }
 
 # only use this run_hook_chain when

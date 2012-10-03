@@ -21,7 +21,7 @@ package DJabberd::Connection::ComponentIn;
 use strict;
 use base 'DJabberd::Connection';
 use DJabberd::Log;
-use Digest::SHA1;
+use Digest::SHA;
 
 our $logger = DJabberd::Log->get_logger();
 
@@ -123,7 +123,7 @@ sub on_stanza_received {
         # FIXME: This probably doesn't handle escaping/encodings properly,
         #    so make sure the stream ID and secret are US-ASCII and don't use XML
         #    reserved characters!
-        my $correct = lc(Digest::SHA1::sha1_hex($self->stream_id.$self->{cmpnt_handler}->secret));
+        my $correct = lc(Digest::SHA::sha1_hex($self->stream_id.$self->{cmpnt_handler}->secret));
         
         if ($correct eq $innards) {
             # DJabberd::Connection is allergic to elements without 'to' attributes, so just send this raw
