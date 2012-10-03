@@ -2,9 +2,7 @@ This is the README file for DJabberd, a scalable, extensible Jabber/XMPP server.
 
 Please refer to 'perldoc DJabberd' after installation for details.
 
-#####################################################################
-
-* Description
+## Description
 
 DJabberd was the answer to LiveJournal's Jabber (XMPP) server needs.
 We needed:
@@ -28,9 +26,7 @@ You should be able to plop DJabberd into your existing systems / user-
 base with minimal pain.  Just find a plugin that's close (if a perfect
 match doesn't already exist!) and tweak.
     
-#####################################################################
-
-* Installation
+## Installation
 
 DJabberd follows the standard perl module install process
 
@@ -41,9 +37,7 @@ make install
 
 The module uses no C or XS parts, so no c-compiler is required.
 
-######################################################################
-
-* Documentation
+## Documentation
 
 The documentation for DJabberd is somewhat lacking. Although 'perldoc
 DJabberd' will give you the basics, and pointers for hackers, the best
@@ -65,7 +59,7 @@ from there.
 To start the server, type the following commands from the same directory
 as this README:
 
-  perl -Ilib -Idemo/lib djabberd --conffile demo/demo.conf
+    perl -Ilib -Idemo/lib djabberd --conffile demo/demo.conf
   
 You can now connect to it using the standard jabber ports on your localhost.
 Read the demo/demo.conf file for additional notes.
@@ -73,8 +67,7 @@ Read the demo/demo.conf file for additional notes.
 For extra diagnostics from the server, you can increase the debuglevel
 by setting the following environment variable:
 
-  set LOGLEVEL=DEBUG
-  
+    set LOGLEVEL=DEBUG
 
 In the examples/ directory there's an example djabberd.conf
 configuration file and the 'sixatalk' program.  'sixatalk' is an

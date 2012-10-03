@@ -1,7 +1,7 @@
 package DJabberd::JID;
 use strict;
 use DJabberd::Util qw(exml);
-use Digest::SHA1;
+use Digest::SHA;
 
 # Configurable via 'CaseSensitive' config option
 our $CASE_SENSITIVE = 0;
@@ -171,7 +171,7 @@ sub as_bare_string {
 }
 
 sub rand_resource {
-    Digest::SHA1::sha1_hex(rand() . rand() . rand());
+    Digest::SHA::sha1_hex(rand() . rand() . rand());
 }
 
 1;
