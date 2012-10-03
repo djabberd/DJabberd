@@ -17,6 +17,7 @@ WriteMakefile(
                   'Digest::HMAC_SHA1'            => 0,
                   'Digest::SHA'                  => 0,
                   'Unicode::Stringprep'          => 0,
+                  'IO::Socket::INET6'            => 0,
               },
               clean      => { FILES => 't/log/*' },
               AUTHOR     => 'Brad Fitzpatrick <brad@danga.com>',
