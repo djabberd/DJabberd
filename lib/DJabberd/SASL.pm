@@ -29,6 +29,7 @@ sub get_sasl_manager {
     my $class = $self->manager_class || $default;
 
     no strict 'refs';
+    no warnings;
     unless (defined %{"${class}::"}) {
         eval "use $class"; ## no critic
         die $@ if $@;
