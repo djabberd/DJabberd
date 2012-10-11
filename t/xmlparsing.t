@@ -3,10 +3,11 @@
 use strict;
 use warnings;
 use XML::SAX;
+use DJabberd::TestSAXHandler;
 use DJabberd::XMLParser;
 use XML::SAX::PurePerl;
 use Scalar::Util qw(weaken);
-use Test::More tests => 14;
+use Test::More tests => 15;
 use Data::Dumper;
 
 my $fulldoc = qq{<?xml version="1.0"?><root xmlns='root' xmlns:a='aa' global='foo' xmlns:b='bb' a:name='aname' b:name='bname' name='globalname'>
@@ -84,6 +85,41 @@ EOF
         ok $@, "died on unknown entity: $@";
         unlike($dummy, qr/vuln/si);
     }
+}
+
+## regular entities in an XML document are decoded
+{
+    my $xml = <<"EOF";
+<?xml version="1.0"?>
+<root>
+  <a attr="special characters are &lt; &gt; &apos; &quot; and of course &amp;" />
+  <b>special characters are &lt; &gt; &apos; &quot; and of course &amp;</b>
+  <c attr="special characters are &#60; &#62; &#34; &#39; and of course &#38;" />
+  <d>special characters are &#60; &#62; &#34; &#39; and of course &#38;</d>
+  <e attr="special characters are &#x3c; &#x3e; &#x22; &#x27; and of course &#x26;" />
+  <f>special characters are &#x3c; &#x3e; &#x22; &#x27; and of course &#x26;</f>
+  <g poo="&#x1f4a9;">Let's have some unicode for extra fun... &#x1f4a9;</g>
+</root>
+EOF
+
+    # we process entities into &#xHEX; only
+    my $expected = <<"EOF";
+<root>
+  <a attr='special characters are &#x3C; &#x3E; &#x27; &#x22; and of course &#x26;'/>
+  <b>special characters are &#x3C; &#x3E; &#x27; &#x22; and of course &#x26;</b>
+  <c attr='special characters are &#x3C; &#x3E; &#x22; &#x27; and of course &#x26;'/>
+  <d>special characters are &#x3C; &#x3E; &#x22; &#x27; and of course &#x26;</d>
+  <e attr='special characters are &#x3C; &#x3E; &#x22; &#x27; and of course &#x26;'/>
+  <f>special characters are &#x3C; &#x3E; &#x22; &#x27; and of course &#x26;</f>
+  <g poo='&#x1F4A9;'>Let&#x27;s have some unicode for extra fun... &#x1F4A9;</g>
+</root>
+EOF
+    my $events = [];
+    my $handler = DJabberd::TestSAXHandler->new($events);
+    my $p = DJabberd::XMLParser->new(Handler => $handler);
+    $p->parse_chunk($xml);
+    my $res = $events->[0]->as_xml() . "\n";
+    is($res, $expected, "parsed XML internal-entities correctly");
 }
 
 # byte at a time
