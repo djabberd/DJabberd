@@ -3,6 +3,7 @@ use strict;
 use base qw(XML::SAX::Base);
 use DJabberd::XMLElement;
 use DJabberd::StreamStart;
+use HTML::Entities qw(decode_entities);
 use Scalar::Util qw(weaken);
 use Time::HiRes ();
 
@@ -179,10 +180,12 @@ sub _nodes_from_events {
 
             my $end_idx = $i - 1;  # (end - start) == number of child elements
 
+            # we have disabled external entity decoding, but we
+            # still need to decode XML entities in Attributes
             my $attr_sax = $ev->[1]{Attributes};
             my $attr = {};
             while (my $key = each %$attr_sax) {
-                $attr->{$key} = $attr_sax->{$key}{Value};
+                $attr->{$key} = decode_entities($attr_sax->{$key}{Value});
             }
 
             push @$nodelist, DJabberd::XMLElement->new($ev->[1]{NamespaceURI},
@@ -198,6 +201,5 @@ sub _nodes_from_events {
     }
     return $nodelist;
 }
-
 
 1;
