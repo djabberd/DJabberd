@@ -43,7 +43,7 @@ d_start() {
 d_stop() {
         start-stop-daemon --stop --quiet --pidfile $PIDFILE \
                 -d $HOME_DIR \
-                --name $NAME -- $OPTS
+                --name $NAME -- $OPTS || true
 }
 
 d_reload() {
