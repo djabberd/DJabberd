@@ -1,11 +1,13 @@
 package DJabberd::Util;
 use strict;
+use HTML::Entities qw();
 require Exporter;
 our @ISA = qw(Exporter);
 our @EXPORT_OK = qw(exml tsub lbsub as_bool as_num as_abs_path as_bind_addr);
 
 sub as_bool {
     my $val = shift;
+    die "Can't determine booleanness of 'undef'\n" unless defined($val);
     return 1 if $val =~ /^1|y|yes|true|t|on|enabled?$/i;
     return 0 if $val =~ /^0|n|no|false|f|off|disabled?$/i;
     die "Can't determine booleanness of '$val'\n";
@@ -19,9 +21,23 @@ sub as_num {
 
 sub as_bind_addr {
     my $val = shift;
+    die "'undef' is not a valid bind address or port\n" unless defined($val);
     # Must either be like 127.0.0.1:1234, a bare port number or an absolute path to a unix domain socket
-    if ($val =~ /^(\d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?:)?\d+$/ || ($val =~ m!^/! && -e $val)) {
+    # a socket
+    if ($val && $val =~ m!^/! && -e $val) {
         return $val;
+    }
+    # an port, possibly including an IPv4 address
+    if ($val && $val =~ /^(?:\d\d?\d?\.\d\d?\d?\.\d\d?\d?\.\d\d?\d?:)?(\d+)$/) {
+        if($1 > 0 && $1 <= 65535) {
+            return $val;
+        }
+    }
+    # looks like an IPv6 address
+    if ($val && $val =~ /^\[[0-9a-f:]+\]:(\d+)$/) {
+        if($1 > 0 && $1 <= 65535) {
+            return $val;
+        }
     }
     die "'$val' is not a valid bind address or port\n";
 }
@@ -35,19 +51,7 @@ sub as_abs_path {
 
 sub exml
 {
-    # fast path for the commmon case:
-    return $_[0] unless $_[0] =~ /[&\"\'<>\x00-\x08\x0B\x0C\x0E-\x1F]/;
-    # what are those character ranges? XML 1.0 allows:
-    # #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
-
-    my $a = shift;
-    $a =~ s/\&/&amp;/g;
-    $a =~ s/\"/&quot;/g;
-    $a =~ s/\'/&apos;/g;
-    $a =~ s/</&lt;/g;
-    $a =~ s/>/&gt;/g;
-    $a =~ s/[\x00-\x08\x0B\x0C\x0E-\x1F]//g;
-    return $a;
+    return HTML::Entities::encode_entities_numeric(shift);
 }
 
 sub durl {

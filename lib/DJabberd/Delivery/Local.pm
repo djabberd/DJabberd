@@ -29,6 +29,8 @@ sub deliver {
 
     $DJabberd::Stats::counter{deliver_local}++;
 
+    $stanza->replace_ns("jabber:server", "jabber:client");
+
     foreach my $c (@dconns) {
         $c->send_stanza($stanza);
     }

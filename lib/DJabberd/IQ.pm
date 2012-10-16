@@ -8,6 +8,13 @@ use Digest::SHA;
 use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger();
 
+# FIXME: should apply nodeprep
+sub _validate_username {
+    my ($username) = @_;
+    return unless $username =~ m/^[a-zA-Z0-9._]+/;
+    return $username;
+}
+
 sub on_recv_from_client {
     my ($self, $conn) = @_;
 
@@ -413,7 +420,7 @@ sub process_iq_setregister {
 
     my $username = $get->("username");
     my $password = $get->("password");
-    return $iq->send_error unless $username =~ /^\w+$/;
+    return $iq->send_error unless _validate_username($username);
     return $iq->send_error if $bjid && $bjid->node ne $username;
 
     # create the account
@@ -460,8 +467,7 @@ sub process_iq_getauth {
         die "Element in username field?" if ref $username;
     }
 
-    # FIXME:  use nodeprep or whatever, not \w+
-    $username = '' unless $username =~ /^\w+$/;
+    $username = _validate_username($username);
 
     my $type = ($conn->vhost->are_hooks("GetPassword") ||
                 $conn->vhost->are_hooks("CheckDigest")) ? "<digest/>" : "<password/>";
@@ -497,7 +503,8 @@ sub process_iq_setauth {
 
     # "Both the username and the resource are REQUIRED for client
     # authentication" Section 3.1 of XEP 0078
-    return unless $username && $username =~ /^\w+$/;
+    $username = _validate_username($username);
+    return unless $username;
     return unless $resource;
 
     my $vhost = $conn->vhost;

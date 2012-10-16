@@ -3,7 +3,7 @@
 use strict;
 use Carp;
 use Danga::Socket 1.51;
-use IO::Socket::INET;
+use IO::Socket::INET6;
 use IO::Socket::UNIX;
 use POSIX ();
 
@@ -314,14 +314,14 @@ sub _start_server {
                                         Listen => 10)
             or $logger->logdie("Error creating unix domain socket: $@\n");
     } else {
-        # assume it's a port if there's no colon
-        unless ($localaddr =~ /:/) {
-            $localaddr = "0.0.0.0:$localaddr";
+        # assume it's a port if there's no number after the (last) colon
+        unless ($localaddr =~ /:\d+$/) {
+            $localaddr = '[::]:'.$localaddr;
         }
 
         $logger->debug("Opening TCP listen socket on $localaddr");
 
-        $server = IO::Socket::INET->new(LocalAddr => $localaddr,
+        $server = IO::Socket::INET6->new(LocalAddr => $localaddr,
                                         Type      => SOCK_STREAM,
                                         Proto     => IPPROTO_TCP,
                                         Reuse     => 1,
@@ -461,12 +461,12 @@ sub _load_config_ref {
                 my $meth = "set_config_$key";
                 if ($inv->can($meth)) {
                     $inv->$meth($val);
-                    next;
+                    return;
                 }
                 $meth = "set_config__option";
                 if ($inv->can($meth)) {
                     $inv->$meth($key, $val);
-                    next;
+                    return;
                 }
 
                 die "Unknown option '$pkey'\n";
@@ -475,7 +475,7 @@ sub _load_config_ref {
                 die "Can't configure a vhost in a vhost\n" if $vhost;
                 $vhost = DJabberd::VHost->new(server_name => $1);
                 $vhost->set_server($self);
-                next;
+                return;
             }
             if ($line =~ m!</VHost>!i) {
                 die "Can't end a not-open vhost\n" unless $vhost;
@@ -483,7 +483,7 @@ sub _load_config_ref {
                 die "Can't end a vhost with an open subdomain\n" if @vhost_stack;
                 $self->add_vhost($vhost);
                 $vhost = undef;
-                next;
+                return;
             }
             if ($line =~ /<Subdomain\s+(\S+?)>/i) {
                 die "Subdomain blocks can only inside VHost\n" unless $vhost;
@@ -505,13 +505,13 @@ sub _load_config_ref {
                 $old_vhost->add_plugin($ld1);
                 $vhost->add_plugin($ld2);
 
-                next;
+                return;
             }
             if ($line =~ m!</Subdomain>!i) {
                 die "Extraneous subdomain end\n" unless @vhost_stack;
                 $self->add_vhost($vhost);
                 $vhost = pop @vhost_stack;
-                next;
+                return;
             }
             my $close_plugin = sub {
                 die "Can't end a not-open plugin\n" unless $plugin;
@@ -530,11 +530,11 @@ sub _load_config_ref {
                 die "Failed to load plugin $class: $@" if $@;
                 $plugin = $class->new;
                 $close_plugin->() if $immediate_close;
-                next;
+                return;
             }
             if ($line =~ m!</Plugin>!i) {
                 $close_plugin->();
-                next;
+                return;
             }
 
             die "Syntax error: '$line'\n";
