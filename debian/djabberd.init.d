@@ -22,62 +22,66 @@ test $DEBIAN_SCRIPT_DEBUG && set -v -x
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 DESC="DJabberd"
 NAME="djabberd"
+USER=djabberd
+GROUP=djabberd
 CONFIG_DIR=/etc/djabberd
 HOME_DIR=/var/lib/djabberd
 DAEMON=/usr/bin/djabberd
-PIDFILE=/var/run/djabberd/djabberd.pid
+PIDDIR=/run/djabberd
+PIDFILE="$PIDDIR/djabberd.pid"
 SCRIPTNAME=/etc/init.d/djabberd
-OPTS="--conf=$CONFIG_DIR/djabberd.conf"
+OPTS="--daemon"
 
 test -x $DAEMON || exit 0
 test -d $CONFIG_DIR || exit 0
 
+. /lib/lsb/init-functions
+
 d_start() {
-        start-stop-daemon --start --quiet --pidfile $PIDFILE -m \
-                -d $HOME_DIR \
-                --chuid djabberd \
-                --background \
-                --exec $DAEMON -- $OPTS
+  mkdir -p $PIDDIR
+  chown $USER:$GROUP $PIDDIR
+  start-stop-daemon --start --quiet --pidfile $PIDFILE \
+    --chuid $USER \
+    --exec $DAEMON -- $OPTS
 }
 
 d_stop() {
-        start-stop-daemon --stop --quiet --pidfile $PIDFILE \
-                -d $HOME_DIR \
-                --name $NAME -- $OPTS || true
+  start-stop-daemon --stop --quiet --pidfile $PIDFILE \
+    --name $NAME -- $OPTS || true
 }
 
 d_reload() {
-        start-stop-daemon --stop --quiet --pidfile $PIDFILE \
-                --name $NAME --signal 1
+  start-stop-daemon --stop --quiet --pidfile $PIDFILE \
+    --name $NAME --signal 1
 }
 
 case "$1" in
   start)
-        echo -n "Starting $DESC: $NAME"
-        d_start
-        echo "."
-        ;;
+    log_begin_msg "Starting $DESC: $NAME"
+    d_start
+    log_end_msg $? 
+    ;;
   stop)
-        echo -n "Stopping $DESC: $NAME"
-        d_stop
-        echo "."
-        ;;
+    log_begin_msg "Stopping $DESC: $NAME"
+    d_stop
+    log_end_msg $?
+    ;;
   reload)
-        echo -n "Reloading $DESC: $NAME"
-        d_reload
-        echo "."
-        ;;
+    log_begin_msg "Reloading $DESC: $NAME"
+    d_reload
+    log_end_msg $?
+    ;;
   restart|force-reload)
-        echo -n "Restarting $DESC: $NAME"
-        d_stop
-        sleep 1
-        d_start
-        echo "."
-        ;;
+    log_begin_msg "Restarting $DESC: $NAME"
+    d_stop
+    sleep 1
+    d_start
+    log_end_msg $?
+    ;;
   *)
-        echo "Usage: $SCRIPTNAME {start|stop|reload|restart|force-reload}" >&2
-        exit 1
-        ;;
+    echo "Usage: $SCRIPTNAME {start|stop|reload|restart|force-reload}" >&2
+    exit 1
+    ;;
 esac
 
 exit 0

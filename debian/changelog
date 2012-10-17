@@ -1,13 +1,23 @@
-djabberd (0.85-2) unstable; urgency=low
+djabberd (0.85-1) UNRELEASED; urgency=low
 
-  * Updated debian packaging standards version
-  
- -- Ioan Rogers <ioan.rogers@gmail.com>  Thu, 21 Jun 2012 14:29:21 -0800
+  [Ioan Rogers]
+  * Updated to latest version of packaging standards
+  * Install systemd service
+  * Build-depends on netbase, otherwise ipv6 tests fail in chroot build
+  * Build-depend on libauthen-sasl-perl to enable more tests
+  * Make lintian happier
+  * No writing in /tmp by djabberd.postinst
+  * /var/run has become /run and a /tmpfs, so create /run/djabberd in the init
+    script instead of the package
+  * Removed dependency on libdigest-sha-perl; it is in perl
+  * init script lets djabberd handle its own daemonising and PID file
+  * init script uses lsb functions for status messages
+  * debian-perl group is package maintainer
 
-djabberd (0.85-1) unstable; urgency=low
+  [Dominik Schulz (tex) <lkml@ds.gauner.org>]
   * Split djabberd into djabberd and libdjabberd-perl 
 
- -- Dominik Schulz (tex) <lkml@ds.gauner.org>  Sun, 19 Feb 2012 17:45:33 +0100
+ -- Ioan Rogers <ioan@dirtysoft.ca>  Tue, 16 Oct 2012 18:46:12 -0700
 
 djabberd (0.83) unstable; urgency=low
 

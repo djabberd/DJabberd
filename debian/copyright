@@ -1,0 +1,55 @@
+Format: http://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: DJabberd
+
+Files: *
+Copyright: 2006 Six Apart
+License: Artistic or GPL-1+
+
+Files: debian/*
+Copyright: 2006 Nick Andrew <nick@nick-andrew.net>
+           2012 Dominik Schulz <dominik.schulz@gauner.org>
+           2012 Ioan Rogers <ioan@dirtysoft.ca>
+License: Artistic or GPL-1+
+
+Files: lib/DJabberd/Agent/Node.pm
+       lib/DJabberd/Component.pm
+       lib/DJabberd/Component/Node.pm
+       lib/DJabberd/Agent.pm
+Copyright: 2007-2008 Martin Atkins
+License: Artistic or GPL-1+
+
+Files: lib/DJabberd/Component/Example.pm
+Copyright: 2008 Martin Atkins
+License: Artistic or GPL-1+
+
+Files: lib/DJabberd/Component/External.pm
+       lib/DJabberd/Connection/ComponentIn.pm
+       lib/DJabberd/Connection/ComponentOut.pm
+       lib/DJabberd/Delivery/ComponentConnection.pm
+Copyright: 2006 Martin Atkins
+           2006 Six Apart
+License: Artistic or GPL-1+
+
+Files: lib/DJabberd/SASL.pm
+       lib/DJabberd/SASL/AuthenSASL.pm
+       lib/DJabberd/SASL/Connection.pm
+       lib/DJabberd/SASL/ManagerBase.pm
+Copyright: 2009 Yann Kerherve
+License: Artistic or GPL-1+
+
+License: Artistic
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the Artistic License, which comes with Perl.
+ .
+ On Debian systems, the complete text of the Artistic License can be
+ found in `/usr/share/common-licenses/Artistic'.
+
+License: GPL-1+
+ This program is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 1, or (at your option)
+ any later version.
+ .
+ On Debian systems, the complete text of version 1 of the GNU General
+ Public License can be found in `/usr/share/common-licenses/GPL-1'.
+
