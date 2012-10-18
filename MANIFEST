@@ -115,7 +115,7 @@ Makefile.PL
 MANIFEST
 MANIFEST.SKIP
 META.yml
-README
+README.md
 t/10-specimpl.t
 t/20_allowed_users.t
 t/89_xmldebug.t
