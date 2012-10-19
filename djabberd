@@ -12,6 +12,7 @@ BEGIN {
 use lib 'lib';
 use vars qw($DEBUG $daemonize $conffile $logconf);
 use Getopt::Long;
+use Pod::Usage;
 
 BEGIN {
     # We need to set up the logger before we "use DJabberd", because
@@ -22,13 +23,19 @@ BEGIN {
     $daemonize = 0;
     $conffile = undef;
     $logconf = undef;
+    my $help;
 
     Getopt::Long::GetOptions(
         'd|daemon'     => \$daemonize,
         'debug=i'      => \$DEBUG,
         'conffile=s'   => \$conffile,
         'logconf=s'    => \$logconf,
+        'h|help',      => \$help,
     );
+
+    if ($help) {
+        pod2usage();
+    }
 
     my @try_logconf_conf = ();
     if (defined($logconf)) {
@@ -101,3 +108,25 @@ sub sub {
     # the called routine
     &{$DB::sub};
 }
+
+__END__
+
+=head1 NAME
+
+djabberd
+
+=head1 SYNOPSIS
+
+djabberd [--daemon] [debug=<x>] [conffile=<path>] [logconf=<path>]
+
+ Options:
+ -d --daemon          Run the program in the background as a daemon
+    --debug=NUMBER    Turn on debugging
+    --conffile=PATH   Path to config file
+    --logconf=PATH    Path to log config file (Log4Perl)
+ -h --help            This help message
+
+=head1 SEE ALSO
+
+L<DJabberd::Config>
+
