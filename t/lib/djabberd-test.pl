@@ -52,7 +52,7 @@ sub two_parties {
 
     two_parties_one_server($cb);
     sleep 1;
-    two_parties_s2s($cb,1);
+    two_parties_s2s($cb,$ipv6);
     sleep 1;
 }
 
@@ -287,17 +287,17 @@ sub start {
     if ($type eq "djabberd") {
         my $plugins = shift || ($PLUGIN_CB ? $PLUGIN_CB->($self) : $self->standard_plugins);
         my $vhost = DJabberd::VHost->new(
-                                         server_name => $self->hostname,
-                                         s2s         => 1,
-                                         plugins     => $plugins,
-                                         );
-        my $server = DJabberd->new;
-        $server->set_config_unixdomainsocket($self->{unixdomainsocket}) if $self->{unixdomainsocket};
+            server_name => $self->hostname,
+            s2s         => 1,
+            plugins     => $plugins,
+        );
+        my $server = DJabberd->new();
 
+        $server->set_config_unixdomainsocket($self->{unixdomainsocket}) if $self->{unixdomainsocket};
         foreach my $peer (@{$self->{peers} || []}){
             $server->set_fake_s2s_peer($peer->hostname => DJabberd::IPEndPoint->new($peer->peeraddr, $peer->serverport));
             foreach my $subdomain (@SUBDOMAINS) {
-                $server->set_fake_s2s_peer($subdomain . '.' . $peer->hostname => DJabberd::IPEndPoint->new("127.0.0.1", $peer->serverport));
+                $server->set_fake_s2s_peer($subdomain . '.' . $peer->hostname => DJabberd::IPEndPoint->new($peer->peeraddr, $peer->serverport));
             }
         }
 
