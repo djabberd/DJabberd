@@ -326,7 +326,7 @@ sub _start_server {
                                         Proto     => IPPROTO_TCP,
                                         Reuse     => 1,
                                         Listen    => 10 )
-            or $logger->logdie("Error creating socket: $@\n");
+            or $logger->logdie("Error creating socket at $localaddr: $@\n");
 
         my $success = $server->blocking(0);
 
