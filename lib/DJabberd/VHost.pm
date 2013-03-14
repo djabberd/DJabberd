@@ -471,6 +471,7 @@ sub roster_push {
         my $id = $c->new_iq_id;
         my $iq = "<iq to='" . $c->bound_jid->as_string_exml . "' type='set' id='$id'>$xml</iq>";
         $c->xmllog->info($iq);
+	$c->wait_for($id);
         $c->write(\$iq);
     }
 }

@@ -39,6 +39,7 @@ my $iq_handler = {
     'get-{jabber:iq:register}query' => \&process_iq_getregister,
     'set-{jabber:iq:register}query' => \&process_iq_setregister,
     'set-{djabberd:test}query' => \&process_iq_set_djabberd_test,
+    'result-(BOGUS)' => \&process_iq_result,
 };
 
 # DO NOT OVERRIDE THIS
@@ -738,6 +739,17 @@ sub process_iq_set_djabberd_test {
     }
 
     $iq->send_result_raw("<unknown-command/>");
+}
+
+sub process_iq_result {
+    my ($conn, $iq) = @_;
+    for my $id ($conn->waiting) {
+	if ($iq->id eq $id) {
+	    $conn->ack($id);
+	    return 1;
+	}
+    }
+    return 0;
 }
 
 sub id {

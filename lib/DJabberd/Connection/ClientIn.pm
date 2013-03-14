@@ -10,6 +10,7 @@ use fields (
             'is_available',          # bool: is an "available resource"
             'directed_presence',     # the jids we have sent directed presence too
             'pend_in_subscriptions', # undef or arrayref of presence type='subscribe' packets to be redelivered when we become available
+	    'waiting_acks',          # arrayref of strings representing iq id we expect to receive result for
             );
 
 sub note_pend_in_subscription {
@@ -298,6 +299,21 @@ sub filter_incoming_client_builtin {
                                 $stanza->on_recv_from_client($self);
                             });
 
+}
+
+sub wait_for {
+    my ($self, $id) = @_;
+    push(@{$self->{waiting_acks} ||= []},$id);
+}
+sub waiting {
+    my $self = shift;
+    return @{$self->{waiting_acks} || []};
+}
+sub ack {
+    my ($self, $id) = @_;
+    if(ref $self->{waiting_acks}) {
+	$self->{waiting_acks} = [ grep {$_ ne $id} @{$self->{waiting_acks}} ];
+    }
 }
 
 1;
