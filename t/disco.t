@@ -17,7 +17,7 @@ once_logged_in(sub {
   <query xmlns='http://jabber.org/protocol/disco#info'/>
 </iq>");
 
-    like($pa->recv_xml, qr{<identity type='im' category='server' name='djabberd'/>}, "Say we are a server");
+    like($pa->recv_xml, qr{<identity (?=.*type='im')(?=.*category='server')(?=.*name='djabberd').*/>}, "Say we are a server");
 
     $pa->send_xml(qq{<iq type='get'
                          from='$pa/$res'
