@@ -259,7 +259,7 @@ sub set_to_host {
 
 sub to_host {
     my $self = shift;
-    return $self->{to_host} or
+    return $self->{to_host} ||
         die "To host accessed before it was set";
 }
 
@@ -270,7 +270,7 @@ sub set_version {
 
 sub version {
     my $self = shift;
-    return $self->{version} or
+    return $self->{version} ||
         die "Version accessed before it was set";
 }
 
