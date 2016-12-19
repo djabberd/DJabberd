@@ -146,9 +146,27 @@ sub set_config_sslcertificatechainfile {
     $self->{ssl_cert_chain_file} = as_abs_path($val);
 }
 
+sub set_config_sslciphersuite {
+    my ($self, $val) = @_;
+    $self->{ssl_cipher_list} = $val;
+}
+
+sub set_config_ssldhparamfile {
+    my ($self, $val) = @_;
+    $self->{ssl_dhparam_file} = as_abs_path($val);
+}
+
+sub set_config_sslecdhcurve {
+    my ($self, $val) = @_;
+    $self->{ssl_ecdh_curve} = $val;
+}
+
 sub ssl_private_key_file { return $_[0]{ssl_private_key_file} }
 sub ssl_cert_file        { return $_[0]{ssl_cert_file}        }
 sub ssl_cert_chain_file  { return $_[0]{ssl_cert_chain_file}  }
+sub ssl_cipher_list      { return $_[0]{ssl_cipher_list}      }
+sub ssl_dhparam_file     { return $_[0]{ssl_dhparam_file}     }
+sub ssl_ecdh_curve       { return $_[0]{ssl_ecdh_curve}       }
 
 sub set_config_oldssl {
     my ($self, $val) = @_;

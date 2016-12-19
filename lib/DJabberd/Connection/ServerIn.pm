@@ -59,6 +59,7 @@ sub on_stanza_received {
                    "{jabber:server}message"  => 'DJabberd::Message',
                    "{jabber:server}presence" => 'DJabberd::Presence',
                    "{http://etherx.jabber.org/streams}features" => 'DJabberd::Stanza::StreamFeatures',
+                   "{urn:ietf:params:xml:ns:xmpp-tls}starttls"  => 'DJabberd::Stanza::StartTLS',
                    );
 
     my $class = $class{$node->element} or

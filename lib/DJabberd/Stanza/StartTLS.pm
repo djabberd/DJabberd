@@ -7,6 +7,7 @@ Net::SSLeay::load_error_strings();
 Net::SSLeay::SSLeay_add_ssl_algorithms();
 Net::SSLeay::randomize();
 
+sub acceptable_from_server { 1 }
 sub on_recv_from_server { &process }
 sub on_recv_from_client { &process }
 
@@ -22,14 +23,19 @@ sub process {
     $Net::SSLeay::ssl_version = 10; # Insist on TLSv1
     #$Net::SSLeay::ssl_version = 3; # Insist on SSLv3
 
-    Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL)
+    my $ssl_opts = &Net::SSLeay::OP_ALL;
+    $ssl_opts |= &Net::SSLeay::OP_CIPHER_SERVER_PREFERENCE;
+    $ssl_opts |= &Net::SSLeay::OP_SINGLE_DH_USE if($conn->vhost->server->ssl_dhparam_file);
+    $ssl_opts |= &Net::SSLeay::OP_SINGLE_ECDH_USE if($conn->vhost->server->ssl_ecdh_curve);
+
+    Net::SSLeay::CTX_set_options($ctx, $ssl_opts)
         and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
 
     Net::SSLeay::CTX_set_mode($ctx, 1)  # enable partial writes
         and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
 
     # Following will ask password unless private key is not encrypted
-    Net::SSLeay::CTX_use_RSAPrivateKey_file ($ctx,  $conn->vhost->server->ssl_private_key_file,
+    Net::SSLeay::CTX_use_PrivateKey_file ($ctx,  $conn->vhost->server->ssl_private_key_file,
                                              &Net::SSLeay::FILETYPE_PEM);
     Net::SSLeay::die_if_ssl_error("private key");
 
@@ -42,6 +48,31 @@ sub process {
         Net::SSLeay::die_if_ssl_error("certificate chain file");
     }
 
+    if($conn->vhost->server->ssl_dhparam_file) {
+        my $dhf = Net::SSLeay::BIO_new_file($conn->vhost->server->ssl_dhparam_file,'r')
+                or die("dhparam file open");
+        my $dhp = Net::SSLeay::PEM_read_bio_DHparams($dhf)
+                or die("dhparam file read");
+        Net::SSLeay::BIO_free($dhf);
+        Net::SSLeay::CTX_set_tmp_dh($ctx, $dhp)
+                or die("dparam set");
+        Net::SSLeay::DH_free($dhp);
+    }
+
+    if($conn->vhost->server->ssl_ecdh_curve) {
+        my $ecn = Net::SSLeay::OBJ_txt2nid($conn->vhost->server->ssl_ecdh_curve)
+                or die("ecdh curve not found: ".$conn->vhost->server->ssl_ecdh_curve);
+        my $ecdh = Net::SSLeay::EC_KEY_new_by_curve_name($ecn)
+                or die("ecdh key generation failed");
+        Net::SSLeay::CTX_set_tmp_ecdh($ctx,$ecdh)
+                or die("ecdh params set");
+        Net::SSLeay::EC_KEY_free($ecdh);
+    }
+
+    if($conn->vhost->server->ssl_cipher_list) {
+        Net::SSLeay::CTX_set_cipher_list($ctx,$conn->vhost->server->ssl_cipher_list)
+                or die("ssl cipher list");
+    }
 
     my $ssl = Net::SSLeay::new($ctx) or die_now("Failed to create SSL $!");
     $conn->{ssl} = $ssl;
