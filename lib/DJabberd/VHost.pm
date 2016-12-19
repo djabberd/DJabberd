@@ -6,6 +6,7 @@ use DJabberd::Util qw(tsub as_bool);
 use DJabberd::Log;
 use DJabberd::JID;
 use DJabberd::Roster;
+use DJabberd::Caps;
 
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
@@ -29,8 +30,6 @@ sub new {
         'server_secret' => undef,  # server secret we use for dialback HMAC keys.  trumped
                                    # if a plugin implements a cluster-wide keyed shared secret
 
-        features        => [],     # list of features
-
         subdomain       => {},  # subdomain => plugin mapping of subdomains we should accept
 
         inband_reg      => 0,   # bool: inband registration
@@ -51,6 +50,11 @@ sub new {
 
     bless $self, $class;
 
+    $self->{caps} = DJabberd::Caps->new(
+        DJabberd::Caps::Identity->new("server","im","djabberd"),
+        DJabberd::Caps::Feature->new('http://jabber.org/protocol/disco#info'),
+        DJabberd::Caps::Feature->new('http://jabber.org/protocol/disco#items'),
+    );
     $logger->info("Addding plugins...");
     foreach my $pl (@{ $plugins || [] }) {
         $self->add_plugin($pl);
@@ -84,14 +88,18 @@ sub server_name {
     return $self->{server_name};
 }
 
+sub caps {
+    return $_[0]->{caps};
+}
+
 sub add_feature {
     my ($self, $feature) = @_;
-    push @{$self->{features}}, $feature;
+    $self->caps->add(DJabberd::Caps::Feature->new($feature));
 }
 
 sub features {
     my ($self) = @_;
-    return @{$self->{features}};
+    return map{$_->bare}$self->caps->get('feature');
 }
 
 sub setup_default_plugins {
@@ -454,7 +462,7 @@ sub roster_push {
     my $barestr = $jid->as_bare_string;
     delete $self->{roster_cache}{$barestr};
 
-    # XMPP-IM: howwever a server SHOULD NOT push or deliver roster items
+    # XMPP-IM: however a server SHOULD NOT push or deliver roster items
     # in that state to the contact. (None + Pending In)
     return if $ritem->subscription->is_none_pending_in;
 

@@ -663,7 +663,9 @@ sub start_stream_back {
                                 "><required/></starttls>"
                                :"/>");
         }
+	my $caps = "";
         if (my $vh = $self->vhost) {
+	    $caps = $vh->caps->cap_xml('http://danga.com/djabberd/');
             $vh->hook_chain_fast("SendFeatures",
                                   [ $self ],
                                   {
@@ -674,7 +676,7 @@ sub start_stream_back {
                                   }
                                   );
         }
-        $features = qq{<stream:features>$features_body</stream:features>};
+        $features = qq{<stream:features>$caps$features_body</stream:features>};
     }
 
     # The receiving entity MUST set the value of the 'version'

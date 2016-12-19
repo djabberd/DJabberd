@@ -137,13 +137,7 @@ sub process_iq_disco_info_query {
     # capabilities we have
     my $xml;
     $xml  = qq{<query xmlns='http://jabber.org/protocol/disco#info'>};
-    $xml .= qq{<identity category='server' type='im' name='djabberd'/>};
-
-    foreach my $cap ('http://jabber.org/protocol/disco#info',
-                     $conn->vhost->features)
-    {
-        $xml .= "<feature var='$cap'/>";
-    }
+    $xml .= $conn->vhost->caps->as_xml;
     $xml .= qq{</query>};
 
     $iq->send_reply('result', $xml);
