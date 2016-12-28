@@ -10,6 +10,7 @@ use fields (
             'groups',        # arrayref of group names
             'subscription',  # DJabberd::Subscription object
             'remove',        # bool: if client requested rosteritem be removed
+            'ver',
             );
 
 sub new {
@@ -24,8 +25,10 @@ sub new {
         $self->{groups}       = delete $opts{'groups'};
         $self->{remove}       = delete $opts{'remove'};
         $self->{subscription} = delete $opts{'subscription'};
+        $self->{ver}          = delete $opts{'ver'};
         croak("unknown ctor fields: " . join(', ', keys %opts)) if %opts;
     }
+    $self->{ver} .= 'e0' if(exists $self->{ver} && defined $self->{ver} && $self->{ver} eq '0');
 
     unless (ref $self->{jid}) {
         $self->{jid} = DJabberd::JID->new($self->{jid})
@@ -73,6 +76,16 @@ sub add_group {
     push @{ $self->{groups} }, $group;
 }
 
+sub ver {
+    my $self = shift;
+    return $self->{ver};
+}
+
+sub remove {
+    my $self = shift;
+    return $self->{remove};
+}
+
 sub as_xml {
     my $self = shift;
     my $xml = "<item jid='" . exml($self->{jid}->as_bare_string) . "' " . ($self->{remove} ?
@@ -81,13 +94,22 @@ sub as_xml {
     if (defined $self->{name}) {
         $xml .= " name='" . exml($self->{name}) . "'";
     }
-    $xml .= ">";
-    foreach my $g (@{ $self->{groups} }) {
-        $xml .= "<group>" . exml($g) . "</group>";
+    if(@{ $self->{groups} }) {
+        $xml .= ">";
+        foreach my $g (@{ $self->{groups} }) {
+            $xml .= "<group>" . exml($g) . "</group>";
+        }
+        $xml .= "</item>";
+    } else {
+        $xml .= '/>';
     }
-    $xml .= "</item>";
     return $xml;
 }
 
+sub as_query {
+    my $self = shift;
+    my $ver = ($self->ver)?" ver='".$self->ver."'":'';
+    return "<query xmlns='jabber:iq:roster'$ver>".$self->as_xml."</query>";
+}
 
 1;

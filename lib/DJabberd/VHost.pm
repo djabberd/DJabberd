@@ -455,7 +455,7 @@ sub handles_jid {
 }
 
 sub roster_push {
-    my ($self, $jid, $ritem) = @_;
+    my ($self, $jid, $ritem, $interim) = @_;
     croak("no ritem") unless $ritem;
 
     # kill cache if roster checked;
@@ -469,16 +469,15 @@ sub roster_push {
     # TODO: single-server roster push only.   need to use a hook
     # to go across the cluster
 
-    my $xml = "<query xmlns='jabber:iq:roster'>";
-    $xml .= $ritem->as_xml;
-    $xml .= "</query>";
+    my $xml = $ritem->as_query;
 
     my @conns = $self->find_conns_of_bare($jid);
     foreach my $c (@conns) {
-        next unless $c->is_available && $c->requested_roster;
+        next unless ($c->is_available || $interim) && $c->requested_roster;
+        next if $interim && $c->bound_jid->as_string ne $jid->as_string;
         my $id = $c->new_iq_id;
-        my $iq = "<iq to='" . $c->bound_jid->as_string_exml . "' type='set' id='$id'>$xml</iq>";
-        $c->xmllog->info($iq);
+        my $iq = "<iq from='$barestr' to='" . $c->bound_jid->as_string_exml . "' type='set' id='$id'>$xml</iq>";
+        $c->log_outgoing_data($iq);
         $c->write(\$iq);
     }
 }
