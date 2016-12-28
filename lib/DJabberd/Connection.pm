@@ -663,15 +663,19 @@ sub start_stream_back {
                                 "><required/></starttls>"
                                :"/>");
         }
-	my $caps = "";
+        my $caps = "";
         if (my $vh = $self->vhost) {
-	    $caps = $vh->caps->cap_xml('http://danga.com/djabberd/');
+            $caps = $vh->caps->cap_xml('http://danga.com/djabberd/');
             $vh->hook_chain_fast("SendFeatures",
                                   [ $self ],
                                   {
                                       stanza => sub {
-                                        my ($self, $xml_string) = @_;
+                                        my ($self, $xml_string, $final) = @_;
                                         $features_body .= $xml_string;
+                                        return if($final);
+                                        # try to collect more features from plugins
+                                        $self->reset;
+                                        $self->decline;
                                       },
                                   }
                                   );

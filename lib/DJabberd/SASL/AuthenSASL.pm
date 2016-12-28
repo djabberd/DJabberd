@@ -20,11 +20,9 @@ sub register {
 
     $vhost->register_hook("SendFeatures", sub {
         my ($vh, $cb, $conn) = @_;
-	$cb->decline if($conn->vhost->require_ssl and ($conn->isa('DJabberd::Connection::ClientIn') && !$conn->ssl));
+        return $cb->decline if($conn->vhost->require_ssl and ($conn->isa('DJabberd::Connection::ClientIn') && !$conn->ssl));
         if (my $sasl_conn = $conn->sasl) {
-            if ($sasl_conn->is_success) {
-                return;
-            }
+            return $cb->decline if ($sasl_conn->is_success);
         }
         my @mech = $plugin->mechanisms_list;
         my $xml_mechanisms =
