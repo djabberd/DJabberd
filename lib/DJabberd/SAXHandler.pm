@@ -128,7 +128,11 @@ sub end_element {
 
     if ($data->{NamespaceURI} eq "http://etherx.jabber.org/streams" &&
         $data->{LocalName} eq "stream") {
-        $self->{ds_conn}->end_stream if $self->{ds_conn};
+	if($self->{ds_conn}) {
+            $self->{ds_conn}->log->debug($self->{ds_conn}->{id}.' < '.
+		    '</'.$data->{Name}." xmlns".($data->{Prefix}?':'.$data->{Prefix}:'')."='".$data->{NamespaceURI}."'>");
+            $self->{ds_conn}->end_stream;
+        }
         return;
     }
 

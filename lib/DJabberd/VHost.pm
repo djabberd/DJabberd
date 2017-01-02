@@ -367,7 +367,7 @@ sub find_jid {
     my ($self, $jid) = @_;
     return $self->find_jid($jid->as_string) if ref $jid;
     my $sock = $self->{jid2sock}{$jid} or return undef;
-    return undef if $sock->{closed};
+    return undef if $sock->{closed} > 0;
     return $sock;
 }
 

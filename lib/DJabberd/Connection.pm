@@ -25,6 +25,7 @@ use fields (
             'in_stream',      # bool:  true if we're in a stream tag
             'counted_close',  # bool:  temporary here to track down the overcounting of disconnects
             'disconnect_handlers',  # array of coderefs to call when this connection is closed for any reason
+            'write_handlers', # array of coderefs to call when someone writes SCALAR ref to the connection (xml)
             'sasl',           # the sasl connection object, when sasl has been or is being negotiated
             );
 
@@ -48,6 +49,8 @@ our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
 
 use constant POLLIN        => 1;
 use constant POLLOUT       => 4;
+use constant CLOSED_PERMANENTLY => 1;
+use constant CLOSED_TENTATIVELY => -1;
 
 BEGIN {
     my $xmldebug = $ENV{XMLDEBUG};
@@ -473,7 +476,11 @@ sub write {
         $data = $$data if (ref($data) eq 'SCALAR');
         $LOGMAP{$self}->print("$time\t> $data\n") if $LOGMAP{$self} &&  ref($data) ne 'CODE' ;
     }
-    $self->SUPER::write(@_);
+    if(ref($_[0]) eq 'SCALAR' && ref($self->{write_handlers}) eq 'ARRAY' && @{$self->{write_handlers}}) {
+        $self->_run_callback_list($self->{write_handlers},@_);
+    } else {
+        $self->SUPER::write(@_);
+    }
 }
 
 
@@ -710,7 +717,10 @@ sub start_stream_back {
 
 sub end_stream {
     my DJabberd::Connection $self = shift;
+    $self->log->debug("Called ".ref($self).":end_stream from ".join(':',caller));
+    $self->log_outgoing_data("</stream:stream>");
     $self->write("</stream:stream>");
+    $self->{in_stream} = 0;
     $self->write(sub { $self->close; });
 }
 
@@ -772,8 +782,17 @@ sub close_no_vhost {
 
 sub close_stream {
     my ($self, $err) = @_;
+    $self->log->debug("Called ".ref($self).":close_stream from ".join(':',caller));
+    $self->log_outgoing_data("</stream:stream>");
     $self->write("</stream:stream>");
+    $self->{in_stream} = 0;
     $self->write(sub { $self->close; });
+}
+
+sub add_write_handler {
+    my ($self, $callback) = @_;
+    $self->{write_handlers} ||= [];
+    push @{$self->{write_handlers}}, $callback;
 }
 
 sub add_disconnect_handler {
