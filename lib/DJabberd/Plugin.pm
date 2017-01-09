@@ -24,6 +24,12 @@ sub finalize {
 }
 
 # list of classnames you want to run before/after (in your phase only)
+# eg. could be implemented as simple return qw{DJabberd::Delivery::S2S}
+# to have static order for all phases or more complex like
+# return {
+#         deliver => 'DJabberd::Delivery::Local',
+#         AlterPresenceUnavailable => 'ALL'
+#     }->{$_[1]};
 sub run_after {
     return ()
 }

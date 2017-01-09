@@ -242,7 +242,7 @@ sub hook_chain_fast {
         # because sometimes there is no vhost, as in the case of
         # old serverin dialback without a to address.
         if ($self) {
-            push @hooks, @{ $self->{hooks}->{$ph} || [] };
+            push @hooks, map{$_->{sub}} @{ $self->{hooks}->{$ph} || [] };
         }
     }
     push @hooks, $fallback if $fallback;
@@ -353,13 +353,50 @@ sub has_plugin_of_type {
 }
 
 sub register_hook {
-    my ($self, $phase, $subref) = @_;
+    my ($self, $phase, $subref, $pkg) = @_;
     Carp::croak("Can't register hook on a non-VHost") unless UNIVERSAL::isa($self, "DJabberd::VHost");
 
     $logger->logcroak("Undocumented hook phase: '$phase'") unless
         $DJabberd::HookDocs::hook{$phase};
 
-    push @{ $self->{hooks}{$phase} ||= [] }, $subref;
+    $pkg = caller unless($pkg);
+    my @hooks = (@{ $self->{hooks}{$phase} ||= [] }, {pkg => $pkg, sub => $subref });
+    my $cmp = sub {
+        my ($a,$b) = @_;
+        my $ab = $a->{pkg}->can('run_before');
+        my $aa = $a->{pkg}->can('run_after');
+        my $bb = $b->{pkg}->can('run_before');
+        my $ba = $b->{pkg}->can('run_after');
+        return -1 if($ab && grep{$_ eq 'ALL'}$ab->($phase) && !($bb && grep{$_ eq 'ALL'}$bb->($phase)));
+        return -1 if($ab && grep{$_ eq $b->{pkg}}$ab->($phase));
+        return -1 if($ba && grep{$_ eq $a->{pkg}}$ba->($phase));
+        return +1 if($aa && grep{$_ eq $b->{pkg}}$aa->($phase));
+        return +1 if($bb && grep{$_ eq $a->{pkg}}$bb->($phase));
+        return +1 if($aa && grep{$_ eq 'ALL'}$aa->($phase) && !($ba && grep{$_ eq 'ALL'}$ba->($phase)));
+        #$logger->debug('Keeping the ordering for '.$a->{pkg}.' and '.$b->{pkg});
+        return 0;
+    };
+    # Need to do square bubble double sort since not all hooks are having ordering preferences
+    # So we need to be a) stable and b) comprehensive
+    if($#hooks > 0) {
+        for my $i(0..$#hooks) {
+	    my $swap = 0;
+            for my $j (0..$#hooks) {
+                next if($i==$j);
+                my $r = $cmp->($hooks[$i],$hooks[$j]);
+                if($r < 0 && $i > $j) {
+                    splice(@hooks,$i,0,splice(@hooks,$j,1));
+		    $swap = 1;
+                } elsif($r > 0 && $i < $j) {
+                    splice(@hooks,$j,0,splice(@hooks,$i,1));
+		    $swap = 1;
+                }
+            }
+	    redo if($swap);
+        }
+    	$logger->debug('New order for phase '.$phase.' is '.join(', ',map{$_->{pkg}}@hooks));
+    }
+    $self->{hooks}{$phase} = \@hooks;
 }
 
 # lookup a local user by fulljid
@@ -413,6 +450,7 @@ sub unregister_jid {
             delete $self->{jid2sock}{$fullstr};
             $deleted_fulljid = 1;
         }
+        $logger->debug("Unregistering $fullstr with conn $conn: exists[$exist], deleted[$deleted_fulljid]");
     }
 
     if ($deleted_fulljid) {
