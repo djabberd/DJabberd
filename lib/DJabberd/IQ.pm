@@ -39,6 +39,7 @@ my $iq_handler = {
     'get-{jabber:iq:register}query' => \&process_iq_getregister,
     'set-{jabber:iq:register}query' => \&process_iq_setregister,
     'set-{djabberd:test}query' => \&process_iq_set_djabberd_test,
+    'result-(BOGUS)' => \&process_iq_result_empty,
 };
 
 # DO NOT OVERRIDE THIS
@@ -750,6 +751,15 @@ sub process_iq_set_djabberd_test {
     }
 
     $iq->send_result_raw("<unknown-command/>");
+}
+
+sub process_iq_result_empty {
+    my ($conn, $iq) = @_;
+    # Empty result back to server does not require any action. Just to suppress
+    # error response, and signal if anything doesn't look right
+    unless($conn->own_iq_id($iq->id)) {
+        $logger->error("Got result for unknown id: ".$iq->as_xml);
+    }
 }
 
 sub id {

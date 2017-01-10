@@ -139,6 +139,14 @@ sub new_iq_id {
     return "iq$self->{iqctr}";
 }
 
+sub own_iq_id {
+    my DJabberd::Connection $self = shift;
+    if($_[0] =~ /iq(\d+)/o) {
+        return ($1 <= $self->{iqctr});
+    }
+    return 0;
+}
+
 sub log_outgoing_data {
     my ($self, $text) = @_;
     my $id = $self->{id} ||= 'no_id';
