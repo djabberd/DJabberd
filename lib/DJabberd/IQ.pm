@@ -796,8 +796,27 @@ sub bind {
 
 sub deliver_when_unavailable {
     my $self = shift;
-    return $self->type eq "result" ||
-        $self->type eq "error";
+    return $self->type eq "result" || $self->type eq "error" || !$self->from;
+}
+
+sub delivery_failure {
+    my ($self, $vh, $reason) = @_;
+    # if not error condition, not to server, not response
+    if(!$reason) {
+        if($self->to && $self->to_jid->node && ($self->type eq 'set' or $self->type eq 'get')) {
+            # must respond
+            $self->attrs->{"{}from"} ||= $self->connection->bound_jid->as_string;
+            my $err = $self->make_error_response(503,'cancel','service-unavailable');
+            $err->deliver($vh);
+        } elsif($self->type eq 'error' && (!$self->to or $self->to eq $vh->name)
+                && $self->connection->own_iq_id($self->attr('{}id'))) {
+            $logger->info("Error response received: ".$self->as_xml);
+        } else {
+            $logger->warn("We shouldn't be there, must be handled already: ".$self->as_xml);
+        }
+    } else {
+        $self->SUPER::delivery_failure(@_);
+    }
 }
 
 sub make_response {

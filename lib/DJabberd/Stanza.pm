@@ -166,7 +166,7 @@ sub make_error_response {
     $to ? $response->set_from($to) : delete($response->attrs->{"{}from"});
 
     my $error_elem = new DJabberd::XMLElement(
-        "jabber:server",
+        $self->namespace,
         "error",
         {
             "{}code" => $code,

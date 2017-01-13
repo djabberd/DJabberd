@@ -11,7 +11,12 @@ sub deliver {
 
     my @dconns;
     my $find_bares = sub {
-        @dconns = grep { $_->is_available || $stanza->deliver_when_unavailable } $vhost->find_conns_of_bare($to)
+        @dconns = grep {
+		# Thou shalt not broadcast IQ!
+		($stanza->element_name ne 'iq' || $to->as_string eq $_->bound_jid->as_string)
+		# deliverability check
+	        && ($_->is_available || $stanza->deliver_when_unavailable)
+	    } $vhost->find_conns_of_bare($to)
     };
 
     if ($to->is_bare) {
