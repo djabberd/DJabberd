@@ -25,6 +25,9 @@ sub new {
         'jid2sock'      => {},  # bob@207.7.148.210/rez -> DJabberd::Connection
         'bare2fulls'    => {},  # barejids -> { fulljid -> 1 }
 
+        # external connections
+        'dest2queue'    => {},  # example.com => DJabberd::Queue
+
         'quirksmode'    => 1,
 
         'server_secret' => undef,  # server secret we use for dialback HMAC keys.  trumped
@@ -397,6 +400,21 @@ sub register_hook {
     	$logger->debug('New order for phase '.$phase.' is '.join(', ',map{$_->{pkg}}@hooks));
     }
     $self->{hooks}{$phase} = \@hooks;
+}
+
+# lookup an external domain queue
+sub find_queue {
+    my ($self, $domain) = @_;
+    return $self->find_queue($domain->domain) if(ref($domain));
+    return $self->{dest2queue}->{$domain};
+}
+
+sub add_queue {
+    $_[0]->{dest2queue}->{$_[1]} = $_[2];
+}
+
+sub del_queue {
+    return delete $_[0]->{dest2queue}->{$_[1]};
 }
 
 # lookup a local user by fulljid
