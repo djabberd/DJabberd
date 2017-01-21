@@ -15,11 +15,32 @@ sub _validate_username {
     return $username;
 }
 
+my $s2s_handler = {
+    'get-{http://jabber.org/protocol/disco#info}query'  => \&process_iq_disco_info_query,
+    'get-{http://jabber.org/protocol/disco#items}query' => \&process_iq_disco_items_query,
+    'set-{djabberd:test}query' => \&process_iq_set_djabberd_test,
+    'result-(BOGUS)' => \&process_iq_result_empty,
+};
+
+sub on_recv_from_server {
+    my ($self, $conn) = @_;
+
+    my $to = $self->to_jid;
+    if($conn->vhost->name eq lc($to->domain) && (!$to->node || !$to->resource)) {
+        # Bare jid and domain jid must be processed by server
+        $self->process($conn,"s2s-iq",$s2s_handler);
+        return;
+    }
+    $self->deliver;
+}
+
 sub on_recv_from_client {
     my ($self, $conn) = @_;
 
     my $to = $self->to_jid;
-    if (! $to || $conn->vhost->uses_jid($to)) {
+    if(!$to || (!$to->resource && $conn->vhost->handles_jid($to)) || $conn->vhost->uses_jid($to)) {
+        # RFC6120 10.5.3.2: For an IQ stanza, the server MUST handle it directly
+        # on behalf of the intended recipient.
         $self->process($conn);
         return;
     }
@@ -46,6 +67,8 @@ my $iq_handler = {
 sub process {
     my DJabberd::IQ $self = shift;
     my $conn = shift;
+    my $phase = shift || "c2s-iq";
+    my $handler = shift || $iq_handler;
 
     # FIXME: handle 'result'/'error' IQs from when we send IQs
     # out, like in roster pushes
@@ -55,11 +78,11 @@ sub process {
     # then Trillian crashes.  So let's just ignore them.
     return unless defined($self->id) && length($self->id);
 
-    $conn->vhost->run_hook_chain(phase    => "c2s-iq",
+    $conn->vhost->run_hook_chain(phase    => $phase,
                                  args     => [ $self ],
                                  fallback => sub {
                                      my $sig = $self->signature;
-                                     my $meth = $iq_handler->{$sig};
+                                     my $meth = $handler->{$sig};
                                      unless ($meth) {
                                          $self->send_error(
                                             qq{<error type='cancel'>}.
@@ -68,7 +91,7 @@ sub process {
                                             qq{This feature is not implemented yet in DJabberd.}.
                                             qq{</text>}.
                                             qq{</error>}
-                                         );
+                                         ) if($self->type eq 'get' or $self->type eq 'set');
                                          $logger->warn("Unknown IQ packet: $sig");
                                          return;
                                      }
@@ -112,7 +135,7 @@ sub send_reply {
 
     $raw ||= "";
     my $id = $self->id;
-    my $bj = $conn->bound_jid;
+    my $bj = ($conn->is_server ? $self->from_jid : $conn->bound_jid);
     my $from_jid = $self->to;
     my $to = $bj ? (" to='" . $bj->as_string_exml . "'") : "";
     my $from = $from_jid ? (" from='" . $from_jid . "'") : "";
@@ -138,7 +161,62 @@ sub process_iq_disco_info_query {
     # capabilities we have
     my $xml;
     $xml  = qq{<query xmlns='http://jabber.org/protocol/disco#info'>};
-    $xml .= $conn->vhost->caps->as_xml;
+    if($iq->to && $conn->vhost->uses_jid($iq->to_jid)) {
+        $xml .= $conn->vhost->caps->as_xml;
+    } else {
+        my $ritem;
+        my ($from,$bare) = $conn->is_server ?
+                  ($iq->from_jid, $iq->to_jid)
+                : ($conn->bound_jid, $conn->bound_jid);
+        if($from->as_bare_string eq $bare->as_bare_string) {
+            # Implicit self-subscription, to avoid checking it in the hooks
+            $ritem = DJabberd::RosterItem->new(jid=>$from);
+            $ritem->subscription->from_bitmask(3);
+        } else {
+            $conn->vhost->run_hook_chain(
+                phase => "LoadRosterItem",
+                args  => [ $bare, $from],
+                methods => {
+                    set => sub { $ritem = $_[1]; }
+                }
+            );
+        }
+        my $ftr = [];
+	my $ids = [];
+        if($ritem && ref($ritem) && $ritem->subscription->{from}) {
+            $ftr = ['http://jabber.org/protocol/disco#info',
+	            'http://jabber.org/protocol/disco#items'];
+	    $ids = [ ['account', 'registered'] ];
+        }
+        $conn->vhost->run_hook_chain(
+                phase=> "DiscoBare",
+                args     => [ $iq, "info", $bare, $from, $ritem ],
+                methods => {
+                    addFeatures => sub {
+                        my $cb = shift;
+                        push(@$ftr,grep{!ref}@_);
+			push(@$ids,grep{ref}@_);
+                        $cb->reset;
+                        $cb->decline;
+                    },
+                    setFeatures => sub {
+                        my $cb = shift;
+			$ftr = [ grep{!ref}@_];
+			$ids = [ grep{ref}@_];
+                        $cb->stop_chain;
+                    }
+                }
+        );
+        unless(@$ftr || @$ids) {
+            $iq->send_error("<error type='cancel'><service-unavailable "
+                    ."xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/></error>");
+            return;
+        }
+        $xml .= join('',map{"<identity category='".$_->[0]."' type='".$_->[1]."'"
+					.($_->[2] ? " name='".$_->[2]."'" : '')
+					."/>"}@$ids);
+        $xml .= join('',map{"<feature var='$_'/>"}@$ftr);
+    }
     $xml .= qq{</query>};
 
     $iq->send_reply('result', $xml);
@@ -149,12 +227,60 @@ sub process_iq_disco_items_query {
 
     my $vhost = $conn->vhost;
 
-    my $items = $vhost ? $vhost->child_services : {};
+    my $xml = qq{<query xmlns='http://jabber.org/protocol/disco#items'>};
 
-    my $xml = qq{<query xmlns='http://jabber.org/protocol/disco#items'>}.
-        join('', map({ "<item jid='".exml($_)."' name='".exml($items->{$_})."' />" } keys %$items)).
-        qq{</query>};
-
+    if($iq->to && $conn->vhost->uses_jid($iq->to_jid)) {
+        my $items = $vhost ? $vhost->child_services : {};
+        $xml .= join('', map({ "<item jid='".exml($_)."' name='".exml($items->{$_})."' />" } keys %$items));
+    } else {
+        my $ritem;
+        my ($from,$bare) = $conn->is_server ?
+                  ($iq->from_jid, $iq->to_jid)
+                : ($conn->bound_jid, $conn->bound_jid);
+        if($from->as_bare_string eq $bare->as_bare_string) {
+            # Implicit self-subscription, to avoid checking it in the hooks
+            $ritem = DJabberd::RosterItem->new(jid=>$from);
+            $ritem->subscription->from_bitmask(3);
+        } else {
+            $conn->vhost->run_hook_chain(
+                phase => "LoadRosterItem",
+                args  => [ $bare, $from],
+                methods => {
+                    set => sub { $ritem = $_[1]; }
+                }
+            );
+        }
+        my $items = [];
+        if($ritem && ref($ritem) && $ritem->subscription->{from}) {
+            foreach($conn->vhost->find_conns_of_bare($bare)) {
+                push(@$items,[$_->bound_jid->as_string]);
+            }
+        }
+        $conn->vhost->run_hook_chain(
+                phase=> "DiscoBare",
+                args     => [ $iq, "items", $bare, $from, $ritem ],
+                methods => {
+                    addItems => sub {
+                        my $cb = shift;
+                        push(@$items,@_) if(@_);
+                        $cb->reset;
+                        $cb->decline;
+                    },
+                    setItems => sub {
+                        my $cb = shift;
+                        $items = [ @_ ];
+                        $cb->stop_chain;
+                    }
+                }
+        );
+        $xml .= join('', map({ "<item jid='".exml($_->[0])."' "
+                                .($_->[1] ? "node='".exml($_->[1])."' ":'')
+                                .($_->[2] ? "name='".exml($_->[2])."' ":'')
+                                ."/>" } @$items
+                        )
+                );
+    }
+    $xml .= qq{</query>};
     $iq->send_reply('result', $xml);
 }
 
@@ -175,7 +301,7 @@ sub process_iq_getroster {
             $rsp->set_from($iq->connection->bound_jid->as_bare_string);
             $rsp->set_attr('{}id',$iq->attr('{}id')) if($iq->attr('{}id'));
             my $xml = $rsp->as_xml;
-	    $iq->connection->xmllog->info($xml);
+            $iq->connection->xmllog->info($xml);
             $iq->connection->write(\$xml);
             # Empty response indicates roster will be delivered as series of pushes
             foreach my$ri(@items) {
