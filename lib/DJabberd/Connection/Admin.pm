@@ -16,6 +16,7 @@ sub on_startup {
     $initial_memory ||= get_memory();
 }
 
+@Help=();
 sub get_memory {
     my $mem;
     if ($^O eq 'linux') {
@@ -307,6 +308,23 @@ sub CMD_cycle {
 
 }
 
+push @Help, 'dump /path/to/object';
+sub CMD_dump {
+    my ($self, $arg) = @_;
+    my $ret = '';
+    my $md = 2;
+    if($arg =~ /(.*)\s+(\d+)$/) {
+	$arg = $1;
+	$md = $2+1;
+    }
+    my $cmd = join('->',split('/',$arg));
+    $cmd = (substr($arg,0,1) eq '/' ? '$self->{server}' : '$self->').$cmd;
+    eval("\$Data::Dumper::Terse=1;\$Data::Dumper::Maxdepth=$md;\$ret = Dumper([$cmd])");
+    $ret = $@ if($@);
+    $self->write("Dump: `$ret`");
+    $self->end;
+}
+
 push @Help, 'fields package_name';
 sub CMD_fields {
     my ($self, $arg) = @_;
@@ -346,7 +364,7 @@ sub CMD_reload {
     }
 }
 
-push @Help, 'send_stanza JID STANZA';
+push @Help, 'send_stanza VHOST JID URL_Encoded(STANZA)';
 sub CMD_send_stanza {
     my ($self, $params) = @_;
     my ($vname, $barejid_str, $e_stanza) = split(/\s+/, $params);
