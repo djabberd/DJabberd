@@ -89,6 +89,12 @@ sub start_element {
     $self->{on_end_capture} = sub {
         my ($doc, $events) = @_;
         my $nodes = _nodes_from_events($events);
+        if ($nodes->[0]->element eq "{http://etherx.jabber.org/streams}error") {
+	    $conn->log->warn("Stream error: ".$nodes->[0]->innards_as_xml);
+            $conn->end_stream;
+            return;
+        }
+
         # {=xml-stanza}
         my $t1 = Time::HiRes::time();
         $conn->on_stanza_received($nodes->[0]) if $conn;

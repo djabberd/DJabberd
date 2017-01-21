@@ -24,7 +24,7 @@ sub new {
     # We need either an IP or and enpoint (which includes an ip and a port)
     croak "No 'ip' or 'endpoint'\n" unless ($ip || $endpt);
     # If we got no endpoint well construct one using the supplied IP and the default port
-    $endpt ||= DJabberd::IPEndpoint->new($ip, 5269);
+    $endpt ||= DJabberd::IPEndPoint->new($ip, 5269);
     $ip = $endpt->addr;
 
     my $sock;
