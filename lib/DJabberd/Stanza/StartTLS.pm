@@ -11,11 +11,8 @@ sub acceptable_from_server { 1 }
 sub on_recv_from_server { &process }
 sub on_recv_from_client { &process }
 
-sub process {
+sub get_ssl_ctx {
     my ($self, $conn) = @_;
-
-    # {=tls-no-spaces} -- we can't send spaces after the closing bracket
-    $conn->write("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls' />");
 
     my $ctx = Net::SSLeay::CTX_new()
         or die("Failed to create SSL_CTX $!");
@@ -75,10 +72,23 @@ sub process {
     }
 
     my $ssl = Net::SSLeay::new($ctx) or die_now("Failed to create SSL $!");
+
+    return ($ssl,$ctx);
+}
+
+sub process {
+    my ($self, $conn) = @_;
+
+    # {=tls-no-spaces} -- we can't send spaces after the closing bracket
+    $conn->write("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls' />")
+        if($self->element eq '{urn:ietf:params:xml:ns:xmpp-tls}starttls');
+
+    my ($ssl,$ctx) = $self->get_ssl_ctx($conn);
+
     $conn->{ssl} = $ssl;
     $conn->restart_stream;
     
-    DJabberd::Stanza::StartTLS->finalize_ssl_negotiation($conn, $ssl, $ctx);
+    $self->finalize_ssl_negotiation($conn, $ssl, $ctx);
 }
 
 # Complete the transformation of stream from tcp socket into ssl socket:
@@ -87,7 +97,7 @@ sub process {
 # 3. 'accept' tells SSL to start negotiating encryption
 # 4. set a socket write function that encrypts data before writting to the underlying socket
 sub finalize_ssl_negotiation {
-    my ($class, $conn, $ssl, $ctx) = @_;
+    my ($self, $conn, $ssl, $ctx) = @_;
 
     # Add a disconnect handler to this connection that will free memory
     # and remove references to junk no longer needed on close
@@ -108,9 +118,11 @@ sub finalize_ssl_negotiation {
 
     $Net::SSLeay::trace = 2;
 
-    my $rv = Net::SSLeay::accept($ssl);
+    my $rv = ($self->element eq '{urn:ietf:params:xml:ns:xmpp-tls}starttls') ?
+            Net::SSLeay::accept($ssl) :
+            Net::SSLeay::connect($ssl);
     if (!$rv) {
-        warn "SSL accept error on $conn\n";
+        warn $self->element_name." SSL error on $conn\n";
         $conn->close;
         return;
     }
