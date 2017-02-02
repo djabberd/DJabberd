@@ -71,6 +71,46 @@ sub get_ssl_ctx {
                 or die("ssl cipher list");
     }
 
+    if($conn->vhost->are_hooks('CheckCert')) {
+	my $callback = sub {
+	    my ($ok,$cxs) = @_;
+	    return $ok unless($cxs);
+	    my ($cn,$crt,$err,$depth);
+	    $crt = Net::SSLeay::X509_STORE_CTX_get_current_cert($cxs);
+            $cn  = Net::SSLeay::X509_NAME_print_ex(Net::SSLeay::X509_get_subject_name($crt), &Net::SSLeay::XN_FLAG_RFC2253)
+	        if($crt);
+	    $err = Net::SSLeay::X509_STORE_CTX_get_error($cxs);
+	    $depth = Net::SSLeay::X509_STORE_CTX_get_error_depth($cxs);
+	    $err &&= Net::SSLeay::X509_verify_cert_error_string($err);
+	    $cn ||= '';
+	    $conn->vhost->run_hook_chain(
+		phase => 'CheckCert',
+		args => [$conn, $ok, $cn, $depth, $err, $crt],
+		methods => {
+		    pass => sub {
+			$ok = 1; # Just pass, ignore verification
+		    },
+		    accept => sub {
+			$ok = 1; # Pass and give the cert a clearance
+			Net::SSLeay::set_verify_result($conn->ssl,&Net::SSLeay::X509_V_OK);
+		    },
+		    reject => sub {
+			$ok = 0; # Reject and mark as app failed
+			Net::SSLeay::set_verify_result($conn->ssl,$_[0] || &Net::SSLeay::X509_V_ERR_APPLICATION_VERIFICATION);
+		    },
+		},
+		fallback => sub {
+		    $conn->log->debug("x509 Certificate[$cn] Validation: ok=$ok at depth $depth: $err");
+		}
+	    );
+	    return $ok;
+	};
+	$conn->log->debug("Setting verification callback for ".$conn->{id});
+	my $mode = &Net::SSLeay::VERIFY_CLIENT_ONCE | &Net::SSLeay::VERIFY_PEER;
+	Net::SSLeay::CTX_set_verify($ctx, $mode, $callback);
+	#Net::SSLeay::set_verify($ssl, $mode, $callback);
+    }
+
     my $ssl = Net::SSLeay::new($ctx) or die_now("Failed to create SSL $!");
 
     return ($ssl,$ctx);

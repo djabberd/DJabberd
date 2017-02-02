@@ -55,6 +55,16 @@ $hook{'CheckJID'} = {
     },
 };
 
+$hook{'CheckCert'} = {
+    des => "Peer SSL certificate validation",
+    args => [ 'conn' => "Connection", "ok" => 'Pre-verify', "name" => 'CertName', "depth" => 'CurDepth', "err" => 'ErrString', "crt" => 'X509_cert'],
+    callbacks => {
+	pass => [],
+	accept => [],
+	reject => [],
+    },
+};
+
 
 $hook{'pre_stanza_write'} = {
     des => "Called before a stanza is written to a user.  Default action if all declined is to just deliver it.",
