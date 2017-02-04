@@ -146,6 +146,18 @@ sub set_config_sslcertificatechainfile {
     $self->{ssl_cert_chain_file} = as_abs_path($val);
 }
 
+sub set_config_sslcacertificatefile {
+    my ($self, $val) = @_;
+    $self->{ssl_ca_cert_file} = as_abs_path($val);
+}
+
+sub set_config_sslcacertificatepath {
+    my ($self, $val) = @_;
+    die "Path '$val' isn't absolute" unless $val =~ m!^/!;
+    die "Path '$val' doesn't exist" unless -d $val;
+    $self->{ssl_ca_cert_path} = $val;
+}
+
 sub set_config_sslciphersuite {
     my ($self, $val) = @_;
     $self->{ssl_cipher_list} = $val;
@@ -164,6 +176,8 @@ sub set_config_sslecdhcurve {
 sub ssl_private_key_file { return $_[0]{ssl_private_key_file} }
 sub ssl_cert_file        { return $_[0]{ssl_cert_file}        }
 sub ssl_cert_chain_file  { return $_[0]{ssl_cert_chain_file}  }
+sub ssl_ca_cert_file     { return $_[0]{ssl_ca_cert_file}||'' }
+sub ssl_ca_cert_path     { return $_[0]{ssl_ca_cert_path}||'' }
 sub ssl_cipher_list      { return $_[0]{ssl_cipher_list}      }
 sub ssl_dhparam_file     { return $_[0]{ssl_dhparam_file}     }
 sub ssl_ecdh_curve       { return $_[0]{ssl_ecdh_curve}       }

@@ -71,7 +71,10 @@ sub get_ssl_ctx {
                 or die("ssl cipher list");
     }
 
-    if($conn->vhost->are_hooks('CheckCert')) {
+    if($conn->vhost->are_hooks('CheckCert')
+          || $conn->vhost->server->ssl_ca_cert_file
+          || $conn->vhost->server->ssl_ca_cert_path)
+    {
 	my $callback = sub {
 	    my ($ok,$cxs) = @_;
 	    return $ok unless($cxs);
@@ -96,7 +99,7 @@ sub get_ssl_ctx {
 		    },
 		    reject => sub {
 			$ok = 0; # Reject and mark as app failed
-			Net::SSLeay::set_verify_result($conn->ssl,$_[0] || &Net::SSLeay::X509_V_ERR_APPLICATION_VERIFICATION);
+			Net::SSLeay::set_verify_result($conn->ssl, $_[0]||&Net::SSLeay::X509_V_ERR_APPLICATION_VERIFICATION);
 		    },
 		},
 		fallback => sub {
@@ -108,7 +111,13 @@ sub get_ssl_ctx {
 	$conn->log->debug("Setting verification callback for ".$conn->{id});
 	my $mode = &Net::SSLeay::VERIFY_CLIENT_ONCE | &Net::SSLeay::VERIFY_PEER;
 	Net::SSLeay::CTX_set_verify($ctx, $mode, $callback);
-	#Net::SSLeay::set_verify($ssl, $mode, $callback);
+	if($conn->vhost->server->ssl_ca_cert_file || $conn->vhost->server->ssl_ca_cert_path) {
+	    Net::SSLeay::CTX_load_verify_locations($ctx,
+		    $conn->vhost->server->ssl_ca_cert_file, $conn->vhost->server->ssl_ca_cert_path)
+	                or die("Invalid CA locations provided");
+	} else {
+	    $conn->log->warn("No CA is defined, any verification will fail without external plugins");
+	}
     }
 
     my $ssl = Net::SSLeay::new($ctx) or die_now("Failed to create SSL $!");
