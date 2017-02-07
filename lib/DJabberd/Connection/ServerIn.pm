@@ -14,6 +14,11 @@ sub set_vhost {
     return $self->SUPER::set_vhost($vhost);
 }
 
+sub peer_domain_set_verified {
+    my ($self, $domain) = @_;
+    $self->{verified_remote_domain}->{lc $domain} = $domain;
+}
+
 sub peer_domain_is_verified {
     my ($self, $domain) = @_;
     return $self->{verified_remote_domain}->{lc $domain};
@@ -32,8 +37,9 @@ sub on_stream_start {
             )
         );
         $self->close;
-    }              
-    
+    }
+    $self->{from} = $ss->from;
+
     if ($ss->announced_dialback) {
         $self->{announced_dialback} = 1;
         $self->start_stream_back($ss,
@@ -62,8 +68,19 @@ sub on_stanza_received {
                    "{urn:ietf:params:xml:ns:xmpp-tls}starttls"  => 'DJabberd::Stanza::StartTLS',
                    );
 
-    my $class = $class{$node->element} or
-        return $self->stream_error("unsupported-stanza-type", $node->element);
+    my $class = $class{$node->element};
+    return $self->stream_error("unsupported-stanza-type")
+        unless($class or $self->vhost); # non-standard stanza without vhost is unsupported
+    $self->vhost->hook_chain_fast("HandleStanza",
+                              [ $node, $self ],
+                              {
+                                  handle => sub {
+                                    my ($self, $handling_class) = @_;
+                                    $class = $handling_class;
+                                  },
+                              }
+                          ) unless $class;
+    return $self->stream_error("unsupported-stanza-type") unless $class;
 
     $DJabberd::Stats::counter{"ServerIn:$class"}++;
 
@@ -144,7 +161,7 @@ sub dialback_result_valid {
     my %opts = @_;
 
     my $res = qq{<db:result from='$opts{recv_server}' to='$opts{orig_server}' type='valid'/>};
-    $self->{verified_remote_domain}->{lc $opts{orig_server}} = $opts{orig_server};
+    $self->peer_domain_set_verified($opts{orig_server});
     $self->log->debug("Dialback result valid for connection $self->{id}.  from=$opts{recv_server}, to=$opts{orig_server}: $res\n");
     $self->write($res);
 }

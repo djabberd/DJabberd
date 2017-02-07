@@ -13,6 +13,7 @@ use fields (
             'server',         # our DJabberd server object, which we used to find the VHost
             'ssl',            # undef when not in ssl mode, else the $ssl object from Net::SSLeay
             'stream_id',      # undef until set first time
+            'from',           # undef until stream start, stream/@from or "" afterwards
             'to_host',        # undef until stream start
             'version',        # the DJabberd::StreamVersion we negotiated
             'rcvd_features',  # the features stanza we've received from the other party
