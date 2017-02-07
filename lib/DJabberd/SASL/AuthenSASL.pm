@@ -4,9 +4,16 @@ use strict;
 use warnings;
 use base qw/DJabberd::SASL/;
 
+use DJabberd::SASL::Connection::External;
+
 sub set_config_mechanisms {
     my ($self, $val) = @_;
     $self->{mechanisms} = { map { uc $_ => 1 } split /\s+/, ($val || "") };
+}
+
+sub set_config_extlooseverifys2s {
+    my ($self, $val) = @_;
+    $self->{ext_loosessl} = DJabberd::Util::as_bool($val);
 }
 
 sub mechanisms {
@@ -20,18 +27,37 @@ sub register {
 
     $vhost->register_hook("SendFeatures", sub {
         my ($vh, $cb, $conn) = @_;
-        return $cb->decline if($conn->vhost->require_ssl and ($conn->isa('DJabberd::Connection::ClientIn') && !$conn->ssl));
+        return $cb->decline if($conn->vhost->require_ssl and (!$conn->is_server && !$conn->ssl));
         if (my $sasl_conn = $conn->sasl) {
             return $cb->decline if ($sasl_conn->is_success);
         }
-        my @mech = $plugin->mechanisms_list;
+        my @mech = grep {$_ ne 'EXTERNAL'} $plugin->mechanisms_list;
         my $xml_mechanisms =
             "<mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>";
+        if($plugin->mechanisms->{EXTERNAL} && $conn->ssl) {
+            DJabberd::SASL::Connection::External->new($conn)
+                unless($conn->sasl);
+            if($conn->sasl && $conn->sasl->isa('DJabberd::SASL::Connection::External')) {
+                $xml_mechanisms .= "<mechanism>EXTERNAL</mechanism>";
+            }
+        }
         $xml_mechanisms .= join "", map { "<mechanism>$_</mechanism>" } @mech;
         $xml_mechanisms .= "<optional/>" if $plugin->is_optional;
         $xml_mechanisms .= "</mechanisms>";
         $cb->stanza($xml_mechanisms);
     });
+    $vhost->register_hook("CheckCert", sub {
+	my ($vh,$cb,$c,$ok,$cn,$depth,$err,$crt) = @_;
+	unless($ok) {
+	    if($c->is_server && $plugin->{ext_loosessl}) {
+	        $DJabberd::Plugin::logger->debug("Passing S2S Cert CN=$cn at depth=$depth: $err");
+		return $cb->pass;
+	    } else {
+	        $DJabberd::Plugin::logger->debug("Bad Cert CN=$cn at depth=$depth: $err");
+            }
+	}
+	$cb->decline;
+    }) if($plugin->mechanisms->{EXTERNAL});
 }
 
 1;
@@ -65,6 +91,12 @@ Only PLAIN LOGIN and DIGEST-MD5 mechanisms are supported for now (same than
 in L<Authen::SASL>. DIGEST-MD5 only supports C<auth> qop (quality of
 protection), so it's strongly advised to throw TLS into the mix, and not 
 solely rely on DIGEST-MD5 (as opposed to C<auth-int> and C<auth-conf>).
+
+When using TLS with EXTERNAL method make sure you supply valid CA file or path
+to the SSL layer, since it will enable peer certificate verification. Otherwise
+you may enable C<ExtLooseVerifyS2S> option to still accept invalid certificates
+for server connections. For invalid certificates EXTERNAL method will never be
+enabled. Other plugins though may override validity of the certificates.
 
 =head1 COPYRIGHT
 
