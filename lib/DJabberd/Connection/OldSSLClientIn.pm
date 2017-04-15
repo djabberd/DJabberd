@@ -16,6 +16,10 @@ sub new {
     my $ctx = Net::SSLeay::CTX_new()
         or die("Failed to create SSL_CTX $!");
 
+    my $vhost = $server->lookup_vhost(undef, $self->local_ip_string());
+
+    my $keysource = $vhost || $server;  # ducktype find cert
+
     # compared to the StartTLS, we specifically do not insist on TLS here.
     # let client do SSL 2/3/whatever.  TODO: perhaps force SSL v3?
     # $Net::SSLeay::ssl_version = 10; # Insist on TLSv1
@@ -27,16 +31,16 @@ sub new {
         and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
 
     # Following will ask password unless private key is not encrypted
-    Net::SSLeay::CTX_use_RSAPrivateKey_file ($ctx, $server->ssl_private_key_file, #  server-key.pem',
+    Net::SSLeay::CTX_use_RSAPrivateKey_file ($ctx, $keysource->ssl_private_key_file, #  server-key.pem',
                                              &Net::SSLeay::FILETYPE_PEM);
     Net::SSLeay::die_if_ssl_error("private key");
 
-    Net::SSLeay::CTX_use_certificate_file ($ctx, $server->ssl_cert_file, # 'server-cert.pem',
+    Net::SSLeay::CTX_use_certificate_file ($ctx, $keysource->ssl_cert_file, # 'server-cert.pem',
                                            &Net::SSLeay::FILETYPE_PEM);
     Net::SSLeay::die_if_ssl_error("certificate");
 
     if ($server->ssl_cert_chain_file) {
-        Net::SSLeay::CTX_use_certificate_chain_file ($ctx, $server->ssl_cert_chain_file); # 'server-cert-chain.pem',
+        Net::SSLeay::CTX_use_certificate_chain_file ($ctx, $keysource->ssl_cert_chain_file); # 'server-cert-chain.pem',
         Net::SSLeay::die_if_ssl_error("certificate chain file");
     }
 

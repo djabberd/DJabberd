@@ -176,7 +176,7 @@ sub on_stream_start {
 
     my $to_host = $ss->to;
     DJabberd::Log->get_logger->info($to_host);
-    my $vhost = $self->server->lookup_vhost($to_host);
+    my $vhost = $self->server->lookup_vhost($to_host, $self->local_ip_string());
     return $self->close_no_vhost($to_host)
         unless ($vhost);
 

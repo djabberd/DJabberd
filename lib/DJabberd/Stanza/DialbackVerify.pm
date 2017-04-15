@@ -30,7 +30,7 @@ sub process {
     my $vhost   = $conn->vhost;
     my $to_host = $self->dialback_to;
     unless ($vhost) {
-        $vhost = $conn->server->lookup_vhost($to_host)
+        $vhost = $conn->server->lookup_vhost($to_host, $conn->local_ip_string())
             or return $fail->("no vhost for this connection");
         $conn->set_vhost($vhost)
             or return $fail->("s2s disabled for this vhost");
