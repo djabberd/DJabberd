@@ -1,0 +1,13 @@
+[Unit]
+Description = Jabber/XMPP server
+
+[Service]
+ExecStart = /usr/bin/djabberd
+User = djabberd
+Group = djabberd
+Restart = always
+RestartSec = 60
+
+[Install]
+WantedBy = multi-user.target
+

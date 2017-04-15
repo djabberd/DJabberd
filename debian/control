@@ -1,14 +1,14 @@
 Source: djabberd
 Section: perl
 Priority: optional
-Maintainer: Nick Andrew <nick@nick-andrew.net>
-Build-Depends: debhelper (>= 5)
-Build-Depends-Indep: perl (>= 5.6.10-12), liblog-log4perl-perl,
- libnet-dns-perl, libnet-ssleay-perl, libxml-sax-perl,
- libxml-libxml-perl, libdanga-socket-perl,
- libunicode-stringprep-perl, libdigest-sha-perl,
- libio-socket-inet6-perl
-Standards-Version: 3.8.0
+Maintainer: Debian Perl Group <pkg-perl-maintainers@lists.alioth.debian.org>
+Uploaders: Ioan Rogers <ioan@dirtysoft.ca>
+Build-Depends: debhelper (>= 9)
+Build-Depends-Indep: perl, liblog-log4perl-perl, libnet-dns-perl,
+ libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl,
+ libdanga-socket-perl, libunicode-stringprep-perl, libio-socket-inet6-perl,
+ netbase, libhtml-parser-perl, libauthen-sasl-perl
+Standards-Version: 3.9.3
 Homepage: http://danga.com/djabberd
 Vcs-Git: git://github.com/djabberd/DJabberd.git
 Vcs-Browser: https://github.com/djabberd/DJabberd
@@ -17,8 +17,7 @@ Package: djabberd
 Section: perl
 Priority: optional
 Architecture: all
-Depends: ${perl:Depends}, libdjabberd-perl 
-Suggests: djabberd-doc
+Depends: ${perl:Depends}, ${misc:Depends}, libdjabberd-perl, adduser
 Description: Distributed Jabber server
  djabberd is a high-performance, scalable, extensible Jabber/XMPP
  server framework. While it comes with an example server, it's
@@ -26,18 +25,16 @@ Description: Distributed Jabber server
  without understanding Jabber. Instead of working with XML and
  protocol-specific details, you subclass parts and work with sane
  objects and data structures and let DJabberd do all the ugly work.
- .
- Homepage: http://danga.com/djabberd/
 
 Package: libdjabberd-perl
 Section: perl
 Priority: optional
 Architecture: all
-Depends: ${perl:Depends}, liblog-log4perl-perl, libnet-dns-perl,
- libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl,
- libdanga-socket-perl, libunicode-stringprep-perl, libdigest-sha-perl,
- libio-socket-inet6-perl
-Suggests: openssl
+Depends: ${perl:Depends}, ${misc:Depends}, liblog-log4perl-perl,
+ libnet-dns-perl, libnet-ssleay-perl, libxml-sax-perl, libxml-libxml-perl,
+ libdanga-socket-perl, libunicode-stringprep-perl, libio-socket-inet6-perl,
+ libhtml-parser-perl,
+Suggests: openssl, libauthen-sasl-perl
 Description: Core Modules for DJabberd
  djabberd is a high-performance, scalable, extensible Jabber/XMPP
  server framework. While it comes with an example server, it's
@@ -45,8 +42,6 @@ Description: Core Modules for DJabberd
  without understanding Jabber. Instead of working with XML and
  protocol-specific details, you subclass parts and work with sane
  objects and data structures and let DJabberd do all the ugly work.
- .
- Homepage: http://danga.com/djabberd/
  .
  This package contains the core libraries needed to build your
  own jabber server.

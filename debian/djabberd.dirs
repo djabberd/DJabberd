@@ -1,1 +1,4 @@
 /etc/djabberd
+/var/lib/djabberd
+/var/log/djabberd
+
