@@ -35,6 +35,7 @@ sub deliver {
         return $cb->declined;
     }
 
+    $stanza->set_xmlns('jabber:server');
     $logger->debug("s2s delivery attempt for $to");
 
     # FIXME: let get_conn_for_domain return an error code or something

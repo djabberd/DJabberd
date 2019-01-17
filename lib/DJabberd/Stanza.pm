@@ -135,6 +135,11 @@ sub set_to {
     $self->{attrs}{"{}to"} = ref $_[1] ? $_[1]->as_string : $_[1];
 }
 
+sub set_xmlns {
+    my DJabberd::Stanza $self = $_[0];
+    $self->{attrs}{"{}xmlns"} = $_[1];
+}
+
 sub deliver_when_unavailable {
     0;
 }
