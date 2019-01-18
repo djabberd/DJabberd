@@ -2,6 +2,7 @@ language: perl
 sudo: true
 before_install:
   - sudo apt-get install liblog-log4perl-perl libnet-dns-perl libnet-ssleay-perl libxml-sax-perl libxml-libxml-perl libdanga-socket-perl
+  - "echo 0 > | sudo tee -a /proc/sys/net/ipv6/conf/all/disable_ipv6"
 perl:
   - "5.16"
   - "5.14"
