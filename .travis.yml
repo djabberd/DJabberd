@@ -1,4 +1,5 @@
 language: perl
+sudo: true
 before_install:
   - sudo apt-get install liblog-log4perl-perl libnet-dns-perl libnet-ssleay-perl libxml-sax-perl libxml-libxml-perl libdanga-socket-perl
 perl:
