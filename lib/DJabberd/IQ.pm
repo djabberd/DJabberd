@@ -135,13 +135,23 @@ sub send_reply {
 
     $raw ||= "";
     my $id = $self->id;
-    my $bj = ($conn->is_server ? $self->from_jid : $conn->bound_jid);
     my $from_jid = $self->to;
-    my $to = $bj ? (" to='" . $bj->as_string_exml . "'") : "";
-    my $from = $from_jid ? (" from='" . $from_jid . "'") : "";
-    my $xml = qq{<iq$to$from type='$type' id='$id'>$raw</iq>};
-    $conn->xmllog->info($xml);
-    $conn->write(\$xml);
+    if($conn->is_server) {
+        # S2S needs to follow proper delivery chain
+        my $iq = DJabberd::IQ->new($self->namespace, 'iq', {
+		'{}to'	=> $self->from,
+		'{}from'=> $from_jid,
+		'{}type'=> $type,
+		'{}id'	=> $self->id
+            }, [], $raw);
+        $iq->deliver($conn->vhost);
+    } else {
+        # We can deliver straight ahead
+        my $from = $from_jid ? (" from='" . $from_jid . "'") : "";
+        my $xml = qq{<iq$from type='$type' id='$id'>$raw</iq>};
+        $conn->xmllog->info($xml);
+        $conn->write(\$xml);
+    }
 }
 
 sub process_iq_disco_info_query {
