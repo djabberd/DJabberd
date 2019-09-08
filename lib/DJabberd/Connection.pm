@@ -673,9 +673,11 @@ sub start_stream_back {
             && $self->server->ssl_private_key_file
         )
         {
-            # Enforce SSL if configured, but only for C2S conneciton and if we know our VHost
+            # Enforce SSL if configured and if we know our VHost
             $features_body .= "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls' "
-                              .((!$self->is_server && $self->vhost && $self->vhost->require_ssl)?
+                              .(($self->vhost && (
+                                (!$self->is_server && $self->vhost->require_ssl)||
+                                ($self->is_server && $self->vhost->req_s2s_ssl)))?
                                 "><required/></starttls>"
                                :"/>");
         }
