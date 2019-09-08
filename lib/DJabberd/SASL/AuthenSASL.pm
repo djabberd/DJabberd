@@ -34,7 +34,7 @@ sub register {
         my @mech = grep {$_ ne 'EXTERNAL'} $plugin->mechanisms_list;
         my $xml_mechanisms =
             "<mechanisms xmlns='urn:ietf:params:xml:ns:xmpp-sasl'>";
-        if($plugin->mechanisms->{EXTERNAL} && $conn->ssl) {
+        if($plugin->mechanisms->{EXTERNAL} && ($conn->ssl || 0) > 0) {
             DJabberd::SASL::Connection::External->new($conn)
                 unless($conn->sasl);
             if($conn->sasl && $conn->sasl->isa('DJabberd::SASL::Connection::External')) {

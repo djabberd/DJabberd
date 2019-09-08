@@ -292,6 +292,14 @@ sub set_config_casesensitive {
     $DJabberd::JID::CASE_SENSITIVE = as_bool($val);
 }
 
+# If anyone wishes to replace OldSSL
+sub set_config_clientssltransport {
+    my ($self, $val) = @_;
+    eval("use $val");
+    croak("Can't use $val as ssl transport: $@") if($@);
+    $self->{cssl_class} = $val;
+}
+
 sub set_config_s2sservertransport {
     my ($self, $val) = @_;
     eval("use $val");
@@ -306,6 +314,7 @@ sub set_config_s2sclienttransport {
     $self->{s2sc_class} = $val;
 }
 
+sub client_ssl_class { return ( $_[0]->{cssl_class} || 'DJabberd::Connection::OldSSLClientIn') }
 sub s2s_server_class { return ( $_[0]->{s2ss_class} || 'DJabberd::Connection::ServerIn') }
 sub s2s_client_class { return ( $_[0]->{s2sc_class} || 'DJabberd::Connection::ServerOut') }
 
@@ -455,10 +464,34 @@ sub _start_server {
     my $not_tcp = 0;
     if ($localaddr =~ m!^/!) {
         $not_tcp = 1;
+        my @la = split(/\s/,$localaddr);
+        my $sock = ($#la > 0) ? $la[0] : $localaddr;
         $server = IO::Socket::UNIX->new(Type   => SOCK_STREAM,
-                                        Local  => $localaddr,
+                                        Local  => $sock,
                                         Listen => 10)
-            or $logger->logdie("Error creating unix domain socket: $@\n");
+            or $logger->logdie("Error creating unix domain socket[$sock]: $@\n");
+        if($la[1] && $la[1] =~ /^([uUgG])\+(.+)$/) {
+            my @stat = stat($sock)
+                or $logger->logdie("Socket $sock doesn't actually exist!?: $@");
+            if(lc($1) eq 'g') {
+                my ($gn,undef,$gid,$mm) = getgrnam($2);
+                my $un = getpwuid($<);
+                $logger->debug("Need to chgrp $sock to $gn/$gid: $un should be in '$mm' or $< == 0");
+                if($<==0 || grep{$_ eq $un}split('\s+',$mm)) {
+                    chown(-1, $gid, $sock) or $logger->logdie("Error changing group: $@\n");
+                    if(!($stat[2] & 020)) {
+                        $logger->debug("Need to chmod $sock to 0770");
+                        chmod(0770, $sock) or $logger->logdie("Error changing perms: $@\n");
+                    }
+
+                } else {
+                    $logger->logdie("Cannot chgrp as $un is not root and is not member of $gn\n");
+                }
+            } else {
+                my ($un,undef,$uid) = getpwnam($2);
+                chown($uid,$sock) or $logger->logdie("Error changing $sock owner: $@\n");;
+            }
+        }
     } else {
         # assume it's a port if there's no number after the (last) colon
         unless ($localaddr =~ /:\d+$/) {
@@ -508,6 +541,11 @@ sub _start_server {
 
         if (my $client = eval { $class->new($csock, $self) }) {
             $DJabberd::Stats::counter{connect}++;
+            if($not_tcp && $self->{ssl_port}->{$localaddr} && !$client->{ssl}) {
+                # This is ssl offloading via unix domain socket
+                $self->debug("Enabling fake SSL on Unix Socket $localaddr");
+                $client->{ssl} = -1;
+            }
             $client->watch_read(1);
             return;
         } else {
@@ -533,7 +571,7 @@ sub start_c2s_server {
         if(!$self->{ssl_port}) {
             $self->{ssl_port}->{5223}++;
         }
-        $self->_start_servers($self->{ssl_port}, "DJabberd::Connection::OldSSLClientIn");
+        $self->_start_servers($self->{ssl_port}, $self->client_ssl_class);
     }
 
     if ($self->{unixdomainsocket}) {

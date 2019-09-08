@@ -24,7 +24,7 @@ sub as_bind_addr {
     die "'undef' is not a valid bind address or port\n" unless defined($val);
     # Must either be like 127.0.0.1:1234, a bare port number or an absolute path to a unix domain socket
     # a socket
-    if ($val && $val =~ m!^/! && -e $val) {
+    if ($val && $val =~ m!^(/[^\s]+)! && ! -e $1) {
         return $val;
     }
     # an port, possibly including an IPv4 address
