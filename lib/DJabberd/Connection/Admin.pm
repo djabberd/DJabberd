@@ -83,12 +83,19 @@ sub CMD_connections {
     foreach (keys %$map) {
         my $obj = $map->{$_};
         next if $filter eq "clients" && ref $obj ne "DJabberd::Connection::ClientIn";
-        next if $filter eq "servers" && ref $obj ne "DJabberd::Connection::ServerIn" &&
-            ref $obj ne "DJabberd::Connection::ServerOut";
+        next if $filter eq "servers" && !$obj->isa("DJabberd::Connection::ServerIn") &&
+                                        !$obj->isa("DJabberd::Connection::ServerOut");
         push @list, $_;
     }
     my $conns = join(' ', @list);
     $self->write($conns);
+}
+
+push @Help, 'conninfo';
+sub CMD_conninfo {
+    my $self = shift;
+    my $fd = shift;
+    $self->write(Dumper(Danga::Socket->DescriptorMap->{$fd}));
 }
 
 push @Help, 'latency_log';
@@ -314,8 +321,8 @@ sub CMD_dump {
     my $ret = '';
     my $md = 2;
     if($arg =~ /(.*)\s+(\d+)$/) {
-	$arg = $1;
-	$md = $2+1;
+        $arg = $1;
+        $md = $2+1;
     }
     my $cmd = join('->',split('/',$arg));
     $cmd = (substr($arg,0,1) eq '/' ? '$self->{server}' : '$self->').$cmd;
@@ -355,8 +362,12 @@ sub CMD_check_arena {
 push @Help, 'reload';
 sub CMD_reload {
     my $self = shift;
-    delete $INC{"DJabberd/Connection/Admin.pm"};
-    my $rv = eval "use DJabberd::Connection::Admin; 1;";
+    my $mod = shift || 'DJabberd::Connection::Admin';
+    my $file = join('/',split('::',$mod)).'.pm';
+    my $rv;
+    if(delete $INC{$file}) {
+        $rv = eval "use $mod; 1;";
+    }
     if ($rv) {
         $self->write("OK");
     } else {
