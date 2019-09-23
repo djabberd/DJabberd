@@ -6,6 +6,7 @@ use Log::Log4perl qw(:resurrect);
 package DJabberd::Log;
 use strict;
 use warnings;
+use Encode;
 
 no warnings 'redefine';
 
@@ -67,7 +68,12 @@ log4perl.appender.screen.layout.ConversionPattern = %P %-5p %-40c %m %n
         $logger = Log::Log4perl->get_logger();
         $used_file = "BUILT-IN-DEFAULTS";
     }
-
+    my $log=\&Log::Log4perl::Appender::Socket::log;
+    *Log::Log4perl::Appender::Socket::log = sub{
+	    my($s,%p)=@_;
+	    $p{message}=encode("utf8",$p{message});
+	    $log->($s,%p);
+    };
     $logger->info("Started logging using '$used_file'");
     $has_run++;
 }
