@@ -4,12 +4,20 @@ use warnings;
 
 use Danga::Socket;
 use Test::More tests => 12;
-use Test::SharedFork;
-use Test::TCP;
+#use Test::SharedFork;
+#use Test::TCP;
 use Net::DNS::Nameserver;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
+eval {
+    require Test::SharedFork;
+    Test::SharedFork->import;
+    require Test::TCP;
+    Test::TCP->import;
+};
+SKIP: {
+	skip('Missing test prerequisites', 12) if($@);
 my $ns_host = '127.0.0.1';
 my $ns_port = Test::TCP::empty_port();
 my $nameserver = $ns_host.q{:}.$ns_port;
@@ -158,4 +166,5 @@ sleep 2;
 END {
     kill 9, $childpid_sock if $childpid_sock;
     kill 9, $childpid_dns if $childpid_dns;
+}
 }

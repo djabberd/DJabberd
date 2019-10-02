@@ -13,9 +13,11 @@ two_parties(sub {
     $pb->send_xml("<presence/>");
     select(undef,undef,undef,0.25);
 
-    $pa->send_xml("<iq type='get' id='pa1' to='$pb'><x/></iq>");
+    my $ja = DJabberd::JID->new($pa.'/'.$pb->resource);
+    my $jb = DJabberd::JID->new($pb.'/'.$pb->resource);
+    $pa->send_xml("<iq type='get' id='pa1' to='$jb'><x/></iq>");
     like($pb->recv_xml, qr/id=.pa./, "pb got pa's iq");
-    $pb->send_xml("<iq type='get' id='pb1' to='$pa'><x/></iq>");
+    $pb->send_xml("<iq type='get' id='pb1' to='$ja'><x/></iq>");
     like($pa->recv_xml, qr/id=.pb./, "pb got pa's iq");
 
 

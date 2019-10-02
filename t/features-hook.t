@@ -51,8 +51,9 @@ sub connect_and_get_features{
   {
      my $features = connect_and_get_features($client);
 
-     is("<stream:features><auth xmlns='http://jabber.org/features/iq-auth'/></stream:features>",
-        $features, "should get features, including auth and nothing else");
+     like($features,
+	qr{<stream:features>(<c\s.+?/>)?<auth xmlns='http://jabber.org/features/iq-auth'/></stream:features>},
+        "should get features, including auth and nothing else");
   }
   $server->kill;  
 
@@ -91,17 +92,15 @@ sub connect_and_get_features{
         my $srv = shift;
         #This hack convinces vhost that ssl is enabled enough to send starttls...
         $srv->{ssl_cert_file} = "features-hook.t";
+	$srv->{ssl_private_key_file} = "features-hook.t";
       }
       );
   my $client = Test::DJabberd::Client->new(server => $server, name => "client");
   {
      my $features = connect_and_get_features($client);
-
-     is("<stream:features>".
-        "<auth xmlns='http://jabber.org/features/iq-auth'/>".
-        "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls'/>".
-        "</stream:features>",
-        $features, "should get features, including auth and starttls");
+     like($features,
+	qr{<stream:features>(<c\s+[^>]+?/>)?<auth\s+xmlns='http://jabber.org/features/iq-auth'/><starttls\s+xmlns='urn:ietf:params:xml:ns:xmpp-tls'/></stream:features>},
+        "should get features, including auth and starttls");
   }
   $server->kill;  
 }
@@ -136,11 +135,9 @@ sub connect_and_get_features{
   {
      my $features = connect_and_get_features($client);
 
-     is("<stream:features>".
-        "<auth xmlns='http://jabber.org/features/iq-auth'/>".
-        "<foobar/>".
-        "</stream:features>",
-        $features, "should get features, including auth and starttls");
+     like($features,
+	qr{<stream:features>(<c\s.+?/>)?<auth xmlns='http://jabber.org/features/iq-auth'/><foobar/></stream:features>},
+        "should get features, including auth and foobar");
   }
   $server->kill;  
 }
