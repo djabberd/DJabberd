@@ -226,4 +226,11 @@ $hook{'GetSASLManager'} = {
     },
 };
 
+$hook{'GetPlugin'} = {
+    des => 'Return plugin instance for given VHost',
+    args => [ "class" => 'Plugin Class/Package name' ],
+    callbacks => {
+	set => [ 'self' ]
+    }
+};
 1;
