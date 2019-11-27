@@ -244,7 +244,7 @@ sub process_inbound {
     # presence don't load ritem because those handlers don't need it:
     # they just deliver.
     if ($self->{dont_load_rosteritem} ||
-        $type eq "available" || $type eq "unavailable")
+        $type eq "available" || $type eq "unavailable" || $type eq "error")
     {
         $call_method->(undef);
         return;
@@ -279,6 +279,11 @@ sub _process_inbound_available {
 }
 
 sub _process_inbound_unavailable {
+    my ($self, $vhost) = @_;
+    $self->deliver($vhost);
+}
+
+sub _process_inbound_error {
     my ($self, $vhost) = @_;
     $self->deliver($vhost);
 }
@@ -493,6 +498,11 @@ sub _process_outbound_unavailable {
                                        $self->_process_outbound_unavailable($conn, 1);
                                    },
                                },
+                               # No idea how it was supposed to be working
+                               # but this way it does
+                               fallback => sub {
+                                   $self->_process_outbound_unavailable($conn, 1);
+                               },
                                );
         return;
     }
@@ -520,7 +530,8 @@ sub _process_outbound_unavailable {
     $conn->clear_directed_presence;
 
     my $jid = $conn->bound_jid;
-    DJabberd::Presence->set_local_presence($jid, $self->clone);
+    DJabberd::Presence->set_local_presence($jid, $self->clone)
+        unless($conn->{closed} > 0);
 
     $conn->set_available(0);
     $self->broadcast_from($conn);
