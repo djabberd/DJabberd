@@ -12,7 +12,7 @@ BEGIN {
         plan skip_all => 'Tests require Authen::SASL 2.1402+';
     }
     else {
-        plan tests => 46;
+        plan tests => 58;
         eval "use Authen::SASL 'Perl';";
     }
 }
@@ -52,6 +52,58 @@ my $login_and_be = sub {
             is $jid->resource, 'yann', "resource assigned accordingly";
         });
     }
+    # SASL SCRAM with plain password as above
+    two_parties(sub {
+        my ($pa, $pb) = @_;
+
+        my $sasl = Authen::SASL->new(
+            mechanism => 'SCRAM-SHA-1',
+            callback  => {
+                pass => sub { $pa->password },
+                user => sub { $pa->{name}   },
+            },
+        );
+
+        my $jid = $login_and_be->($pa, $pb, $sasl, "yann");
+        is $jid->resource, 'yann', "resource assigned accordingly";
+    });
+    # SASL SCRAM with pre-hashed password - doveadm style
+    my $plugs = [ grep {ref($_) !~ /DJabberd::Authen::StaticPassword/} @{ Test::DJabberd::Server->standard_plugins() } ];
+    push(@{$plugs}, DJabberd::Authen::StaticPassword->new(
+		password => '{SCRAM-SHA-1}4096,+cvoFtZsoyWX7mWtNUNKGg==,U1IHoa7VFFrI+jMdpWXSj5f5zWI=,FG5XGGDuBZjvwH/q4IXesTpD2S8='
+	));
+    two_parties(sub {
+        my ($pa, $pb) = @_;
+
+        my $sasl = Authen::SASL->new(
+            mechanism => 'SCRAM-SHA-1',
+            callback  => {
+                pass => sub { $pa->password },
+                user => sub { $pa->{name}   },
+            },
+        );
+	my $sbsl = Authen::SASL->new(
+            mechanism => 'SCRAM-SHA-1',
+            callback  => {
+                pass => sub { $pb->password },
+                user => sub { $pb->{name}   },
+            },
+        );
+
+
+	my $jid = $pa->sasl_login($sasl, 'yann');
+	my $jib = $pb->sasl_login($sbsl, $pb->resource);
+	$pa->send_xml("<presence/>");
+	$pb->send_xml("<presence/>");
+
+	select(undef,undef,undef,0.25); # doh
+	my $jb = DJabberd::JID->new($pb.'/'.$pb->resource);
+	$pa->send_xml("<iq type='get' id='pa1' to='$jb'><x/></iq>");
+	like($pb->recv_xml, qr/id=.pa./, "pb got pa's iq");
+	$pb->send_xml("<iq type='get' id='pb1' to='$jid'><x/></iq>");
+	like($pa->recv_xml, qr/id=.pb./, "pb got pa's iq");
+        is $jid->resource, 'yann', "resource assigned accordingly";
+    }, 1, $plugs);
 }
 
 ## resource not provided by the client 

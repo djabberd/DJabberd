@@ -109,6 +109,7 @@ sub handle_auth {
 
     ## we don't support it for now
     my $opts = { no_integrity => 1 };
+    $opts->{tlsbindings} = $conn->{bindings};
     $saslmgr->mechanism($mechanism);
     my $sasl_conn = $saslmgr->server_new("xmpp", $vhost->server_name, $opts);
     $conn->{sasl} = $sasl_conn;
@@ -262,6 +263,7 @@ sub send_reply {
 
     if (my $error = $sasl_conn->error) {
         $self->send_failure("not-authorized" => $conn);
+	$conn->log->debug("SASL Error: $error, $challenge");
     }
     elsif ($sasl_conn->is_success) {
         $self->ack_success($sasl_conn, $challenge => $conn);

@@ -38,7 +38,7 @@ sub once_logged_in {
 
 sub two_parties {
     my $cb = shift;
-    my $ipv6 = shift || 0;
+    my $ipv6 = shift || 1;
 
     if ($ENV{WILDFIRE_S2S}) {
         two_parties_wildfire_to_local($cb);
@@ -50,9 +50,9 @@ sub two_parties {
         return;
     }
 
-    two_parties_one_server($cb);
+    two_parties_one_server($cb,@_);
     sleep 1;
-    two_parties_s2s($cb,$ipv6);
+    two_parties_s2s($cb,$ipv6,@_);
     sleep 1;
 }
 
@@ -104,7 +104,7 @@ sub two_parties_one_server {
     my $cb = shift;
 
     my $server = Test::DJabberd::Server->new(id => 1);
-    $server->start;
+    $server->start(@_);
 
     my $pa = Test::DJabberd::Client->new(server => $server, name => "partya");
     my $pb = Test::DJabberd::Client->new(server => $server, name => "partyb");
@@ -121,8 +121,8 @@ sub two_parties_s2s {
     my $server2 = Test::DJabberd::Server->new(id => 2, ipv6 => $ipv6, );
     $server1->link_with($server2);
     $server2->link_with($server1);
-    $server1->start;
-    $server2->start;
+    $server1->start(@_);
+    $server2->start(@_);
 
     my $pa = Test::DJabberd::Client->new(server => $server1, name => "partya");
     my $pb = Test::DJabberd::Client->new(server => $server2, name => "partyb");
@@ -260,7 +260,7 @@ sub standard_plugins {
     my $self = shift;
     my @sasl;
     @sasl = ( DJabberd::SASL::AuthenSASL->new(
-                mechanisms => "LOGIN PLAIN DIGEST-MD5",
+                mechanisms => "LOGIN PLAIN DIGEST-MD5 SCRAM-SHA-1",
                 optional   => "yes",
             )) if $HAS_SASL;
     return [
