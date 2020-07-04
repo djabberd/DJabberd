@@ -45,15 +45,43 @@ sub register {
 	my @rest = grep {$_ !~ /^SCRAM-.+-PLUS$/}@mech;
 	if (@plus && ($conn->ssl || 0) > 0) {
 	    my $buf;
-	    my $rv = Net::SSLeay::get_peer_finished($conn->ssl, $buf);
+	    my $rv = Net::SSLeay::session_reused($conn->ssl);
+	    if($rv) {
+		$rv = Net::SSLeay::get_finished($conn->ssl, $buf);
+	    } else {
+		$rv = Net::SSLeay::get_peer_finished($conn->ssl, $buf);
+	    }
 	    if($rv > 0) {
 		$conn->{bindings}->{tls_unique} = $buf;
 	    } else {
 		$conn->log->debug("Failed to obtain unique bindings: $rv");
 		Net::SSLeay::die_if_ssl_error("tls-unique");
 	    }
+	    $rv = Net::SSLeay::get_certificate($conn->ssl);
+	    if($rv) {
+		my $obj = Net::SSLeay::P_X509_get_signature_alg($rv);
+		my $alg = Net::SSLeay::OBJ_obj2txt($obj);
+		my $md;
+		if($alg =~ /^(sha1|md5)/) {
+		    $md = Net::SSLeay::EVP_sha256();
+		} elsif($alg =~ /^(sha\d+)/) {
+		    $md = Net::SSLeay::EVP_get_digestbyname($1);
+		}
+		if($md) {
+		    $buf = Net::SSLeay::X509_digest($rv, $md);
+		    $conn->{bindings}->{tls_server_end_point} = $buf if($buf);
+		} else {
+		    $conn->log->debug("Unknown certificate algorithm: $alg/$1");
+		}
+	    } else {
+		$conn->log->debug("Cannot obtain TLS connection certificate");
+	    }
 	    $buf = Net::SSLeay::export_keying_material($conn->ssl, 32, "EXPORTER-Channel-Binding", "");
-	    $conn->{bindings}->{tls_exporter} = $buf if($buf);
+	    if($buf) {
+		$conn->{bindings}->{tls_exporter} = $buf;
+	    } else {
+		$conn->log->debug("Cannot obtain Exporter binding");
+	    }
 	    if($conn->{bindings} && grep{$_}values(%{$conn->{bindings}})) {
 		$xml_mechanisms .= join"",map{"<mechanism>$_</mechanism>"}@plus;
 		$xml_mechanisms .= "<sasl-channel-binding xmlns='urn:xmpp:sasl-cb:0'>";
@@ -238,9 +266,6 @@ sub server_continue {
 
     return 'User not found or empty password' unless($pass);
 
-    # Clear to continue
-    $self->{answer}{user} = $user;
-    $self->set_error(0);
     my ($salt, $iter, $stored_key, $server_key);
     if($pass =~ /(\d{4,8}),([A-Za-z0-9+\/]{6,}={0,3}),([A-Za-z0-9+\/]{6,}={0,3}),([A-Za-z0-9+\/]{6,}={0,3})/) {
 	# Use pre-salted derived keys
@@ -252,11 +277,17 @@ sub server_continue {
 	# Generating new derived keys with random salt
 	$iter = 8192;
 	$salt = $self->rnd(8);
+	my $npwd = eval{saslprep($pass, 1)};
+	return 'Password contains prohibited UTF8 codepoints: '.$@
+	    unless($npwd);
 	my $salted_pwd = $self->hi($pass, $salt, $iter);
 	my $client_key = $self->hmac($salted_pwd, "Client Key");
 	$stored_key = $self->hash($client_key);
 	$server_key = $self->hmac($salted_pwd, "Server Key");
     }
+    # Clear to continue
+    $self->set_error(0);
+    $self->{answer}{user} = $user;
     my $server_first = 'r='.$self->property('c_nonce').$self->property('_nonce')
 	    .',s='.encode_base64($salt,'').",i=$iter";
     $self->property("stored_key" => $stored_key);
