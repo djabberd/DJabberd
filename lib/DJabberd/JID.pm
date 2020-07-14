@@ -93,6 +93,47 @@ my $resourceprep = Unicode::Stringprep->new(
     1,
 );
 
+##
+# Borrowed from Authen::SASL::SASLprep
+sub spacemap {
+    my $ret = {};
+    for(my $pos=0; $pos <= $#Unicode::Stringprep::Prohibited::C12; $pos+=2) {
+	for(my $char = $Unicode::Stringprep::Prohibited::C12[$pos];
+	    defined $Unicode::Stringprep::Prohibited::C12[$pos]
+	    && $char <= $Unicode::Stringprep::Prohibited::C12[$pos];
+	    $char++)
+	{
+	    $ret->{$char} = ' ';
+	}
+    }
+    return $ret;
+}
+
+my $saslprep = Unicode::Stringprep->new(
+    3.2,
+    [
+        \@Unicode::Stringprep::Mapping::B1,
+	spacemap()
+    ],
+    'KC',
+    [
+        \@Unicode::Stringprep::Prohibited::C12,
+        \@Unicode::Stringprep::Prohibited::C21,
+        \@Unicode::Stringprep::Prohibited::C22,
+        \@Unicode::Stringprep::Prohibited::C3,
+        \@Unicode::Stringprep::Prohibited::C4,
+        \@Unicode::Stringprep::Prohibited::C5,
+        \@Unicode::Stringprep::Prohibited::C6,
+        \@Unicode::Stringprep::Prohibited::C7,
+        \@Unicode::Stringprep::Prohibited::C8,
+        \@Unicode::Stringprep::Prohibited::C9,
+    ],
+    1,
+);
+
+sub saslprep {
+    return eval { $saslprep->(@_) };
+}
 
 # returns DJabberd::JID object, or undef on failure due to invalid format
 sub new {
