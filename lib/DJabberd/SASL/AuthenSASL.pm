@@ -127,11 +127,12 @@ sub register {
 package Authen::SASL::Perl::SCRAM_SHA_1_PLUS;
 use strict;
 use warnings;
+use utf8;
 use base 'Authen::SASL::Perl';
 use Net::SSLeay;
 use Digest::SHA;
 use MIME::Base64 qw/encode_base64url encode_base64 decode_base64/;
-use Authen::SASL::SASLprep;
+use DJabberd::JID;
 
 # MonkeyPathing Authen::SASL
 $INC{'Authen/SASL/Perl/SCRAM_SHA_1_PLUS.pm'} = __FILE__;
@@ -180,10 +181,18 @@ sub rnd {
 }
 
 sub _encode {
-    my $n = eval { saslprep($_[0], 1) };
+    my $n = DJabberd::JID::saslprep($_[0]);
     return undef unless($n);
     $n =~ s/,/=2c/g;
     $n =~ s/=/=3d/g;
+    return $n;
+}
+
+sub _decode {
+    my $n = DJabberd::JID::saslprep($_[0]);
+    return undef unless($n);
+    $n =~ s/=2c/,/gi;
+    $n =~ s/=3d/=/gi;
     return $n;
 }
 
@@ -214,13 +223,6 @@ sub client_start {
     $self->property("cb_data" => $cb_data);
     $self->property('client_first_bare' => $client_first_bare);
     return $gs2_flag.$client_first_bare;
-}
-
-sub _decode {
-    $_[0] =~ s/=2c/,/gi;
-    $_[0] =~ s/=3d/=/gi;
-    return undef if($_[0] =~ /=/);
-    return eval { saslprep($_[0], 1) };
 }
 
 sub server_start {
@@ -277,7 +279,7 @@ sub server_continue {
 	# Generating new derived keys with random salt
 	$iter = 8192;
 	$salt = $self->rnd(8);
-	my $npwd = eval{saslprep($pass, 1)};
+	my $npwd = DJabberd::JID::saslprep($pass);
 	return 'Password contains prohibited UTF8 codepoints: '.$@
 	    unless($npwd);
 	my $salted_pwd = $self->hi($pass, $salt, $iter);
