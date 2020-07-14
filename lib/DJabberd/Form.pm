@@ -3,6 +3,7 @@ package DJabberd::Form;
 use strict;
 use DJabberd::XMLElement;
 use overload '""' => \&as_xml;
+use Carp qw(croak);
 
 our @field_types = (
     'boolean',
@@ -143,27 +144,28 @@ sub as_xml {
 sub as_element {
     my $self = shift;
     my @innards;
-    push(@innards,DJabberd::XMLElement->new('','title',{},[$self->{title}])) if($self->{title});
+    my $ns = 'jabber:x:data';
+    push(@innards,DJabberd::XMLElement->new($ns,'title',{},[$self->{title}])) if($self->{title});
     foreach my$i(@{$self->{instructions}}) {
-	push(@innards,DJabberd::XMLElement->new('','instructions',{},[$i]));
+	push(@innards,DJabberd::XMLElement->new($ns,'instructions',{},[$i]));
     }
     foreach my$v(@{$self->{order}}) {
-	my $attr = { var => $v };
-	$attr->{type} = $self->{fields}->{$v}->{type} if($self->{fields}->{$v}->{type});
-	$attr->{label} = $self->{fields}->{$v}->{label} if($self->{fields}->{$v}->{label});
+	my $attr = { '{}var' => $v };
+	$attr->{'{}type'} = $self->{fields}->{$v}->{type} if($self->{fields}->{$v}->{type});
+	$attr->{'{}label'} = $self->{fields}->{$v}->{label} if($self->{fields}->{$v}->{label});
 	my $kids = [];
-	push(@{$kids},DJabberd::XMLElement->new('','desc',{},[$self->{fields}->{$v}->{desc}])) if($self->{fields}->{$v}->{desc});
-	push(@{$kids},DJabberd::XMLElement->new('','required',{},[])) if($self->{fields}->{$v}->{required});
+	push(@{$kids},DJabberd::XMLElement->new($ns,'desc',{},[$self->{fields}->{$v}->{desc}])) if($self->{fields}->{$v}->{desc});
+	push(@{$kids},DJabberd::XMLElement->new($ns,'required',{},[])) if($self->{fields}->{$v}->{required});
 	foreach my$k(@{$self->{fields}->{$v}->{value}}) {
-	    push(@{$kids},DJabberd::XMLElement->new('','value',{},[$k]));
+	    push(@{$kids},DJabberd::XMLElement->new($ns,'value',{},[$k]));
 	}
 	foreach my$k(@{$self->{fields}->{$v}->{option}}) {
 	    my $oa = {};
 	    $oa->{label} = $k->{label} if($k->{label});
-	    push(@{$kids},DJabberd::XMLElement->new('','option',$oa,[DJabberd::XMLElement->new('','value',{},[$k->{value}])]));
+	    push(@{$kids},DJabberd::XMLElement->new($ns,'option',$oa,[DJabberd::XMLElement->new('','value',{},[$k->{value}])]));
 	}
-	push(@innards,DJabberd::XMLElement->new('','field',$attr,$kids));
+	push(@innards,DJabberd::XMLElement->new($ns,'field',$attr,$kids));
     }
-    return DJabberd::XMLElement->new('','x',{xmlns=>'jabber:x:data'},\@innards);
+    return DJabberd::XMLElement->new($ns,'x',{xmlns=>$ns,($self->{type}?('{}type'=>$self->{type}):())},\@innards);
 }
 1;
