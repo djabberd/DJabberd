@@ -156,7 +156,7 @@ sub as_xml {
     }
 
     my $attr_str = "";
-    my $attr = $self->{attrs};
+    my $attr = { %{$self->{attrs}} };
 
     $nsmap->{xmlns} = 'http://www.w3.org/2000/xmlns';
     $nsmap->{'http://www.w3.org/2000/xmlns'} = 'xmlns';
