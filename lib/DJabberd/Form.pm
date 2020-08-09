@@ -109,7 +109,9 @@ sub form_type {
     my $self = shift;
     my $type = '';
     if(exists $self->{fields}->{FORM_TYPE}) {
-	if($self->{fields}->{FORM_TYPE}->{type} && $self->{fields}->{FORM_TYPE}->{type} eq 'hidden') {
+	if(($self->{fields}->{FORM_TYPE}->{type} && $self->{fields}->{FORM_TYPE}->{type} eq 'hidden')
+	  || $self->{type} eq 'submit')
+	{
 	    $type = $self->{fields}->{FORM_TYPE}->{value}->[0];
 	}
     }
