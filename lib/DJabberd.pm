@@ -482,7 +482,7 @@ sub _start_server {
             if(lc($1) eq 'g') {
                 my ($gn,undef,$gid,$mm) = getgrnam($2);
                 my $un = getpwuid($<);
-                $logger->debug("Need to chgrp $sock to $gn/$gid: $un should be in '$mm' or $< == 0");
+                $logger->debug("Need to chgrp $sock to $gn/$gid: $un should be in members($mm) or EUID[$<] == 0");
                 if($<==0 || grep{$_ eq $un}split('\s+',$mm)) {
                     chown(-1, $gid, $sock) or $logger->logdie("Error changing group: $@\n");
                     if(!($stat[2] & 020)) {
