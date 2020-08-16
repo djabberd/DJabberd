@@ -380,12 +380,12 @@ sub register_hook {
         my $aa = $a->{pkg}->can('run_after');
         my $bb = $b->{pkg}->can('run_before');
         my $ba = $b->{pkg}->can('run_after');
-        return -1 if($ab && grep{$_ eq 'ALL'}$ab->($phase) && !($bb && grep{$_ eq 'ALL'}$bb->($phase)));
+        return -1 if($ab && (grep{$_ eq 'ALL'}$ab->($phase)) && !($bb && grep{$_ eq 'ALL'}$bb->($phase)));
         return -1 if($ab && grep{$_ eq $b->{pkg}}$ab->($phase));
         return -1 if($ba && grep{$_ eq $a->{pkg}}$ba->($phase));
         return +1 if($aa && grep{$_ eq $b->{pkg}}$aa->($phase));
         return +1 if($bb && grep{$_ eq $a->{pkg}}$bb->($phase));
-        return +1 if($aa && grep{$_ eq 'ALL'}$aa->($phase) && !($ba && grep{$_ eq 'ALL'}$ba->($phase)));
+        return +1 if($aa && (grep{$_ eq 'ALL'}$aa->($phase)) && !($ba && grep{$_ eq 'ALL'}$ba->($phase)));
         #$logger->debug('Keeping the ordering for '.$a->{pkg}.' and '.$b->{pkg});
         return 0;
     };
