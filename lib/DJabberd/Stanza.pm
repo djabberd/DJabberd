@@ -173,7 +173,8 @@ sub make_error_response {
             "{}type" => $type,
         },
         [
-            ref $error ? $error : new DJabberd::XMLElement("urn:ietf:params:xml:ns:xmpp-stanzas", $error, {}, []),
+            ref $error ? $error : new DJabberd::XMLElement("urn:ietf:params:xml:ns:xmpp-stanzas", $error,
+					{xmlns=>'urn:ietf:params:xml:ns:xmpp-stanzas'}, []),
         ],
     );
 
