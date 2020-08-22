@@ -10,7 +10,9 @@ two_parties(sub {
     $pb->login;
 
     $pa->initial_presence;
+	$pa->recv_xml;
     $pb->initial_presence;
+	$pb->recv_xml;
     $pa->get_roster;
     $pb->get_roster;
 
@@ -23,10 +25,12 @@ two_parties(sub {
 
 
     $pb->send_xml(qq{<presence><status>PresVer2</status></presence>});
+	$pb->recv_xml;
     my $xml = $pa->recv_xml;
     like($xml, qr/<presence.+\bfrom=.$pb.+PresVer2/s, "$pa gets $pb presence");
 
     $pa->send_xml(qq{<presence><status>PresVer3</status></presence>});
+	$pa->recv_xml;
     $xml = $pb->recv_xml;
     like($xml, qr/<presence.+\bfrom=.$pa.+PresVer3/s, "$pb gets $pa presencs");
 

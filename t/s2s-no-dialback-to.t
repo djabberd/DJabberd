@@ -19,7 +19,9 @@ sub test {
         $pa->login;
         $pb->login;
         $pa->send_xml("<presence/>");
+	$pa->recv_xml;
         $pb->send_xml("<presence/>");
+	$pb->recv_xml;
 
         # PA to PB
         $pa->send_xml("<message type='chat' to='$pb'>Hello.  I am $pa.</message>");

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 30;
+use Test::More tests => 36;
 use lib 't/lib';
 BEGIN { $ENV{LOGLEVEL} = 'FATAL'; }
 require 'djabberd-test.pl';
@@ -10,7 +10,9 @@ two_parties(sub {
     $pa->login;
     $pb->login;
     $pa->send_xml("<presence><status>PA1IsHere</status></presence>");
+    like($pa->recv_xml, qr{from=['"]$pa}, "A Got own presence");
     $pb->send_xml("<presence/>");
+    like($pb->recv_xml, qr{from=['"]$pb}, "B Got own presence");
     select(undef,undef,undef,0.25);
 
     $pa->subscribe_successfully($pb);
@@ -29,14 +31,22 @@ two_parties(sub {
     $xml = $pa2->recv_xml;
     like($xml, qr{PA1IsHere}, "partya2 now knows of partya1 being online");
 
-    $xml = $pa2->recv_xml;
-    like($xml, qr{^<presence.+from=.partyb}, "partya2 now also knows of partyb being online");
+    test_responses($pa2,
+                   "A2 Got own presence" => sub {
+                       my ($xo, $xml) = @_;
+                       $xml =~ /<presence/ && $xml =~ qr/from=.$pa2/ && $xml =~ /PA2IsHere/;
+                   },
+                   "partya2 now also knows of partyb being online" => sub {
+                       my ($xo, $xml) = @_;
+                       $xml =~ /<presence/s && $xml =~ /\bfrom=.partyb\b/;
+                   });
 
     # pa1 gets the presence from pa2
     $xml = $pa->recv_xml;
     like($xml, qr{PA2IsHere}, "partya1 now knows of partya2 being online");
 
     $pb->send_xml(qq{<presence><status>BisHere</status></presence>});
+	$pb->recv_xml;
 
     # both of A's resources should get it.
     $xml = $pa->recv_xml;
@@ -66,6 +76,7 @@ two_parties(sub {
                                           );
     $pa3->login;
     $pa3->send_xml("<presence/>");
+	$pa3->recv_xml;
 
     like($pa2->recv_xml, qr{conflict}, "got stream conflict error");
     is($pa2->get_event(2, 1),"end-stream", "got closed stream");
