@@ -21,10 +21,10 @@ sub new {
     my $class = shift;
     my $self;
     # Try to create from XMLElement tree
-    if(@_ && $_[0] && ref($_[0]) && UNIVERSAL::isa($_[0],'DJabberd::XMLElement') && $_[0]->element eq '{jabber:x:data}x' && $_[0]->children) {
+    if(@_ && $_[0] && ref($_[0]) && UNIVERSAL::isa($_[0],'DJabberd::XMLElement') && $_[0]->element eq '{jabber:x:data}x' && ($_[0]->children || $_[0]->attr('{}type') eq 'cancel')) {
 	$self = from_element($_[0]);
     } else {
-	# Or from raw struct: new('type',[{var=>"var",value=>["val"]},...],[title=>"title",][instructions=>"instructions"]);
+	# Or from raw struct: new('type',[{var=>"var",value=>["val"],type=>"type",option=>[{value=>"val",label=>"label"},...]},...],[title=>"title",][instructions=>"instructions"]);
 	my $type = shift;
 	my $fields = shift;
 	my %args = @_;
