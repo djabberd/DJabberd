@@ -461,10 +461,17 @@ sub _process_outbound_available {
                                        $self->_process_outbound_available($conn, 1);
                                    },
                                },
+                               # Enable fall-through signal-like notifications where
+                               # all subscribers decline it all the way through
+				fallback => sub {
+                                    return if $conn->{closed} > 0;
+				    $self->_process_outbound_available($conn, 1);
+				},
                                );
         return;
     }
 
+    $conn->log->debug($self->as_xml);
     if ($self->is_directed) {
         $conn->add_directed_presence($self->to_jid);
         $self->deliver;
@@ -497,11 +504,11 @@ sub _process_outbound_unavailable {
                                        $self->_process_outbound_unavailable($conn, 1);
                                    },
                                },
-                               # No idea how it was supposed to be working
-                               # but this way it does
-                               fallback => sub {
-                                   $self->_process_outbound_unavailable($conn, 1);
-                               },
+                               # Enable fall-through signal-like notifications where
+                               # all subscribers decline it all the way through
+				fallback => sub {
+				    $self->_process_outbound_unavailable($conn, 1);
+				},
                                );
         return;
     }
