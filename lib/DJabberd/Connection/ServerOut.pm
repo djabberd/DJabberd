@@ -8,8 +8,10 @@ use fields (
             );
 
 use IO::Handle;
-use Socket qw(PF_INET IPPROTO_TCP SOCK_STREAM);
+use Socket qw(PF_INET PF_INET6 IPPROTO_TCP SOCK_STREAM AF_INET AF_INET6);
+use Socket6;
 use Carp qw(croak);
+use Data::Dumper;
 
 sub new {
     my ($class, %opts) = @_;
@@ -19,18 +21,28 @@ sub new {
     my $queue = delete $opts{queue} or croak "no queue";
     die "unknown options" if %opts;
 
-    croak "No 'ip' or 'endpoint'\n" unless $ip || $endpt;
+    # We need either an IP or and enpoint (which includes an ip and a port)
+    croak "No 'ip' or 'endpoint'\n" unless ($ip || $endpt);
+    # If we got no endpoint well construct one using the supplied IP and the default port
     $endpt ||= DJabberd::IPEndpoint->new($ip, 5269);
+    $ip = $endpt->addr;
 
     my $sock;
-    socket $sock, PF_INET, SOCK_STREAM, IPPROTO_TCP;
+    if($endpt->ver == 6) {
+        socket $sock, PF_INET6, SOCK_STREAM, IPPROTO_TCP;
+    } else {
+        socket $sock, PF_INET, SOCK_STREAM, IPPROTO_TCP;
+    }
     unless ($sock && defined fileno($sock)) {
         $queue->on_connection_failed("Cannot alloc socket");
         return;
     }
     IO::Handle::blocking($sock, 0);
-    $ip = $endpt->addr;
-    connect $sock, Socket::sockaddr_in($endpt->port, Socket::inet_aton($ip));
+    if($endpt->ver == 6) {
+        connect $sock, Socket::sockaddr_in6($endpt->port, Socket::inet_pton(AF_INET6, $ip));
+    } else {
+        connect $sock, Socket::sockaddr_in($endpt->port, Socket::inet_aton($ip));
+    }
     $DJabberd::Stats::counter{connect}++;
 
     my $self = $class->SUPER::new($sock, $queue->vhost->server);

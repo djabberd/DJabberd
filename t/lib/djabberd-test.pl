@@ -11,6 +11,7 @@ use DJabberd::TestSAXHandler;
 use DJabberd::RosterStorage::InMemoryOnly;
 use DJabberd::Util;
 use IO::Socket::UNIX;
+use IO::Socket::INET6;
 
 my $HAS_SASL;
 eval "use Authen::SASL 2.1402";
@@ -37,6 +38,7 @@ sub once_logged_in {
 
 sub two_parties {
     my $cb = shift;
+    my $ipv6 = shift || 0;
 
     if ($ENV{WILDFIRE_S2S}) {
         two_parties_wildfire_to_local($cb);
@@ -50,7 +52,7 @@ sub two_parties {
 
     two_parties_one_server($cb);
     sleep 1;
-    two_parties_s2s($cb);
+    two_parties_s2s($cb,$ipv6);
     sleep 1;
 }
 
@@ -113,9 +115,10 @@ sub two_parties_one_server {
 
 sub two_parties_s2s {
     my $cb = shift;
+    my $ipv6 = shift || 0;
 
-    my $server1 = Test::DJabberd::Server->new(id => 1);
-    my $server2 = Test::DJabberd::Server->new(id => 2);
+    my $server1 = Test::DJabberd::Server->new(id => 1, ipv6 => $ipv6, );
+    my $server2 = Test::DJabberd::Server->new(id => 2, ipv6 => $ipv6, );
     $server1->link_with($server2);
     $server2->link_with($server1);
     $server1->start;
@@ -202,7 +205,7 @@ sub new {
 
 sub peeraddr {
     my $self = shift;
-    return $self->{connect_ip} || ($self->{not_local} ? $self->{hostname} : "127.0.0.1");
+    return $self->{connect_ip} || ($self->{not_local} ? $self->{hostname} : ( $self->{ipv6} ? '::1' : '127.0.0.1'));
 }
 
 sub serverport {
@@ -284,17 +287,17 @@ sub start {
     if ($type eq "djabberd") {
         my $plugins = shift || ($PLUGIN_CB ? $PLUGIN_CB->($self) : $self->standard_plugins);
         my $vhost = DJabberd::VHost->new(
-                                         server_name => $self->hostname,
-                                         s2s         => 1,
-                                         plugins     => $plugins,
-                                         );
-        my $server = DJabberd->new;
-        $server->set_config_unixdomainsocket($self->{unixdomainsocket}) if $self->{unixdomainsocket};
+            server_name => $self->hostname,
+            s2s         => 1,
+            plugins     => $plugins,
+        );
+        my $server = DJabberd->new();
 
+        $server->set_config_unixdomainsocket($self->{unixdomainsocket}) if $self->{unixdomainsocket};
         foreach my $peer (@{$self->{peers} || []}){
             $server->set_fake_s2s_peer($peer->hostname => DJabberd::IPEndPoint->new($peer->peeraddr, $peer->serverport));
             foreach my $subdomain (@SUBDOMAINS) {
-                $server->set_fake_s2s_peer($subdomain . '.' . $peer->hostname => DJabberd::IPEndPoint->new("127.0.0.1", $peer->serverport));
+                $server->set_fake_s2s_peer($subdomain . '.' . $peer->hostname => DJabberd::IPEndPoint->new($peer->peeraddr, $peer->serverport));
             }
         }
 
@@ -549,7 +552,7 @@ sub connect {
                      $self->server->peeraddr,
                      $self->server->clientport);
         for (1..3) {
-            $sock = IO::Socket::INET->new(PeerAddr => $addr,
+            $sock = IO::Socket::INET6->new(PeerAddr => $addr,
                                           Timeout => 1);
             last if $sock;
             sleep 1;
