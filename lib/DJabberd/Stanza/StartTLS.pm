@@ -7,14 +7,12 @@ Net::SSLeay::load_error_strings();
 Net::SSLeay::SSLeay_add_ssl_algorithms();
 Net::SSLeay::randomize();
 
+sub acceptable_from_server { 1 }
 sub on_recv_from_server { &process }
 sub on_recv_from_client { &process }
 
-sub process {
+sub get_ssl_ctx {
     my ($self, $conn) = @_;
-
-    # {=tls-no-spaces} -- we can't send spaces after the closing bracket
-    $conn->write("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls' />");
 
     my $ctx = Net::SSLeay::CTX_new()
         or die("Failed to create SSL_CTX $!");
@@ -22,14 +20,19 @@ sub process {
     $Net::SSLeay::ssl_version = 10; # Insist on TLSv1
     #$Net::SSLeay::ssl_version = 3; # Insist on SSLv3
 
-    Net::SSLeay::CTX_set_options($ctx, &Net::SSLeay::OP_ALL)
+    my $ssl_opts = &Net::SSLeay::OP_ALL;
+    $ssl_opts |= &Net::SSLeay::OP_CIPHER_SERVER_PREFERENCE;
+    $ssl_opts |= &Net::SSLeay::OP_SINGLE_DH_USE if($conn->vhost->server->ssl_dhparam_file);
+    $ssl_opts |= &Net::SSLeay::OP_SINGLE_ECDH_USE if($conn->vhost->server->ssl_ecdh_curve);
+
+    Net::SSLeay::CTX_set_options($ctx, $ssl_opts)
         and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
 
     Net::SSLeay::CTX_set_mode($ctx, 1)  # enable partial writes
         and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
 
     # Following will ask password unless private key is not encrypted
-    Net::SSLeay::CTX_use_RSAPrivateKey_file ($ctx,  $conn->vhost->server->ssl_private_key_file,
+    Net::SSLeay::CTX_use_PrivateKey_file ($ctx,  $conn->vhost->server->ssl_private_key_file,
                                              &Net::SSLeay::FILETYPE_PEM);
     Net::SSLeay::die_if_ssl_error("private key");
 
@@ -42,12 +45,99 @@ sub process {
         Net::SSLeay::die_if_ssl_error("certificate chain file");
     }
 
+    if($conn->vhost->server->ssl_dhparam_file) {
+        my $dhf = Net::SSLeay::BIO_new_file($conn->vhost->server->ssl_dhparam_file,'r')
+                or die("dhparam file open");
+        my $dhp = Net::SSLeay::PEM_read_bio_DHparams($dhf)
+                or die("dhparam file read");
+        Net::SSLeay::BIO_free($dhf);
+        Net::SSLeay::CTX_set_tmp_dh($ctx, $dhp)
+                or die("dparam set");
+        Net::SSLeay::DH_free($dhp);
+    }
+
+    if($conn->vhost->server->ssl_ecdh_curve) {
+        my $ecn = Net::SSLeay::OBJ_txt2nid($conn->vhost->server->ssl_ecdh_curve)
+                or die("ecdh curve not found: ".$conn->vhost->server->ssl_ecdh_curve);
+        my $ecdh = Net::SSLeay::EC_KEY_new_by_curve_name($ecn)
+                or die("ecdh key generation failed");
+        Net::SSLeay::CTX_set_tmp_ecdh($ctx,$ecdh)
+                or die("ecdh params set");
+        Net::SSLeay::EC_KEY_free($ecdh);
+    }
+
+    if($conn->vhost->server->ssl_cipher_list) {
+        Net::SSLeay::CTX_set_cipher_list($ctx,$conn->vhost->server->ssl_cipher_list)
+                or die("ssl cipher list");
+    }
+
+    if($conn->vhost->are_hooks('CheckCert')
+          || $conn->vhost->server->ssl_ca_cert_file
+          || $conn->vhost->server->ssl_ca_cert_path)
+    {
+	my $callback = sub {
+	    my ($ok,$cxs) = @_;
+	    return $ok unless($cxs);
+	    my ($cn,$crt,$err,$depth);
+	    $crt = Net::SSLeay::X509_STORE_CTX_get_current_cert($cxs);
+            $cn  = Net::SSLeay::X509_NAME_print_ex(Net::SSLeay::X509_get_subject_name($crt), &Net::SSLeay::XN_FLAG_RFC2253)
+	        if($crt);
+	    $err = Net::SSLeay::X509_STORE_CTX_get_error($cxs);
+	    $depth = Net::SSLeay::X509_STORE_CTX_get_error_depth($cxs);
+	    $err &&= Net::SSLeay::X509_verify_cert_error_string($err);
+	    $cn ||= '';
+	    $conn->vhost->run_hook_chain(
+		phase => 'CheckCert',
+		args => [$conn, $ok, $cn, $depth, $err, $crt],
+		methods => {
+		    pass => sub {
+			$ok = 1; # Just pass, ignore verification
+		    },
+		    accept => sub {
+			$ok = 1; # Pass and give the cert a clearance
+			Net::SSLeay::set_verify_result($conn->ssl,&Net::SSLeay::X509_V_OK);
+		    },
+		    reject => sub {
+			$ok = 0; # Reject and mark as app failed
+			Net::SSLeay::set_verify_result($conn->ssl, $_[0]||&Net::SSLeay::X509_V_ERR_APPLICATION_VERIFICATION);
+		    },
+		},
+		fallback => sub {
+		    $conn->log->debug("x509 Certificate[$cn] Validation: ok=$ok at depth $depth: $err");
+		}
+	    );
+	    return $ok;
+	};
+	$conn->log->debug("Setting verification callback for ".$conn->{id});
+	my $mode = &Net::SSLeay::VERIFY_CLIENT_ONCE | &Net::SSLeay::VERIFY_PEER;
+	Net::SSLeay::CTX_set_verify($ctx, $mode, $callback);
+	if($conn->vhost->server->ssl_ca_cert_file || $conn->vhost->server->ssl_ca_cert_path) {
+	    Net::SSLeay::CTX_load_verify_locations($ctx,
+		    $conn->vhost->server->ssl_ca_cert_file, $conn->vhost->server->ssl_ca_cert_path)
+	                or die("Invalid CA locations provided");
+	} else {
+	    $conn->log->warn("No CA is defined, any verification will fail without external plugins");
+	}
+    }
 
     my $ssl = Net::SSLeay::new($ctx) or die_now("Failed to create SSL $!");
+
+    return ($ssl,$ctx);
+}
+
+sub process {
+    my ($self, $conn) = @_;
+
+    # {=tls-no-spaces} -- we can't send spaces after the closing bracket
+    $conn->write("<proceed xmlns='urn:ietf:params:xml:ns:xmpp-tls' />")
+        if($self->element eq '{urn:ietf:params:xml:ns:xmpp-tls}starttls');
+
+    my ($ssl,$ctx) = $self->get_ssl_ctx($conn);
+
     $conn->{ssl} = $ssl;
     $conn->restart_stream;
     
-    DJabberd::Stanza::StartTLS->finalize_ssl_negotiation($conn, $ssl, $ctx);
+    $self->finalize_ssl_negotiation($conn, $ssl, $ctx);
 }
 
 # Complete the transformation of stream from tcp socket into ssl socket:
@@ -56,7 +146,7 @@ sub process {
 # 3. 'accept' tells SSL to start negotiating encryption
 # 4. set a socket write function that encrypts data before writting to the underlying socket
 sub finalize_ssl_negotiation {
-    my ($class, $conn, $ssl, $ctx) = @_;
+    my ($self, $conn, $ssl, $ctx) = @_;
 
     # Add a disconnect handler to this connection that will free memory
     # and remove references to junk no longer needed on close
@@ -77,9 +167,11 @@ sub finalize_ssl_negotiation {
 
     $Net::SSLeay::trace = 2;
 
-    my $rv = Net::SSLeay::accept($ssl);
+    my $rv = ($self->element eq '{urn:ietf:params:xml:ns:xmpp-tls}starttls') ?
+            Net::SSLeay::accept($ssl) :
+            Net::SSLeay::connect($ssl);
     if (!$rv) {
-        warn "SSL accept error on $conn\n";
+        warn $self->element_name." SSL error on $conn\n";
         $conn->close;
         return;
     }

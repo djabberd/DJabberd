@@ -54,6 +54,46 @@ intermediate certificates, then finally the root certificate.
 C<SSLCertificateKeyFile> and C<SSLCertificateFile> are required when
 using this option.
 
+=head2 SSLCipherSuite <OpenSSL Cipher String>
+
+Sets ciphersuite constrains for underlying SSL library. By default library
+defaults are used, which changes from version to version. Here you may
+specify either completely paranoidal security ciphers, or otherwise specify
+known broken and disabled by default but required for compatibility ciphers.
+
+Eg. something like
+
+  SSLCipherSuite 'EDH:ECDH:!SSLv2:!SSLv3:!DSS'
+
+should be fairly reasonable
+
+=head2 SSLECDHCurve <EC Curve Name>
+
+To enable ECDHE ciphers one need to specify which elliptic curve should be
+used for this purpose. List of supported curves could be obtained with
+
+  $ openssl ecparam -list_curves
+
+Curves with bitfield over 384 bits as of 2017 are considered a waste of
+resources however are frequently used. The speed drop although is
+considerable (almost twice) so something like
+
+  SSLECDHCurve secp384r1
+
+should provide I<good enough> security.
+
+=head2 SSLDHparamFile C</path/to/dhparam-file.pem>
+
+To use DHE ciphers one need to provide dhparam file of a good quality which
+should be pre-generated (or supplied with OS).
+
+Eg. as example
+
+  SSLDHparamFile /etc/ssl/dhparam-4k.pem
+
+to use system global 4k DH param file  as generating separate 4k for each app
+is a waste of resources.
+
 =head2 OldSSL C<boolean>
 
 Defaults to off; if set, the server will also listen on port 5223, and

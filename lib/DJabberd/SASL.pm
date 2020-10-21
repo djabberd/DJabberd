@@ -30,7 +30,7 @@ sub get_sasl_manager {
 
     no strict 'refs';
     no warnings;
-    unless (defined %{"${class}::"}) {
+    unless (%{"${class}::"}) {
         eval "use $class"; ## no critic
         die $@ if $@;
     }

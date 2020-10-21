@@ -259,7 +259,7 @@ sub set_to_host {
 
 sub to_host {
     my $self = shift;
-    return $self->{to_host} or
+    return $self->{to_host} ||
         die "To host accessed before it was set";
 }
 
@@ -270,7 +270,7 @@ sub set_version {
 
 sub version {
     my $self = shift;
-    return $self->{version} or
+    return $self->{version} ||
         die "Version accessed before it was set";
 }
 
@@ -344,7 +344,7 @@ sub send_stanza {
     my $cloned;
     my $getter = sub {
         return $cloned if $cloned;
-        if ($self != $stanza->connection) {
+        if (!$stanza->connection or $self != $stanza->connection) {
             $cloned = $stanza->clone;
             $cloned->set_connection($self);
         } else {
@@ -654,8 +654,14 @@ sub start_stream_back {
         # {=must-send-features-on-1.0}
         if (!$self->{ssl}
             && $self->server->ssl_cert_file
-            && !$self->isa("DJabberd::Connection::ServerIn")) {
-            $features_body .= "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls' />";
+            && $self->server->ssl_private_key_file
+        )
+        {
+            # Enforce SSL if configured, but only for C2S conneciton and if we know our VHost
+            $features_body .= "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls' "
+                              .((!$self->is_server && $self->vhost && $self->vhost->require_ssl)?
+                                "><required/></starttls>"
+                               :"/>");
         }
         if (my $vh = $self->vhost) {
             $vh->hook_chain_fast("SendFeatures",
