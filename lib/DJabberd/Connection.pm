@@ -663,18 +663,24 @@ sub start_stream_back {
                                 "><required/></starttls>"
                                :"/>");
         }
+        my $caps = "";
         if (my $vh = $self->vhost) {
+            $caps = $vh->caps->cap_xml('http://danga.com/djabberd/');
             $vh->hook_chain_fast("SendFeatures",
                                   [ $self ],
                                   {
                                       stanza => sub {
-                                        my ($self, $xml_string) = @_;
+                                        my ($self, $xml_string, $final) = @_;
                                         $features_body .= $xml_string;
+                                        return if($final);
+                                        # try to collect more features from plugins
+                                        $self->reset;
+                                        $self->decline;
                                       },
                                   }
                                   );
         }
-        $features = qq{<stream:features>$features_body</stream:features>};
+        $features = qq{<stream:features>$caps$features_body</stream:features>};
     }
 
     # The receiving entity MUST set the value of the 'version'

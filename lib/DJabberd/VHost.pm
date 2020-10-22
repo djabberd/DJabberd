@@ -6,6 +6,7 @@ use DJabberd::Util qw(tsub as_bool);
 use DJabberd::Log;
 use DJabberd::JID;
 use DJabberd::Roster;
+use DJabberd::Caps;
 
 our $logger = DJabberd::Log->get_logger();
 our $hook_logger = DJabberd::Log->get_logger("DJabberd::Hook");
@@ -29,8 +30,6 @@ sub new {
         'server_secret' => undef,  # server secret we use for dialback HMAC keys.  trumped
                                    # if a plugin implements a cluster-wide keyed shared secret
 
-        features        => [],     # list of features
-
         subdomain       => {},  # subdomain => plugin mapping of subdomains we should accept
 
         inband_reg      => 0,   # bool: inband registration
@@ -51,6 +50,11 @@ sub new {
 
     bless $self, $class;
 
+    $self->{caps} = DJabberd::Caps->new(
+        DJabberd::Caps::Identity->new("server","im","djabberd"),
+        DJabberd::Caps::Feature->new('http://jabber.org/protocol/disco#info'),
+        DJabberd::Caps::Feature->new('http://jabber.org/protocol/disco#items'),
+    );
     $logger->info("Addding plugins...");
     foreach my $pl (@{ $plugins || [] }) {
         $self->add_plugin($pl);
@@ -84,14 +88,18 @@ sub server_name {
     return $self->{server_name};
 }
 
+sub caps {
+    return $_[0]->{caps};
+}
+
 sub add_feature {
     my ($self, $feature) = @_;
-    push @{$self->{features}}, $feature;
+    $self->caps->add(DJabberd::Caps::Feature->new($feature));
 }
 
 sub features {
     my ($self) = @_;
-    return @{$self->{features}};
+    return map{$_->bare}$self->caps->get('feature');
 }
 
 sub setup_default_plugins {
@@ -447,30 +455,29 @@ sub handles_jid {
 }
 
 sub roster_push {
-    my ($self, $jid, $ritem) = @_;
+    my ($self, $jid, $ritem, $interim) = @_;
     croak("no ritem") unless $ritem;
 
     # kill cache if roster checked;
     my $barestr = $jid->as_bare_string;
     delete $self->{roster_cache}{$barestr};
 
-    # XMPP-IM: howwever a server SHOULD NOT push or deliver roster items
+    # XMPP-IM: however a server SHOULD NOT push or deliver roster items
     # in that state to the contact. (None + Pending In)
     return if $ritem->subscription->is_none_pending_in;
 
     # TODO: single-server roster push only.   need to use a hook
     # to go across the cluster
 
-    my $xml = "<query xmlns='jabber:iq:roster'>";
-    $xml .= $ritem->as_xml;
-    $xml .= "</query>";
+    my $xml = $ritem->as_query;
 
     my @conns = $self->find_conns_of_bare($jid);
     foreach my $c (@conns) {
-        next unless $c->is_available && $c->requested_roster;
+        next unless ($c->is_available || $interim) && $c->requested_roster;
+        next if $interim && $c->bound_jid->as_string ne $jid->as_string;
         my $id = $c->new_iq_id;
-        my $iq = "<iq to='" . $c->bound_jid->as_string_exml . "' type='set' id='$id'>$xml</iq>";
-        $c->xmllog->info($iq);
+        my $iq = "<iq from='$barestr' to='" . $c->bound_jid->as_string_exml . "' type='set' id='$id'>$xml</iq>";
+        $c->log_outgoing_data($iq);
         $c->write(\$iq);
     }
 }

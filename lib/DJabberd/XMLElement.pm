@@ -160,6 +160,8 @@ sub as_xml {
 
     $nsmap->{xmlns} = 'http://www.w3.org/2000/xmlns';
     $nsmap->{'http://www.w3.org/2000/xmlns'} = 'xmlns';
+    $nsmap->{xml} = 'http://www.w3.org/XML/1998/namespace';
+    $nsmap->{'http://www.w3.org/XML/1998/namespace'} = 'xml';
 
     # let's feed the nsmap...
     foreach my $k (keys %$attr) {

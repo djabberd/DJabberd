@@ -137,13 +137,7 @@ sub process_iq_disco_info_query {
     # capabilities we have
     my $xml;
     $xml  = qq{<query xmlns='http://jabber.org/protocol/disco#info'>};
-    $xml .= qq{<identity category='server' type='im' name='djabberd'/>};
-
-    foreach my $cap ('http://jabber.org/protocol/disco#info',
-                     $conn->vhost->features)
-    {
-        $xml .= "<feature var='$cap'/>";
-    }
+    $xml .= $conn->vhost->caps->as_xml;
     $xml .= qq{</query>};
 
     $iq->send_reply('result', $xml);
@@ -168,13 +162,31 @@ sub process_iq_getroster {
 
     my $send_roster = sub {
         my $roster = shift;
+        my $ver = $iq->query->attr('{}ver');
+	my @items = $roster->items;
+        $logger->debug("Got IQ ver $ver and roster with ".scalar(@items)." items from ".(ref($items[0]) ? $items[0]->ver:'<undef>')." to ".(ref($items[-1]) ? $items[-1]->ver : '<undef>'));
+        # If versioning is consistent - use versioned push. Otherwise fall back to full roster push
+        if($ver && scalar(@items)>5 && ref($items[0]) && $items[0]->ver <= $ver && ref($items[-1]) && $ver <= $items[-1]->ver) {
+            $logger->info("Pushing roster after $ver to conn $conn->{id}");
+            # Make diff push instead of full load
+            my $rsp = __PACKAGE__->new('','iq',{'{}type'=>'result'});
+            $rsp->set_to($iq->connection->bound_jid);
+            $rsp->set_from($iq->connection->bound_jid->as_bare_string);
+            $rsp->set_attr('{}id',$iq->attr('{}id')) if($iq->attr('{}id'));
+            my $xml = $rsp->as_xml;
+	    $iq->connection->xmllog->info($xml);
+            $iq->connection->write(\$xml);
+            # Empty response indicates roster will be delivered as series of pushes
+            foreach my$ri(@items) {
+                $iq->connection->vhost->roster_push($iq->connection->bound_jid,$ri,1) if($ri->ver > $ver);
+            }
+            return;
+        }
         $logger->info("Sending roster to conn $conn->{id}");
         $iq->send_result_raw($roster->as_xml);
 
         # JIDs who want to subscribe to us, since we were offline
-        foreach my $jid (map  { $_->jid }
-                         grep { $_->subscription->pending_in }
-                         $roster->items) {
+        foreach my $jid (map  { $_->jid } grep { $_->subscription->pending_in } @items) {
             my $subpkt = DJabberd::Presence->make_subscribe(to   => $conn->bound_jid,
                                                             from => $jid);
             # already in roster as pendin, we've already processed it,
@@ -270,7 +282,7 @@ sub process_iq_setroster {
                                          my ($self, $ritem_final) = @_;
 
                                          # the RosterRemoveItem isn't required to return the final item
-                                         $ritem_final = $ritem if $removing;
+                                         $ritem_final = $ritem if !$ritem_final and $removing;
 
                                          $iq->send_result;
                                          $conn->vhost->roster_push($conn->bound_jid, $ritem_final);

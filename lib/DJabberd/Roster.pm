@@ -34,22 +34,28 @@ sub items {
 
 sub from_items {
     my $self = shift;
-    return grep { $_->subscription->sub_from } @{ $self->{items} };
+    return grep { !$_->remove && $_->subscription->sub_from } @{ $self->{items} };
 }
 
 sub to_items {
     my $self = shift;
-    return grep { $_->subscription->sub_to } @{ $self->{items} };
+    return grep { !$_->remove && $_->subscription->sub_to } @{ $self->{items} };
 }
 
 sub as_xml {
     my $self = shift;
-    my $xml = "<query xmlns='jabber:iq:roster'>";
-    foreach my $it (@{ $self->{items} }) {
-        next if $it->subscription->is_none_pending_in;
-        $xml .= $it->as_xml;
+    my $ver = (@{$self->{items}} && $self->{items}->[-1]->ver)? " ver='".$self->{items}->[-1]->ver."'":'';
+    my $xml = "<query xmlns='jabber:iq:roster'$ver";
+    if(@{$self->{items}}) {
+        $xml .= ">";
+        foreach my $it (@{ $self->{items} }) {
+            next if $it->subscription->is_none_pending_in || $it->remove;
+            $xml .= $it->as_xml;
+        }
+        $xml .= "</query>";
+    } else {
+        $xml .= "/>";
     }
-    $xml .= "</query>";
     return $xml;
 }
 

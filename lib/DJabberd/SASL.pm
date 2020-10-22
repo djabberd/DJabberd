@@ -72,9 +72,8 @@ sub register {
     $vhost->register_hook("HandleStanza", sub {
         my (undef, $cb, $node) = @_;
         my $class = $sasl_elements{$node->element};
-        return unless $class;
+        return $cb->decline unless $class;
         $cb->handle($class);
-        return;
     });
 }
 
