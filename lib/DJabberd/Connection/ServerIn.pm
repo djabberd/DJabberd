@@ -85,17 +85,20 @@ sub filter_incoming_server_builtin {
     my ($self, $stanza) = @_;
 
     unless ($stanza->acceptable_from_server($self)) {
+	my $err = "improper-addressing";
+	my $info;
         if (not $stanza->from_jid) {
-            $self->log->error("Invalid 'from': @{[$stanza->from]}");
+            $info="Invalid 'from': @{[$stanza->from]}";
         } elsif (not $stanza->to_jid) {
-            $self->log->error("Invalid 'to': @{[$stanza->to]}");
+            $info="Invalid 'to': @{[$stanza->to]}";
         } else {
             my $domain = $stanza->from_jid->domain;
             my @known = sort keys %{$self->{verified_remote_domain}};
-            $self->log->error("Stanza of type '@{[ref $stanza]}' from $domain not acceptable; accept @known");
+            $info="Stanza of type '@{[ref $stanza]}' from $domain not acceptable; accept @known";
         }
+        $self->log->error($info);
         # FIXME: who knows.  send something else.
-        $self->stream_error;
+        $self->stream_error($err,$info);
         return 0;
     }
 

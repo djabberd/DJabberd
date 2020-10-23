@@ -453,7 +453,7 @@ sub _process_outbound_available {
                                args  => [ $conn, $self ],
                                methods => {
                                    done => sub {
-                                       return if $conn->{closed};
+                                       return if $conn->{closed} > 0;
                                        $self->_process_outbound_available($conn, 1);
                                    },
                                },
@@ -489,7 +489,7 @@ sub _process_outbound_unavailable {
                                args  => [ $conn, $self ],
                                methods => {
                                    done => sub {
-                                       return if $conn->{closed};
+                                       return if $conn->{closed} > 0;
                                        $self->_process_outbound_unavailable($conn, 1);
                                    },
                                },

@@ -11,10 +11,15 @@ sub finalize {
     $self->SUPER::finalize();
 }
 
+# if you want to hide specific object class behind parent implementation
+sub package {
+    return ''
+}
+
 sub register {
     my ($self, $vhost) = @_;
     $self->set_vhost($vhost);
-    $vhost->register_hook("deliver", sub { $self->deliver(@_) });
+    $vhost->register_hook("deliver", sub { $self->deliver(@_) }, $self->package || ref($self));
 }
 
 sub vhost {

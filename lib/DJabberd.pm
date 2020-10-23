@@ -292,6 +292,23 @@ sub set_config_casesensitive {
     $DJabberd::JID::CASE_SENSITIVE = as_bool($val);
 }
 
+sub set_config_s2sservertransport {
+    my ($self, $val) = @_;
+    eval("use $val");
+    croak("Can't use $val as s2s transport: $@") if($@);
+    $self->{s2ss_class} = $val;
+}
+
+sub set_config_s2sclienttransport {
+    my ($self, $val) = @_;
+    eval("use $val");
+    croak("Can't use $val as s2s transport: $@") if($@);
+    $self->{s2sc_class} = $val;
+}
+
+sub s2s_server_class { return ( $_[0]->{s2ss_class} || 'DJabberd::Connection::ServerIn') }
+sub s2s_client_class { return ( $_[0]->{s2sc_class} || 'DJabberd::Connection::ServerOut') }
+
 sub add_vhost {
     my ($self, $vhost) = @_;
     my $sname = lc $vhost->name;
@@ -527,7 +544,7 @@ sub start_c2s_server {
 sub start_s2s_server {
     my $self = shift;
     $self->_start_servers($self->{s2s_port},
-                         "DJabberd::Connection::ServerIn");
+                          $self->s2s_server_class);
 }
 
 sub start_cluster_server {

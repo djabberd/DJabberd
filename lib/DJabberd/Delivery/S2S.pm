@@ -9,13 +9,6 @@ our $logger = DJabberd::Log->get_logger;
 
 sub run_after { ("DJabberd::Delivery::Local") }
 
-sub new {
-    my $class = shift;
-    my $self = $class->SUPER::new(@_);
-    $self->{cache} = {}; # domain -> DJabberd::Queue::ServerOut
-    return $self;
-}
-
 sub deliver {
     my ($self, $vhost, $cb, $stanza) = @_;
     die unless $vhost == $self->{vhost}; # sanity check
@@ -50,10 +43,14 @@ sub deliver {
 sub get_queue_for_domain {
     my ($self, $domain) = @_;
     # TODO: we need to clean this periodically, like when connections timeout or fail
-    return $self->{cache}{$domain} ||=
-        DJabberd::Queue::ServerOut->new(source => $self,
+    my $queue = $self->{vhost}->find_queue($domain);
+    unless($queue) {
+	$queue = DJabberd::Queue::ServerOut->new(source => $self,
                                         domain => $domain,
                                         vhost  => $self->{vhost});
+	$self->{vhost}->add_queue($domain,$queue);
+    }
+    return $queue;
 }
 
 1;

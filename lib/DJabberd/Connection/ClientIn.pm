@@ -129,7 +129,7 @@ sub send_pending_sub_requests {
     $self->{pend_in_subscriptions} = undef;
 }
 
-sub close {
+sub unbind {
     my $self = shift;
     return if $self->{closed};
 
@@ -149,18 +149,27 @@ sub close {
         $self->vhost->unregister_jid($jid, $self);
         DJabberd::Presence->forget_last_presence($jid);
     }
+}
 
+sub close {
+    my $self = shift;
+
+    # Proper stream termination is unconditional - hooks are notice-only
+    $self->unbind unless($self->{in_stream});
+    # but abnormal termination might be handled by plugins (eg. XEP-0198)
+    # In this case hook should stop the chain and do the cleanup/unbind itself
     if ($self->vhost && $self->vhost->are_hooks("ConnectionClosing")) {
         $self->vhost->run_hook_chain(phase => "ConnectionClosing",
                                      args  => [ $self ],
-                                     methods => {
-                                         fallback => sub {
-                                         },
+                                     fallback => sub {
+                                         $self->unbind;
+                                         $self->SUPER::close;
                                      },
-                                     );
-
+                                   );
+    } else {
+        $self->unbind if($self->{in_stream});
+        $self->SUPER::close;
     }
-    $self->SUPER::close;
 }
 
 sub namespace {

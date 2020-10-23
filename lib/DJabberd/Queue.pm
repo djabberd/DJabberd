@@ -33,6 +33,7 @@ sub new {
 
     $self->{vhost}      = delete $opts{vhost}  or die "vhost required";
     Carp::croak("Not a vhost: $self->{vhost}") unless $self->vhost->isa("DJabberd::VHost");
+    Scalar::Util::weaken($self->{vhost});
 
     if (my $endpoints = delete $opts{endpoints}) {
         Carp::croak("endpoints must be an arrayref") unless (ref $endpoints eq 'ARRAY');
@@ -133,7 +134,7 @@ sub on_connection_failed {
 sub on_connection_error {
    my ($self, $conn) = @_;
    $logger->debug("connection error for queue");
-   return unless $conn == $self->{connection};
+   return unless(defined $self->{connection} && $conn == $self->{connection});
    $logger->debug("  .. match");
    my $pre_state = $self->{state};
 

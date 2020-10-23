@@ -76,7 +76,7 @@ sub new_connection {
     my $self = shift;
     my %opts = @_;
 
-    return DJabberd::Connection::ServerOut->new(%opts);
+    return $self->vhost->server->s2s_client_class->new(%opts);
 }
 
 1;

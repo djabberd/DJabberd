@@ -71,6 +71,19 @@ $hook{'pre_stanza_write'} = {
 };
 
 $hook{'c2s-iq'} = {};
+$hook{'s2s-iq'} = {};
+
+$hook{'DiscoBare'} = {
+    des => "Called when disco IQ against bare jid is requested",
+    args => ['IQ', 'info|items', 'bare', 'from', 'ritem'],
+    callbacks => {
+        addFeatures => [ '(Namespace,)' ],
+        setFeatures => [ '(Namespace,)' ],
+	addItems => [ '([ jid, node, name ],)' ],
+	setItems => [ '([ jid, node, name ],)' ],
+    },
+};
+
 $hook{'deliver'} = {
     args => ['Stanza'],
 };
