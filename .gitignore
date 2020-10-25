@@ -6,6 +6,7 @@ blib
 *~
 .*
 !.gitignore
+!.github
 !.shipit
 build-stamp
 install-stamp
