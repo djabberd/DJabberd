@@ -1,0 +1,28 @@
+name: Simple CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+
+  test:
+
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Install mandatory prereqs
+      run: sudo apt update -qy && sudo apt install -qy libdanga-socket-perl liblog-log4perl-perl libxml-libxml-perl libunicode-stringprep-perl libnet-dns-perl
+    - name: Install test and plugin prereqs
+      run: sudo apt install -qy make libtest-sharedfork-perl libtest-tcp-perl libdbd-sqlite3-perl libfile-slurp-perl libcgi-fast-perl nginx
+    - name: Bootstrap
+      run: perl Makefile.PL
+    - name: Build
+      run: make
+    - name: Adjust group membership
+      run: sudo usermod $(whoami) -G $(groups|sed 's/ /,/g')
+    - name: Test
+      run: make test
+
