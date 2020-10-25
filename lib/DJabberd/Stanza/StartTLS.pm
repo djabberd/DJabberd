@@ -17,8 +17,18 @@ sub get_ssl_ctx {
     my $ctx = Net::SSLeay::CTX_new()
         or die("Failed to create SSL_CTX $!");
 
-    $Net::SSLeay::ssl_version = 10; # Insist on TLSv1
-    #$Net::SSLeay::ssl_version = 3; # Insist on SSLv3
+    $Net::SSLeay::ssl_version = 12; # Insist on TLSv1.2
+    if($conn->vhost->server->ssl_min_protocol) {
+        # Default to TLSv1.1 if we cannot recognize it
+        my $ver = {
+	    'TLSv1'   => &Net::SSLeay::TLS1_VERSION,
+	    'TLSv1.1' => &Net::SSLeay::TLS1_1_VERSION,
+	    'TLSv1.2' => &Net::SSLeay::TLS1_2_VERSION,
+	    'TLSv1.3' => &Net::SSLeay::TLS1_3_VERSION
+	}->{$conn->vhost->server->ssl_min_protocol} || &Net::SSLeay::TLS1_1_VERSION;
+        Net::SSLeay::CTX_set_min_proto_version($ctx, $ver);
+        Net::SSLeay::die_if_ssl_error("set min version");
+    }
 
     my $ssl_opts = &Net::SSLeay::OP_ALL;
     $ssl_opts |= &Net::SSLeay::OP_CIPHER_SERVER_PREFERENCE;
@@ -31,14 +41,15 @@ sub get_ssl_ctx {
     Net::SSLeay::CTX_set_mode($ctx, 1)  # enable partial writes
         and Net::SSLeay::die_if_ssl_error("ssl ctx set options");
 
-    # Following will ask password unless private key is not encrypted
-    Net::SSLeay::CTX_use_PrivateKey_file ($ctx,  $conn->vhost->server->ssl_private_key_file,
-                                             &Net::SSLeay::FILETYPE_PEM);
-    Net::SSLeay::die_if_ssl_error("private key");
-
     Net::SSLeay::CTX_use_certificate_file ($ctx, $conn->vhost->server->ssl_cert_file,
                                            &Net::SSLeay::FILETYPE_PEM);
     Net::SSLeay::die_if_ssl_error("certificate");
+
+    # Following will ask password unless private key is not encrypted
+    Net::SSLeay::CTX_use_PrivateKey_file ($ctx,  $conn->vhost->server->ssl_private_key_file,
+                                             &Net::SSLeay::FILETYPE_PEM);
+    Net::SSLeay::CTX_check_private_key ($ctx);
+    Net::SSLeay::die_if_ssl_error("private key");
 
     if ($conn->vhost->server->ssl_cert_chain_file) {
         Net::SSLeay::CTX_use_certificate_chain_file ($ctx, $conn->vhost->server->ssl_cert_chain_file);

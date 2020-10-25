@@ -13,6 +13,7 @@ use fields (
             'server',         # our DJabberd server object, which we used to find the VHost
             'ssl',            # undef when not in ssl mode, else the $ssl object from Net::SSLeay
             'stream_id',      # undef until set first time
+            'from',           # undef until stream start, stream/@from or "" afterwards
             'to_host',        # undef until stream start
             'version',        # the DJabberd::StreamVersion we negotiated
             'rcvd_features',  # the features stanza we've received from the other party
@@ -508,7 +509,7 @@ sub event_read {
     }
 
     my $bref;
-    if (my $ssl = $self->{ssl}) {
+    if (((my $ssl = $self->{ssl}) || 0) > 0) {
         my $data = Net::SSLeay::read($ssl);
 
         my $errs = Net::SSLeay::print_errs('SSL_read');
@@ -672,9 +673,11 @@ sub start_stream_back {
             && $self->server->ssl_private_key_file
         )
         {
-            # Enforce SSL if configured, but only for C2S conneciton and if we know our VHost
+            # Enforce SSL if configured and if we know our VHost
             $features_body .= "<starttls xmlns='urn:ietf:params:xml:ns:xmpp-tls' "
-                              .((!$self->is_server && $self->vhost && $self->vhost->require_ssl)?
+                              .(($self->vhost && (
+                                (!$self->is_server && $self->vhost->require_ssl)||
+                                ($self->is_server && $self->vhost->req_s2s_ssl)))?
                                 "><required/></starttls>"
                                :"/>");
         }
@@ -820,6 +823,50 @@ sub _run_callback_list {
         $callback->($self, @args);
     }
     
+}
+
+=head2 C<< $obj->peer_ip_string() >>
+
+Returns the string describing the peer's address
+Overrides Danga::Socket implementation to handle
+Unix Domain Socket
+
+=cut
+sub peer_ip_string {
+    my DJabberd::Connection $self = shift;
+    return Danga::Socket::_undef("peer_ip_string undef: no sock") unless $self->{sock};
+    return $self->{peer_ip} if defined $self->{peer_ip};
+
+    my $pn = getpeername($self->{sock});
+    return Danga::Socket::_undef("peer_ip_string undef: getpeername") unless $pn;
+
+    my $af = Socket::sockaddr_family($pn);
+    my ($port, $iaddr) = eval {
+        if ($af == Socket::AF_UNIX()) {
+	    return Socket::unpack_sockaddr_un($pn);
+	} elsif($af == Socket::AF_INET6()) {
+            return Socket6::unpack_sockaddr_in6($pn);
+        } elsif($af == Socket::AF_INET()) {
+            return Socket::sockaddr_in($pn);
+        }
+    };
+
+    if ($@) {
+        $self->{peer_port} = "[Unknown peerport '$@']";
+        return "[Unknown peername '$@']";
+    }
+
+    $self->{peer_port} = $port;
+
+    if ($af == Socket::AF_INET()) {
+        return $self->{peer_ip} = Socket::inet_ntoa($iaddr);
+    } elsif($af == Socket::AF_INET6()) {
+        $self->{peer_v6} = 1;
+        return $self->{peer_ip} = Socket6::inet_ntop(Socket6::AF_INET6(),
+                                                     $iaddr);
+    } elsif($af == Socket::AF_UNIX()) {
+	return $self->{peer_port};
+    }
 }
 
 sub close {

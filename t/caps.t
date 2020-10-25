@@ -56,6 +56,7 @@ my $c = DJabberd::Caps->new(
 		{ var => 'software_version', value => [ '0.11' ] }
 	])
 );
+binmode STDOUT, ':utf8';
 print "".('-'x9)."\nXML Out:\n";
 print $c->as_xml;
 print "\n".('-'x9)."\nCAP Out:\n";

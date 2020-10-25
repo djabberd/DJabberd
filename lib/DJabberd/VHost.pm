@@ -17,6 +17,7 @@ sub new {
     my $self = {
         'server_name'   => lc(delete $opts{server_name} || ""),
         'require_ssl'   => delete $opts{require_ssl},
+        'req_s2s_ssl'   => delete $opts{req_s2s_ssl},
         's2s'           => delete $opts{s2s},
         'hooks'         => {},
         'server'        => undef,  # set when added to a server
@@ -171,6 +172,11 @@ sub allow_inband_registration {
 sub set_config_requiressl {
     my ($self, $val) = @_;
     $self->{require_ssl} = as_bool($val);
+}
+
+sub set_config_requiressls2s {
+    my ($self, $val) = @_;
+    $self->{req_s2s_ssl} = as_bool($val);
 }
 
 # true if vhost has s2s enabled
@@ -343,6 +349,10 @@ sub add_plugin {
 sub require_ssl {
     my $self = shift;
     return $self->{require_ssl};
+}
+
+sub req_s2s_ssl {
+    return $_[0]->{req_s2s_ssl};
 }
 
 sub are_hooks {

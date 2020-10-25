@@ -26,9 +26,10 @@ my $login_and_be = sub {
     $pb->send_xml("<presence/>");
 
     select(undef,undef,undef,0.25); # doh
-    $pa->send_xml("<iq type='get' id='pa1' to='$pb'><x/></iq>");
+    my $jb = DJabberd::JID->new($pb.'/'.$pb->resource);
+    $pa->send_xml("<iq type='get' id='pa1' to='$jb'><x/></iq>");
     like($pb->recv_xml, qr/id=.pa./, "pb got pa's iq");
-    $pb->send_xml("<iq type='get' id='pb1' to='$pa'><x/></iq>");
+    $pb->send_xml("<iq type='get' id='pb1' to='$jid'><x/></iq>");
     like($pa->recv_xml, qr/id=.pb./, "pb got pa's iq");
     return $jid;
 };
@@ -170,7 +171,7 @@ $server->start;
 
     my $fail = sub {
         my $r = $pa->recv_xml;
-        like $r, qr{<iq .* type='error'>.*</iq>}sm;
+        like $r, qr{<iq\s.*type='error'.*?>.*</iq>}sm;
         like $r, qr{<error type='cancel'>.*</error>}sm;
         like $r, qr{<not-allowed xmlns='urn:ietf:params:xml:ns:xmpp-stanzas'/>}sm;
     };

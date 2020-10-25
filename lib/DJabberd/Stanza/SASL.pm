@@ -5,7 +5,20 @@ use base qw(DJabberd::Stanza);
 
 use MIME::Base64 qw/encode_base64 decode_base64/;
 
-sub on_recv_from_server { die "unimplemented" }
+sub acceptable_from_server { 1 }
+
+sub on_recv_from_server {
+    my $self = shift;
+    my $conn = shift;
+
+    $conn->log->debug("Got Server SASL Auth for conn ".$conn->{id}." with ".$self->as_xml);
+
+    return $self->handle_exauth($conn)
+        if $self->element_name eq 'auth'
+	&& $self->attr('{}mechanism') eq 'EXTERNAL';
+
+    return $self->send_failure("not-authorized" => $conn);
+}
 
 ## TODO:
 ## check number of auth failures, force deconnection, bad for t time §7.3.5 policy-violation
@@ -25,6 +38,10 @@ sub on_recv_from_client {
 
     return $self->handle_response(@_)
         if $self->element_name eq 'response';
+
+    return $self->handle_exauth(@_)
+        if $self->element_name eq 'auth'
+	&& $self->attr('{}mechanism') eq 'EXTERNAL';
 
     return $self->handle_auth(@_)
         if $self->element_name eq 'auth';
@@ -107,6 +124,66 @@ sub handle_auth {
     $sasl_conn->server_start(
         $init => sub { $self->send_reply($conn->{sasl}, shift() => $conn) },
     );
+}
+
+sub handle_exauth {
+    my ($self, $conn) = @_;
+    $conn->log->debug("Handling EXTERNAL: SASL Auth for conn ".$conn->{id});
+    if($conn->ssl && $conn->sasl && $conn->sasl->isa('DJabberd::SASL::Connection::External')) {
+        my $id = join('',grep{/\S+/}$self->children);
+        $conn->log->debug("Found valid x509 certificate, validating auth request $id");
+        # Well, do the auth now
+        if($conn->is_server) {
+            my $peer = '';
+            # Identity should be explicitly specified or be stream "from" attribute
+            my $host = (!$id || $id eq '=')? $conn->{from} : decode_base64($id);
+            my $ret = $conn->sasl->srv_auth($host);
+            $conn->log->debug("Authenticating server $host by $ret");
+            if($ret == 1) {
+                $conn->sasl->set_id($host);
+                my $xml = "<success xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>";
+                $conn->log_outgoing_data($xml);
+                $conn->write(\$xml);
+                $conn->log->info("Registering domain $host ($peer) on connection ".$conn->{id});
+                $conn->peer_domain_set_verified($host);
+                $conn->restart_stream;
+            } elsif($ret < 0) {
+                $self->send_failure('malformed-request' => $conn);
+            } else {
+                $self->send_failure('not-authorized' => $conn);
+            }
+        } else {
+            my $jid;
+            if(!$id || $id eq '=') {
+                unless($jid = $self->sasl->usr_guess($conn->vhost)) {
+                    $conn->log->debug("Cannot guess ID from certificate, no apropriate SAN found");
+                    $self->send_failure('not-authorized' => $conn) unless($jid);
+                }
+            } else {
+                # Validate requested identity
+                $id = decode_base64($id);
+                my $ret = $conn->sasl->usr_auth($id,$conn->vhost);
+                if($ret == 1) {
+                   $jid = $id;
+                   $conn->log->info("Authenticating jid $jid on connection ".$conn->{id});
+                } elsif($ret < 0) {
+                   $self->send_failure('malformed-request' => $conn);
+                } else {
+                    $self->send_failure('not-authorized' => $conn);
+                }
+            }
+            if($jid) {
+                $conn->sasl->set_id($jid);
+                $conn->sasl->set_authenticated_jid($jid);
+                my $xml = "<success xmlns='urn:ietf:params:xml:ns:xmpp-sasl'/>";
+                $conn->log_outgoing_data($xml);
+                $conn->write(\$xml);
+                $conn->restart_stream;
+            }
+        }
+    } else {
+        $self->send_failure("invalid-mechanism" => $conn);
+    }
 }
 
 sub send_challenge {

@@ -39,6 +39,13 @@ sub to {
     return $to_attr->{Value};
 }
 
+sub from {
+    my $self = shift;
+    my $from_attr = $self->{saxdata}{Attributes}{"{}from"} or
+        return "";
+    return $from_attr->{Value};
+}
+
 sub id {
     my $self = shift;
     my $attr = $self->{saxdata}{Attributes}{"{}id"} or
