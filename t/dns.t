@@ -93,6 +93,7 @@ if(!$childpid_dns) {
     };
     
     my $ns = Net::DNS::Nameserver->new(
+	LocalAddr	=> ['::1', '127.0.0.1'],
         LocalPort       => $ns_port,
         ReplyHandler    => $reply_handler,
         Verbose         => 0,
