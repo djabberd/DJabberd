@@ -7,6 +7,7 @@ use Digest::SHA;
 
 use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger();
+our $NULLID = 1;
 
 # FIXME: should apply nodeprep
 sub _validate_username {
@@ -76,7 +77,17 @@ sub process {
     # Trillian Jabber 3.1 is stupid and sends a lot of IQs (but non-important ones)
     # without ids.  If we respond to them (also without ids, or with id='', rather),
     # then Trillian crashes.  So let's just ignore them.
-    return unless defined($self->id) && length($self->id);
+    #
+    # ... unless this is Miranda because, at least up until 0.78, it sends
+    # roster updates without an id, oops.
+    unless (defined($self->id) && length($self->id)) {
+        if ($conn->client_has_quirk('SendsIqWithoutId')) {
+            $self->{attrs}{"{}id"} = 'null' . $NULLID++;
+        }
+        else {
+            return;
+        }
+    }
 
     $conn->vhost->run_hook_chain(phase    => $phase,
                                  args     => [ $self ],
