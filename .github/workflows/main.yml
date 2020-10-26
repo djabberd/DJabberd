@@ -8,7 +8,12 @@ jobs:
 
   test:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+        - ubuntu-16.04
+        - ubuntu-latest
     timeout-minutes: 10
 
     steps:
