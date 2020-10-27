@@ -47,9 +47,9 @@ sub register {
 	    my $buf;
 	    my $rv = Net::SSLeay::session_reused($conn->ssl);
 	    if($rv) {
-		$rv = Net::SSLeay::get_finished($conn->ssl, $buf);
+		$rv = Net::SSLeay::get_finished($conn->ssl, $buf, 128);
 	    } else {
-		$rv = Net::SSLeay::get_peer_finished($conn->ssl, $buf);
+		$rv = Net::SSLeay::get_peer_finished($conn->ssl, $buf, 128);
 	    }
 	    if($rv > 0) {
 		$conn->{bindings}->{tls_unique} = $buf;
