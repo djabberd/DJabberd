@@ -1,7 +1,7 @@
 package DJabberd::DialbackParams;
 use strict;
 use Carp;
-use Digest::HMAC_SHA1 qw(hmac_sha1_hex);
+use Digest::SHA qw(hmac_sha1_hex);
 
 use DJabberd::Log;
 our $logger = DJabberd::Log->get_logger();

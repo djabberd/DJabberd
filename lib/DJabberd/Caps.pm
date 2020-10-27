@@ -10,7 +10,7 @@ use constant { HASH => 'sha-1' };
 
 sub new {
     my $class = shift;
-    my $self = bless { identity => [], feature => [], form => []}, $class;
+    my $self = bless { identity => [], feature => [], form => [], xml=>'', cap=>'' }, $class;
     foreach my$cap(@_) {
 	next unless(ref($cap));
 	$self->add($cap);
@@ -31,6 +31,8 @@ sub add {
 	}
     }
     return unless(UNIVERSAL::isa($cap,'DJabberd::Caps::Cap'));
+    $self->{cap} = '';
+    $self->{xml} = '';
     push(@{$self->{$cap->type}},$cap);
 }
 
@@ -42,19 +44,25 @@ sub get {
 
 sub as_cap {
     my $self = shift;
-    my $ret = join('',map{$_->as_cap}sort{$a cmp $b}@{$self->{identity}});
-    $ret .= join('',map{$_->as_cap}sort{$a cmp $b}@{$self->{feature}});
-    $ret .= join('',map{$_->as_cap}sort{$a cmp $b}@{$self->{form}});
-    return Encode::encode_utf8($ret);
+    if(!$self->{cap}) {
+        my $ret = join('',map{$_->as_cap}sort{$a cmp $b}@{$self->{identity}});
+        $ret .= join('',map{$_->as_cap}sort{$a cmp $b}@{$self->{feature}});
+        $ret .= join('',map{$_->as_cap}sort{$a cmp $b}@{$self->{form}});
+        $self->{cap} =  Encode::encode_utf8($ret);
+    }
+    return $self->{cap};
 }
 
 sub as_xml {
     my $self = shift;
-    return   Encode::decode_utf8(
+    if(!$self->{xml}) {
+        $self->{xml} = Encode::decode_utf8(
 	     join('',@{$self->{identity}})
 	    .join('',@{$self->{feature}})
 	    .join('',@{$self->{form}})
-    );
+        );
+    }
+    return $self->{xml};
 }
 
 sub digest {

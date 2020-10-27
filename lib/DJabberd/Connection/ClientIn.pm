@@ -139,10 +139,13 @@ sub unbind {
         # so if the stanzas 'bounce' or otherwise write back to our full JID,
         # they'll either drop/bounce instead of writing to what will
         # soon be a dead full JID.
-        $self->set_available(0);
+        #$self->set_available(0);
 
         my $unavail = DJabberd::Presence->unavailable_stanza;
-        $unavail->broadcast_from($self);
+        #$unavail->broadcast_from($self);
+        # We need not only to broadcast but also to reset directed presence
+        # and perhaps with AlterPresence hooks.
+        $unavail->process_outbound($self);
     }
 
     if (my $jid = $self->bound_jid) {

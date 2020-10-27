@@ -28,6 +28,7 @@ use fields (
             'disconnect_handlers',  # array of coderefs to call when this connection is closed for any reason
             'write_handlers', # array of coderefs to call when someone writes SCALAR ref to the connection (xml)
             'sasl',           # the sasl connection object, when sasl has been or is being negotiated
+	    'bindings'	      # TLS Channel Bindings (RFC 5056) filled by TLS handshake for SASL
             );
 
 our $connection_id = 1;

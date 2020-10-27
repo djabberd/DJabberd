@@ -75,6 +75,14 @@ sub manager_implementation {
                     );
                 }
             },
+	    getbinding => sub {
+		my ($sasl, $type) = @_;
+		$type =~ s/-/_/g;
+		$conn->log->debug("Querying cb-type $type, got ".join(",",grep{$conn->{bindings}{$_}}keys(%{$conn->{bindings}})));
+		return $conn->{bindings}{$type}
+		    if($conn->{bindings} && exists $conn->{bindings}{$type});
+		return undef;
+	    },
         },
     );
     return $saslmgr;
