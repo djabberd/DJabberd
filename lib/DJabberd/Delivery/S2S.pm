@@ -37,6 +37,9 @@ sub deliver {
         return $cb->declined;
 
     $DJabberd::Stats::counter{deliver_s2s}++;
+
+    $stanza->replace_ns("jabber:client", "jabber:server");
+
     $out_queue->queue_stanza($stanza, $cb);
 }
 
