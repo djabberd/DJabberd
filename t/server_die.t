@@ -10,7 +10,9 @@ two_parties_s2s(sub {
     $pa->login;
     $pb->login;
     $pa->send_xml("<presence/>");
+	$pa->recv_xml;
     $pb->send_xml("<presence/>");
+	$pb->recv_xml;
 
     $pa->send_xml("<message type='chat' to='$pb'>Hello.  I am $pa.</message>");
     like($pb->recv_xml, qr/type=.chat.*Hello.*I am \Q$pa\E/, "pb got pa's message");
@@ -22,6 +24,7 @@ two_parties_s2s(sub {
     $server->start;
     $pa->login;
     $pa->send_xml("<presence/>");
+	$pa->recv_xml;
 
     $pa->send_xml("<message type='chat' to='$pb'>Hello.  I am $pa.</message>");
     like($pb->recv_xml, qr/type=.chat.*Hello.*I am \Q$pa\E/, "pb got pa's message");

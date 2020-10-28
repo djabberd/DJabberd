@@ -431,14 +431,13 @@ sub broadcast_from {
         }
 
         # For the purpose of presence broadcasting
-        # we act as if all of the other resources
+        # we act as if all of the bound resources
         # for this bare JID are on the roster.
         # This means that resources of the same
         # JID are aware of each other and can send
         # messages to each other, etc.
         foreach my $otherconn ($vhost->find_conns_of_bare($from_jid)) {
             my $to_jid = $otherconn->bound_jid;
-            next if $from_jid->eq($to_jid);
             my $dpres = $self->clone;
             $dpres->set_to($to_jid);
             $dpres->set_from($from_jid);
@@ -462,10 +461,17 @@ sub _process_outbound_available {
                                        $self->_process_outbound_available($conn, 1);
                                    },
                                },
+                               # Enable fall-through signal-like notifications where
+                               # all subscribers decline it all the way through
+				fallback => sub {
+                                    return if $conn->{closed} > 0;
+				    $self->_process_outbound_available($conn, 1);
+				},
                                );
         return;
     }
 
+    $conn->log->debug($self->as_xml);
     if ($self->is_directed) {
         $conn->add_directed_presence($self->to_jid);
         $self->deliver;
@@ -498,11 +504,11 @@ sub _process_outbound_unavailable {
                                        $self->_process_outbound_unavailable($conn, 1);
                                    },
                                },
-                               # No idea how it was supposed to be working
-                               # but this way it does
-                               fallback => sub {
-                                   $self->_process_outbound_unavailable($conn, 1);
-                               },
+                               # Enable fall-through signal-like notifications where
+                               # all subscribers decline it all the way through
+				fallback => sub {
+				    $self->_process_outbound_unavailable($conn, 1);
+				},
                                );
         return;
     }
