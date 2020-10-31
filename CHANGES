@@ -1,3 +1,65 @@
+0.90 2020-10-31 Scary changes release
+  - add IPv6 support for c2s and s2s
+
+  - Add multi-socket support
+    (Dominik Schulz <dominik.schulz@gauner.org>)
+
+  - encode/decode disabled entities using HTML::Entities
+
+  - replace server namespace on local delivery
+    (Bron Gondwana <brong@opera.com>)
+
+  - add help and pod to djabberd
+    (Ioan Rogers <ioanr@cpan.org>)
+
+  - Add config options to harden TLS stack - namely define protos,
+    ciphers, CAs, DH-params, EC certs/keys/params
+
+  - Add support for <proceed/> nonza to enable StartTLS on outgoing (s2s)
+    connections. Also add option to enforce TLS on S2S.
+
+  - Add new Hook chain for [custom] certificate validation, eg could be used
+    to pin certificates by key digest/fingerprint.
+
+  - Add rosterver support to RosterStorage/Item and IQ handler.
+
+  - Change feature/identity/capability processing by introducing new class
+    Caps which supports XEP-0115 serialisation and digest calculation. Also
+    allow multiple plugins to inject stream features by resetting callback
+    on each injection and pushing the chain on.
+
+  - Add ability for plugins to inject custom write handlers.
+
+  - Add hook ordering mechanism which makes use of introduced but never used
+    run_before/run_after plugin methods.
+
+  - Fix and enhance IQ routing and processing: handle responses/errors to server,
+    introduce new hooks for c2s-iq and s2s-iq towards server or bare JID (both
+    must be handled by the server)
+
+  - Add ability to override default S2S/C2S Connectio via config option,
+    eg. to use Plugins as transport (Connection) implementation. Also move
+    S2S Queue to VHost from Delivery to give external connection plugins
+    ability to acquire and consume the queue.
+
+  - Add SASL External, SCRAM-SHA-*, SCRAM-SHA-*-PLUS mechanisms support.
+    the -PLUS part is implemented with tls-unique and tls-server-end-point
+    bindings. Also adds SASLprep code to prep the user/pass.
+
+  - Add ability to use external TLS (offload) via Unix domain socket. This
+    allows using eg. nginx or haproxy doing TLS and configure unix socket
+    with external TLS enabled. Only unix socket to maintain some security.
+
+  - Add new Hook chain GetPlugin to obtain plugin instance on VHost. Plugin
+    needs to publish itself by registering a callback on this Hook.
+
+  - Various miscelaneous fixes in stanza routing, handling, transcoding, eg.
+    replace local namespace with server on s2s delivery, send own presence to
+    self, fix directed presence broadcast on disconnect, etc.
+
+  - skip 0.86-0.89 to make it even more scarier
+    (Ruslan N. Marchenko <me@ruff.mobi>)
+
 0.85 2011-06-13 *CRITICAL SECURITY RELEASE*
   - Fix an XML entity injection attack allowing the attacker to read random files
     from the server. Reported by Wouter Coekaerts <wouter@coekaerts.be>.
