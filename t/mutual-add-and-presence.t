@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 44;
+use Test::More tests => 36;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
@@ -8,12 +8,10 @@ two_parties(sub {
     my ($pa, $pb) = @_;
     $pa->login;
     $pa->send_xml(qq{<presence><status>Init-A-Pres</status></presence>});
-    like($pa->recv_xml, qr/from=["']$pa/, "own presence check");
     $pa->get_roster;  # pb isn't going to request its roster.
 
     $pb->login;
     $pb->send_xml(qq{<presence><status>InitPres</status></presence>});
-    like($pb->recv_xml, qr/from=["']$pb/, "own presence check");
 
     $pa->send_xml(qq{<iq type='set' id='set1'>
   <query xmlns='jabber:iq:roster'>
@@ -75,7 +73,6 @@ two_parties(sub {
 
     # now PA is subscribed to PB.  so let's make PB change its status
     $pb->send_xml(qq{<presence><status>PresVer2</status></presence>});
-    like($pb->recv_xml, qr/from=["']$pb/, "own presence check");
     $xml = $pa->recv_xml;
     like($xml, qr/<presence.+\bfrom=.$pb.+PresVer2/s, "partya got presver2 presence of pb");
 
@@ -114,7 +111,6 @@ two_parties(sub {
 
 
     $pa->send_xml(qq{<presence><status>I_am_A</status></presence>});
-    like($pa->recv_xml, qr/from=["']$pa/, "own presence check");
     $pb->send_xml(qq{<presence><status>I_am_B</status></presence>});
     like($pa->recv_xml, qr/I_am_B/, "a got b's presence");
     like($pb->recv_xml, qr/I_am_A/, "b got a's presence");

@@ -15,9 +15,7 @@ two_parties_one_server(sub {
 
     # now pa/pb send presence to become available resources
     $pa->send_xml("<presence/>");
-	$pa->recv_xml;
     $pb->send_xml("<presence/>");
-	$pb->recv_xml;
 
     # add ourself to our roster, so when we die, the server will send
     # us our own disconnect info, causing infinite recursion if server

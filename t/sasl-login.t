@@ -23,9 +23,7 @@ my $login_and_be = sub {
     my $jid = $pa->sasl_login($sasl, $res);
     $pb->login;
     $pa->send_xml("<presence/>");
-	$pa->recv_xml;
     $pb->send_xml("<presence/>");
-	$pb->recv_xml;
 
     select(undef,undef,undef,0.25); # doh
     my $jb = DJabberd::JID->new($pb.'/'.$pb->resource);
@@ -96,9 +94,7 @@ my $login_and_be = sub {
 	my $jid = $pa->sasl_login($sasl, 'yann');
 	my $jib = $pb->sasl_login($sbsl, $pb->resource);
 	$pa->send_xml("<presence/>");
-	$pa->recv_xml;
 	$pb->send_xml("<presence/>");
-	$pb->recv_xml;
 
 	select(undef,undef,undef,0.25); # doh
 	my $jb = DJabberd::JID->new($pb.'/'.$pb->resource);

@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 4;
+use Test::More tests => 3;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
@@ -55,7 +55,6 @@ my $client = Test::DJabberd::Client->new(server => $server, name => "client");
 {
     $client->login;
     $client->send_xml("<presence/>");
-    like($client->recv_xml, qr/from=["']$client/, "own presence check");
     
     select(undef, undef, undef, 0.25);
     
