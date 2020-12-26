@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 34;
+use Test::More tests => 28;
 use lib 't/lib';
 require 'djabberd-test.pl';
 
@@ -9,9 +9,7 @@ two_parties(sub {
     $pa->login;
     $pb->login;
     $pa->send_xml("<presence/>");
-    like($pa->recv_xml, qr/from=["']$pa/, "own presence check");
     $pb->send_xml("<presence/>");
-    like($pb->recv_xml, qr/from=["']$pb/, "own presence check");
 
     select(undef, undef, undef, 0.25);
 
@@ -29,7 +27,6 @@ two_parties(sub {
     like($xml, qr{presence});
 
     $pa->send_xml(qq{<presence><show>this should not go to B</show></presence>});
-    like($pa->recv_xml, qr/from=["']$pa/, "own presence check");
     $pa->send_xml("<message type='chat' to='$pb'>Hello.  I am $pa.</message>");
     like($pb->recv_xml, qr/type=.chat.*Hello.*I am \Q$pa\E/, "pb got pa's message");
 

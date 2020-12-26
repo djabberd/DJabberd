@@ -12,9 +12,7 @@ two_parties(sub {
 
     # now pa/pb send presence to become available resources
     $pa->send_xml("<presence/>");
-	$pa->recv_xml;
     $pb->send_xml("<presence/>");
-	$pb->recv_xml;
     select(undef, undef, undef, 0.25);
 
     # PA to PB

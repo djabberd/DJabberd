@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 8;
+use Test::More tests => 7;
 use lib 't/lib';
 BEGIN {  $ENV{LOGLEVEL} ||= "FATAL" }
 BEGIN { require 'djabberd-test.pl' }
@@ -52,7 +52,6 @@ my $client = Test::DJabberd::Client->new(server => $server, name => "testuser");
 $client->login("jabberwocky");
 
 $client->send_xml("<presence/>");
-like($client->recv_xml, qr/<presence\s+.*from=["']$client/, "own presence check");
 $client->send_xml("<message type='chat' to='$client'>Hello myself!</message>");
 like($client->recv_xml, qr/Hello myself/, "client got own message");
 

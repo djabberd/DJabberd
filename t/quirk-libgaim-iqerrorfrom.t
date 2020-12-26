@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 use strict;
-use Test::More tests => 22;
+use Test::More tests => 14;
 use lib 't/lib';
 
 BEGIN {
@@ -32,9 +32,7 @@ sub run_test {
         $pa->login;
         $pb->login;
         $pa->send_xml("<presence/>");
-    like($pa->recv_xml, qr/from=["']$pa/, "own presence check");
         $pb->send_xml("<presence/>");
-    like($pb->recv_xml, qr/from=["']$pb/, "own presence check");
 
         my $xml;
 

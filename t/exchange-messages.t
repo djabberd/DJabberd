@@ -1,6 +1,6 @@
 #!/usr/bin/perl
 use strict;
-use Test::More tests => 14;
+use Test::More tests => 10;
 use lib 't/lib';
 
 require 'djabberd-test.pl';
@@ -18,9 +18,7 @@ two_parties(sub {
 
     # now pa/pb send presence to become available resources
     $pa->send_xml("<presence/>");
-    like($pa->recv_xml, qr/from=["']$pa/, "own presence check");
     $pb->send_xml("<presence/>");
-    like($pb->recv_xml, qr/from=["']$pb/, "own presence check");
     select(undef, undef, undef, 0.25);
 
     # PA to PB

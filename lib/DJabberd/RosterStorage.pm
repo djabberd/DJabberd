@@ -18,9 +18,6 @@ use DJabberd::RosterItem;
     }
 }
 
-# let others be
-sub run_after { qw(ALL) }
-
 # don't override, or at least call SUPER to this if you do.
 sub register {
     my ($self, $vhost) = @_;
