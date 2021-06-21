@@ -217,6 +217,11 @@ sub set_config_unixdomainsocket {
     };
 }
 
+sub set_config_userlogdir {
+    my ($self, $val) = @_;
+    $self->{userlogdir} = $val;
+}
+
 sub set_config_clientport {
     my ($self, $val) = @_;
     
